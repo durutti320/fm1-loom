@@ -812,7 +812,7 @@ static void lsmk_daw_draw(void)
             cv_text(12, 60, &FONT_S, u, K_TEXT);
         } else if (ld.sel == 0xFFu) {
             text_c(120, 16, &FONT_B, "A USB MIDI controller", K_TEXT);
-            text_c(120, 40, &FONT_XS, "LOOM-8 plays what comes in (MIDI IN)", K_DIM);
+            text_c(120, 40, &FONT_XS, APP_NAME " plays what comes in (MIDI IN)", K_DIM);
         } else {
             uint32_t full = ld.sel == DAW_PITCH && daw_ent(DAW_PITCH).type == DT_BEND ? 16383u : 127u, v = ld.sel_v;
             lsmk_daw_name(ld.sel, t);
@@ -855,7 +855,7 @@ static void lsmk_daw_draw(void)
                 num_s(e.num, s_cat(p, "  "));
             else
                 s_cat(p, e.type == DT_OFF ? "  off" : "");
-            cv_text((int32_t)x, (int32_t)y, &FONT_XS, t, K_TEXT);
+            cv_text((int32_t)x, (int32_t)y, &FONT_XS, t, trk_ink((int)k));   /* (each knob its colour, as in FLY) */
             cv_rect((int32_t)x, (int32_t)y + 18, 48, 5, K_PANEL);
             if (!daw_rel)
                 cv_rect((int32_t)x, (int32_t)y + 18, (int32_t)(48u * ld.kv[i] / 127u), 5, trk_ink((int)k));
@@ -872,7 +872,7 @@ static void lsmk_daw_draw(void)
         cv_rect(0, 0, 240, 1, K_LINE);
         text_c(120, 7, &FONT_XS, ld.btn >> B_HOME & 1u ? "K5 channel  K6 map  K7 knobs  OCT+ edit"
                                  : ld.edit ? "OCT+ next control    OCT- done"
-                                           : "< + >  LOOM-8        PATCH  local", K_DIM);
+                                           : "< + >  " APP_NAME "        PATCH  local", K_DIM);
         cv_blit(0, 212);
     }
 }
@@ -970,7 +970,7 @@ static void lsmk_daw_set(int on)
     ui_redraw();
     lsmk_daw_dirty();
     if (!on)
-        say("LOOM-8", "< + > for DAW mode");
+        say(APP_NAME, "< + > for DAW mode");
 }
 
 /* every frame, before LOOM-8's: 1 = DAW mode had it */

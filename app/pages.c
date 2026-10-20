@@ -19,6 +19,14 @@ typedef struct {
 } theme_t;
 /* the themes (Setup: THEME; the project keeps it in rsv[1]); the first is the default */
 static const theme_t THEMES[] = {
+#if BOARD_SMK37
+    /* FLY's (the SMK-37 build): a forest at night, the inks its mushrooms (fly agaric, chanterelle, sulphur shelf,
+     * moss, a teal, mycena's glow, amethyst deceiver, a pink); the panel's accents take them too (below) */
+    {"forest", RGB(16, 18, 30), RGB(30, 34, 52), RGB(46, 52, 76), RGB(56, 62, 90), RGB(96, 104, 138),
+     RGB(166, 172, 204), RGB(250, 244, 228), RGB(140, 146, 186), RGB(240, 56, 48), RGB(240, 222, 190),
+     {RGB(238, 72, 60), RGB(250, 156, 44), RGB(244, 212, 72), RGB(132, 212, 92), RGB(60, 206, 186), RGB(96, 160, 255),
+      RGB(178, 122, 246), RGB(250, 132, 192)}, 7, 10},
+#endif
     {"tape deck", RGB(24, 18, 14), RGB(44, 34, 26), RGB(70, 56, 42), RGB(74, 60, 46), RGB(120, 100, 80),
      RGB(190, 170, 140), RGB(244, 230, 200), RGB(150, 130, 104), RGB(230, 70, 40), RGB(240, 220, 180),
      {RGB(230, 180, 50), RGB(214, 96, 48), RGB(160, 170, 70), RGB(70, 170, 160), RGB(110, 150, 200), RGB(180, 110, 150),
@@ -261,6 +269,30 @@ static int s_eq(const char *a, const char *b)
         a++, b++;
     return *a == *b;
 }
+#if BOARD_SMK37
+/* FLY's colour: each page button its own ink (its page's tag, its name in the footer), each knob its own (K5..K8 as
+ * KNOB 1..4 and as DAW mode's: the theme's inks 5..8; SELECT, ALGORITHM, PRESETS 2..4) */
+static const uint8_t GROUP_INK[8] = {4, 3, 1, 2, 6, 5, 7, 0};   /* HOME SEQ EDIT ENV FX LFO ARP GLO */
+#define KNOB_INK(i) (theme->ink[4 + (i)])
+static uint16_t page_ink(int p) { return theme->ink[GROUP_INK[page_group(p) & 7]]; }
+static uint16_t ctl_ink(const char *b)          /* a control named in the footer: its colour */
+{
+    static const char *const ENC[4] = {"SELECT", "ALGO", "PRESET", "KNOBS"};
+    uint32_t i, k;
+    for (i = 0; i < 4u; i++)
+        if (s_eq(b, ENC[i]))
+            return theme->ink[1u + i];
+    if (s_eq(b, "REC"))
+        return K_REC;
+    if (s_eq(b, "PLAY"))
+        return theme->ink[3];
+    for (i = 0; i < NPAGE_BTN; i++)
+        for (k = 0; k < NB; k++)
+            if (PAGE_BTN[i].btn == k && s_eq(b, BTN_LABEL[k]))
+                return theme->ink[GROUP_INK[i & 7u]];
+    return K_TEXT;
+}
+#endif
 static char *upcase(char *s)
 {
     for (char *c = s; *c; c++)
@@ -760,9 +792,14 @@ static void draw_header(void)
             cv_text(x + 5, cap_y(4, 17, &FONT_XS) - 1, &FONT_XS, tn, K_BG);
             x += tw + 5;
         }
+#if BOARD_SMK37
+        cv_round(x, 4, w, 17, 3, page_ink(ui.page));   /* (FLY: the button's own colour, filled) */
+        cv_text(x + 3, cap_y(4, 17, &FONT_XS) - 1, &FONT_XS, bn, K_BG);
+#else
         cv_round(x, 4, w, 17, 3, K_DIM);
         cv_round(x + 1, 5, w - 2, 15, 2, K_BG);
         cv_text(x + 3, cap_y(4, 17, &FONT_XS) - 1, &FONT_XS, bn, K_DIM);
+#endif
         x += w + 6;
         x = cv_text(x, 4, &FONT_B, pn, K_TEXT);   /* (pn: page_name_of) */
         if (ext)
@@ -1261,7 +1298,11 @@ static void draw_knobs(void)
         nw = text_w(&FONT_XS, k[i].name);
         if (nw > 46)
             nw = 46;
+#if BOARD_SMK37
+        text_fit(cx - nw / 2, 0, &FONT_XS, k[i].name, 46, hot ? K_TEXT : KNOB_INK(i));   /* (FLY: the knob's colour) */
+#else
         text_fit(cx - nw / 2, 0, &FONT_XS, k[i].name, 46, hot ? K_TEXT : K_DIM);
+#endif
         if (upper_only(k[i].val) && text_w(&FONT_M, k[i].val) <= 48)   /* (48 px: clear of the panel's sides) */
             text_c(cx, cap_y(12, 28, &FONT_M), &FONT_M, k[i].val, vc);
         else if (text_w(&FONT_B, k[i].val) <= 48)
@@ -1282,8 +1323,13 @@ static void draw_knobs(void)
         if (k[i].max > 0) {
             int32_t bw = 44 * k[i].num / k[i].max;
             cv_round(cx - 22, 41, 44, 6, 3, K_LINE);
+#if BOARD_SMK37
+            if (bw > 0)
+                cv_round(cx - 22, 41, bw < 6 ? 6 : bw, 6, 3, hot ? K_SEL : KNOB_INK(i));
+#else
             if (bw > 0)
                 cv_round(cx - 22, 41, bw < 6 ? 6 : bw, 6, 3, hot ? K_SEL : K_NOW);
+#endif
             if (k[i].live >= 0) {                    /* a lock or a motion holds it now: where, a dot on the bar */
                 int32_t lx = cx - 22 + 38 * k[i].live / k[i].max;
                 cv_round(lx - 1, 39, 8, 10, 4, K_BG);
@@ -1619,9 +1665,16 @@ static int32_t bot_part(int32_t x, int32_t y, const char *s, uint32_t n, const f
             int32_t pad = enc ? BOT_PAD_E : BOT_PAD;
             w = text_w(&FONT_XS, b) + 2 * pad;
             if (draw) {
+#if BOARD_SMK37
+                uint16_t pc = ctl_ink(b);        /* (FLY: the control's colour) */
+                cv_round(x, y, w, BOT_PH, enc ? 7 : 2, pc);
+                cv_round(x + 1, y + 1, w - 2, BOT_PH - 2, enc ? 6 : 1, K_BG);
+                cv_text(x + pad, cap_y(y, BOT_PH, &FONT_XS) - (s_has_q(b) ? 1 : 0), &FONT_XS, b, pc);
+#else
                 cv_round(x, y, w, BOT_PH, enc ? 7 : 2, K_TEXT);
                 cv_round(x + 1, y + 1, w - 2, BOT_PH - 2, enc ? 6 : 1, K_BG);
                 cv_text(x + pad, cap_y(y, BOT_PH, &FONT_XS) - (s_has_q(b) ? 1 : 0), &FONT_XS, b, K_TEXT);   /* (Q's tail) */
+#endif
             }
             x += w;
             if (i < c) {
@@ -1784,7 +1837,11 @@ static const struct { uint8_t btn; uint32_t pages; const char *title, *l1, *l2; 
      "Hold SAVE and press white key 1 to 3 to save to that slot."},
     {B_SAVE, PG_SOUND, "Save", "Tap to save the project.",
      "Hold SAVE and press a white key: the sound as that user preset."},
+#if BOARD_SMK37
+    {B_SAVE, PG_ANY, "Save", "Saves now (FLY saves by itself when stopped and quiet).", "Hold SAVE and press white key 1 or 2 to save to that slot."},
+#else
     {B_SAVE, PG_ANY, "Save", "Saves now (LOOM-8 saves by itself when stopped and quiet).", "Hold SAVE and press white key 1 to 3 to save to that slot."},
+#endif
     {B_REC, PG_ANY, "Recording", "Stopped: a tap, then each key writes a step. + PLAY: live.",
      "Playing: hold it and play. Held, the knobs set click, count-in, mode."},
     {B_PLAY, PG(P_SONG), "Play", "Plays the song from the slot picked. PLAY again stops.", "SEL's PLAY SONG: from the top."},
@@ -3807,7 +3864,11 @@ static void draw_mix(void)
         int32_t x = 4 + COL[t] * 18 + (COL[t] >= 8 ? 14 : 0);
         int muted = t < NSEQT && (seq.mute >> t & 1u), sound = t < NTRK || is_fx(t);
         uint16_t ink = muted ? K_LINE : trk_ink(t);
+#if BOARD_SMK37
+        text_c(x + 7, 94, &FONT_XS, SHORT_NM[t], t == sel ? K_TEXT : muted || !sound ? K_FAINT : ink);   /* (FLY: inked) */
+#else
         text_c(x + 7, 94, &FONT_XS, SHORT_NM[t], t == sel ? K_TEXT : muted || !sound ? K_FAINT : K_DIM);
+#endif
         if (muted)
             cv_rect(x + 2, 108, 10, 2, K_FAINT);
         if (t == sel)
@@ -3917,7 +3978,11 @@ static void draw_setup(void)
     if (!begin_main(h))
         return;
     (void)t;
+#if BOARD_SMK37
+    setup_row(2, "tempo from", seq.ext ? "MIDI clock in" : APP_NAME);
+#else
     setup_row(2, "tempo from", seq.ext ? "MIDI clock in" : "LOOM-8");
+#endif
     setup_row(18, "sends clock", proj.send_clock ? "yes" : "no");
     setup_row(34, "sends notes", proj.send_notes ? "yes" : "no");
     setup_row(50, "USB audio", USBA_NAME[proj.usb_full & 1u]);

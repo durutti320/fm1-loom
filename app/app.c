@@ -130,6 +130,10 @@ void app_say(const char *a, const char *b) { ui_say(a, b); }
 void app_redraw(void) { ui_redraw(); }
 int app_sysex(const uint8_t *p, uint32_t n) { return smp_frame(p, n); }
 
+#if BOARD_SMK37
+#include "fly_splash.c"                             /* FLY's boot: mycelium, mushrooms, the name grown in */
+void app_splash(void) { fly_splash(); }
+#else
 /* the name over the eight tracks' inks woven as threads, in the default theme (pages.c THEMES[0]) */
 void app_splash(void)
 {
@@ -147,6 +151,7 @@ void app_splash(void)
     }
     cv_blit(0, 76);
 }
+#endif
 
 /* backup and restore over USB (fm1-base's backup.c): the slots and the presets as saved (LOOM-8 saves when asked:
  * what is not saved stays so); no saving while a backup streams; a restore: everything from the flash again */

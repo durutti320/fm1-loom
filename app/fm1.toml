@@ -3,6 +3,9 @@ name = "loom"                  # the build's files: loom.fwsc, loom-X.Y.fwsc, lo
 id_prefix = "FM-1_10"          # package identity: dev FM-1_1000, releases FM-1_10XXYYZZ (every single digit was taken)
 usb_manufacturer = "LOOM-8"
 usb_product = "LOOM-8 FM-1"
+smk37_name = "fly"             # the M-VAVE SMK-37 build (BOARD=smk37) is FLY: fly-smk37.fwsc, fly-smk37_host (app.h APP_NAME)
+smk37_usb_manufacturer = "FLY"
+smk37_usb_product = "FLY SMK-37"
 ble = false                    # no radio: LOOM-8 needs the RAM (and stays GPL-3.0)
 usb_audio_in = true            # the master output recordable over USB (Setup's USB AUDIO: follows the knob, or full)
 usb_audio_out = false

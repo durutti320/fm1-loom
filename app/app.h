@@ -9,7 +9,11 @@
 #include "dsp/synth.h"
 #include "dsp/fx.h"
 
+#if BOARD_SMK37
+#define APP_NAME "FLY"                  /* the M-VAVE SMK-37 build: LOOM-8 as FLY (its boot: fly_splash.c) */
+#else
 #define APP_NAME "LOOM-8"
+#endif
 #define APP_BLOCK 256u                  /* frames a render (5.8 ms): fm1-base's USB audio input takes 256-frame halves
                                          * at most (felucca-bsp usb.c); LOOM-8's own platform had 512-frame halves,
                                          * each rendered as two 256-frame calls, which is what the simulator always did */
