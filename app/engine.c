@@ -672,6 +672,14 @@ static void midi_in(uint32_t pkt)
     }
 }
 void engine_midi_in(uint32_t pkt) { midi_in(pkt); }   /* (the render drains plat_midi_in itself) */
+#if BOARD_SMK37
+/* a pitch wheel on the panel (the SMK-37's): -8192..8191, +-2 semitones onto the track's bend, as a MIDI bend */
+void engine_bend(int trk, int32_t v)
+{
+    if (trk >= 0 && trk < NTRK)
+        bend_c[trk] = (int16_t)(v * 200 / 8192);
+}
+#endif
 
 /* ---------------------------------------------------------------- render --- */
 static void drain(void)

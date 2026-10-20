@@ -1452,7 +1452,11 @@ static void page_footer(char *t)
         else if (ui.lockpg)
             s_cat(t, "KNOBS lock|SELECT page|SAVE clear");
         else if (ui.trickpg)
+#if BOARD_SMK37
+            s_cat(t, "K5 K7 trick|K6 K8 value");        /* (the SMK-37's printed names for KNOB 1..4) */
+#else
             s_cat(t, "KNOB 1 3 trick|KNOB 2 4 value");
+#endif
         else if (ui.held && is_drum(trk))
             s_cat(t, "BLACK sounds|ARP tricks|EDIT ENV FX LFO lock");
         else if (ui.held)
@@ -1763,8 +1767,13 @@ static const struct { uint8_t btn; uint32_t pages; const char *title, *l1, *l2; 
     {B_LFO, PG_ANY, "LFO", "Type, then its first three knobs.", "Page 2 has the type's fourth and fifth."},
     {B_ARP, PG_ANY, "Players", "Arp, strum or hold on the track's keys and steps; the last page, Weave.",
      "Strum: a key strums the chord from that key; keys held together become the chord."},
+#if BOARD_SMK37
+    {B_ARP, PG_STEPS, "Tricks", "With a step held, ARP: K5 and K7 pick its two tricks,",
+     "K6 and K8 their values. Let go of the step when done."},
+#else
     {B_ARP, PG_STEPS, "Tricks", "With a step held, ARP: KNOB 1 and 3 pick its two tricks,",
      "KNOB 2 and 4 their values. Let go of the step when done."},
+#endif
     {B_GLO, PG_ANY, "Mix", "Sends, pan, level. Black keys: a tap mutes a track, held: solo.",
      "SELECT: Master EQ, Master out and Setup. HOME's SEL has the projects."},
     {B_HOME, PG_ANY, "Arrange", "Each track's pattern in the scene. White keys: scenes, black: mutes.",

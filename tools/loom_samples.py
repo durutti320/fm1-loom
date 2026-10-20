@@ -37,6 +37,7 @@ Protocol (app/samples.c): F0 7D 46 4C cmd ... F7; BEGIN 11, WRITE 12, HDR 16, EN
 CRC before it commits), ERASE 14, INFO 15. Needs mido and a backend (pip install mido python-rtmidi) for the
 device commands.
 """
+import os
 import sys
 import time
 from pathlib import Path
@@ -277,8 +278,14 @@ def main():
     if len(sys.argv) < 2 or sys.argv[1] not in ("info", "load", "erase", "build", "syx"):
         sys.exit(__doc__)
     cmd = sys.argv[1]
+    argv = sys.argv[2:]
+    if argv[:1] and argv[0].startswith("--board="):   # --board=smk37: the M-VAVE SMK-37's smaller bank (152 KB)
+        sio.set_board(argv[0].split("=", 1)[1])
+        argv = argv[1:]
+    elif os.environ.get("BOARD"):
+        sio.set_board(os.environ["BOARD"].lower().replace("-", ""))
     try:
-        rate, rest = args_of(sys.argv[2:])
+        rate, rest = args_of(argv)
         if cmd in ("build", "syx"):
             if len(rest) < 2:
                 sys.exit(__doc__)

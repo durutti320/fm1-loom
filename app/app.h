@@ -30,23 +30,44 @@
  * keep its own platform's (four slots); it does, but for the fourth slot: the same numbers at the same places, so
  * what a development build saved in slots 1 to 3 and the presets carry over (the sample bank moved: upload it
  * again) */
+#if BOARD_SMK37
+/* the M-VAVE SMK-37 (fm1-base BOARD=smk37): 120 KB of store (0x9D000..0xBAFFF) and 160 KB of big data (USRFLASH
+ * 0xC2000..0xE9FFF), never the unit's calibration in between: two project slots (16 objects, 128 KB: 15 in the store,
+ * the panel calibration at the start of USRFLASH), and the user sample bank in the rest of USRFLASH, 152 KB
+ * (dsp/sample.h). PROVISIONAL: the split between project slots and samples is to be decided (NPROJ 1: ~200 KB of
+ * samples; 3: ~96 KB) */
+#define NPROJ 2                         /* project slots in flash */
+#else
 #define NPROJ 3                         /* project slots in flash */
+#endif
 #define PROJ_NOSLOT 0xFFu                /* proj_slot of a new project when every slot is taken: SAVE TO gives it one */
 #define PROJ_NOBJ 7
 enum { OBJ_PANEL, OBJ_PRESETS, OBJ_PROJ0, OBJ_NOBJ = OBJ_PROJ0 + NPROJ * PROJ_NOBJ };
 #define OBJ_PROJ(slot, k) (OBJ_PROJ0 + (slot) * PROJ_NOBJ + (k))
+#if BOARD_SMK37
+#define APP_STORE_MAP {0xC2000u, 0x9D000u, \
+    0x9F000u, 0xA1000u, 0xA3000u, 0xA5000u, 0xA7000u, 0xA9000u, 0xAB000u, \
+    0xAD000u, 0xAF000u, 0xB1000u, 0xB3000u, 0xB5000u, 0xB7000u, 0xB9000u}
+#else
 #define APP_STORE_MAP {0xDC000u, 0xDE000u, \
     0x97000u, 0x99000u, 0x9B000u, 0x9D000u, 0x9F000u, 0xA1000u, 0xA3000u, \
     0xA5000u, 0xA7000u, 0xA9000u, 0xAB000u, 0xAD000u, 0xAF000u, 0xB1000u, \
     0xB3000u, 0xB5000u, 0xB7000u, 0xB9000u, 0xBB000u, 0xBD000u, 0xBF000u}
+#endif
 
 /* backup and restore over USB (fm1-base's backup.c; base/tools/fm1_backup.py, base/web/backup): the user presets
  * and the three project slots, all or nothing. Not the user sample bank (raw flash, not store objects: its source is
  * the player's own WAVs, tools/loom_samples.py); a restore writes only the objects listed here, never its windows */
+#if BOARD_SMK37
+#define APP_BACKUP_OBJS {OBJ_PRESETS, \
+    OBJ_PROJ0 + 0, OBJ_PROJ0 + 1, OBJ_PROJ0 + 2, OBJ_PROJ0 + 3, OBJ_PROJ0 + 4, OBJ_PROJ0 + 5, OBJ_PROJ0 + 6, \
+    OBJ_PROJ0 + 7, OBJ_PROJ0 + 8, OBJ_PROJ0 + 9, OBJ_PROJ0 + 10, OBJ_PROJ0 + 11, OBJ_PROJ0 + 12, OBJ_PROJ0 + 13}
+#else
 #define APP_BACKUP_OBJS {OBJ_PRESETS, \
     OBJ_PROJ0 + 0, OBJ_PROJ0 + 1, OBJ_PROJ0 + 2, OBJ_PROJ0 + 3, OBJ_PROJ0 + 4, OBJ_PROJ0 + 5, OBJ_PROJ0 + 6, \
     OBJ_PROJ0 + 7, OBJ_PROJ0 + 8, OBJ_PROJ0 + 9, OBJ_PROJ0 + 10, OBJ_PROJ0 + 11, OBJ_PROJ0 + 12, OBJ_PROJ0 + 13, \
     OBJ_PROJ0 + 14, OBJ_PROJ0 + 15, OBJ_PROJ0 + 16, OBJ_PROJ0 + 17, OBJ_PROJ0 + 18, OBJ_PROJ0 + 19, OBJ_PROJ0 + 20}
+#endif
 #define APP_BACKUP_MAGIC 0x42384D4Cu     /* "LM8B" */
 #define APP_BACKUP_VERSION 1u
 #define APP_BACKUP_WHAT "replaces projects, presets"

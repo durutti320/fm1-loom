@@ -32,13 +32,24 @@
 #define SMP_NUSER 32                      /* the user bank's slots (user 1 is index SMP_NFACT, as before) */
 #define SMP_NAME 12
 #define SMP_NREG 3                        /* the bank's windows, in the order it fills them */
+#if BOARD_SMK37
+/* the SMK-37 (app.h): the rest of USRFLASH after the panel calibration's pair, 0xC4000..0xE9FFF, 152 KB, as three
+ * windows end to end (the bank's three, so its format and its tool stay as they are; tools/sampleio.py --board smk37) */
+#define SMP_REG0 0xC4000u
+#define SMP_REG0_SIZE 0x12000u
+#define SMP_REG1 0xD6000u
+#define SMP_REG1_SIZE 0x12000u
+#define SMP_REG2 0xE8000u
+#define SMP_REG2_SIZE 0x2000u
+#else
 #define SMP_REG0 0xC1000u                 /* the data area after the projects, up to the calibration: 108 KB */
 #define SMP_REG0_SIZE 0x1B000u
 #define SMP_REG1 0xE5000u                 /* PLAT_XDATA1: 92 KB */
 #define SMP_REG1_SIZE 0x17000u
 #define SMP_REG2 0x93000u                 /* PLAT_XDATA0: 16 KB */
 #define SMP_REG2_SIZE 0x4000u
-#define SMP_BANK_SIZE (SMP_REG0_SIZE + SMP_REG1_SIZE + SMP_REG2_SIZE)   /* 216 KB */
+#endif
+#define SMP_BANK_SIZE (SMP_REG0_SIZE + SMP_REG1_SIZE + SMP_REG2_SIZE)   /* 216 KB (SMK-37: 152 KB) */
 #define SMP_BANK_BASE SMP_REG0            /* flash offset of the bank's header */
 #define SMP_BANK_HDR 2048u                /* the header; the data follows */
 #define SMP_BANK_MAGIC 0x504D534Cu        /* "LSMP" */

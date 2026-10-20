@@ -112,6 +112,14 @@ static int ordinal(const uint8_t *t, int n, int k)
     return -1;
 }
 static int key_note(int k) { return KEY_BASE + k + ui.oct * 12; }
+#if BOARD_SMK37                                  /* the M-VAVE SMK-37's panel (smk37.c, after this file) */
+#define KEY_VEL(k) ((int)plat_key_vel(k))       /* its keys' velocity, from the unit's own curves */
+static void lsmk_poll(void);
+static uint32_t lsmk_pad_keys(void);
+static void lsmk_lights(void);
+#else
+#define KEY_VEL(k) 127
+#endif
 /* a drum track's keys: the 11 keys on the black keys, spread over the white keys too (a key is note 1..11,
  * as the steps hold it) */
 static int key_sound(int k)
@@ -930,7 +938,7 @@ static void keyboard_down(int k)
         int note = is_drum(trk) ? key_sound(k) : key_note(k);
         ui.kmode[k] = KM_PLAY;
         ui.knote[k] = (uint8_t)note;
-        engine_key(trk, note, 1, 127);
+        engine_key(trk, note, 1, KEY_VEL(k));
         chord_add(note);
         if (is_drum(trk)) {                      /* a drum key: its sound is the one shown (Steps with SEQ held; a
                                                   * black key on the sound pages picks the key the knobs edit) */
@@ -1082,7 +1090,7 @@ static void key_down(int k)
             ui.dsound = (uint8_t)b;
             ui.knote[k] = (uint8_t)(b + 1);
             if (!playing())
-                engine_key(trk, b + 1, 1, 127);
+                engine_key(trk, b + 1, 1, KEY_VEL(k));
             return;
         }
         ui.kmode[k] = KM_IDLE;                   /* (the other tracks' black keys: nothing, ALGORITHM picks a track) */
@@ -2327,14 +2335,23 @@ static void save_key(int k)
         return;
     }
     if (w >= NPROJ) {
+#if BOARD_SMK37
+        say_no("TWO SLOTS", "white keys 1 to 2");  /* (the SMK-37: two project slots, app.h) */
+#else
         say_no("THREE SLOTS", "white keys 1 to 3");
+#endif
         return;
     }
     act_save_slot(w);
 }
 static void input(void)
 {
+#if BOARD_SMK37
+    lsmk_poll();                                  /* the SMK's pads, outer keys, faders and wheels first */
+    uint32_t btn = plat_buttons(), keys = plat_keys() | lsmk_pad_keys(), ch, i;   /* (the pads on Steps: its cells) */
+#else
     uint32_t btn = plat_buttons(), keys = plat_keys(), ch, i;
+#endif
     int32_t e, ev[NE];
     ch = btn ^ ui.btn;
     ui.btn = btn;
@@ -2528,6 +2545,9 @@ static void leds(void)
         }
     }
     loom_lights(b, k, proj.lights == 1, dim & ~k, rec);
+#if BOARD_SMK37
+    lsmk_lights();
+#endif
 }
 
 /* ------------------------------------------------------ screen reader --- */

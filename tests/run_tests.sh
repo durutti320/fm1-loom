@@ -32,7 +32,7 @@ run() {
 "$PY" tools/gen_samples.py build/gen/samples.h build/gen/wav >/dev/null
 run sample-bank sh -c "'$PY' tools/loom_samples.py build build/gen/user_bank.bin 'piano two=build/gen/wav/piano.wav:60%16k' \
     vowel=build/gen/wav/ah.wav:57 && '$PY' tools/loom_samples.py syx build/gen/user_bank.syx \
-    'piano two=build/gen/wav/piano.wav:60%16k' vowel=build/gen/wav/ah.wav:57"
+    'piano two=build/gen/wav/piano.wav:60%16k' flute=build/gen/wav/flute.wav:72"
 run bank-tool "$PY" tests/host/bank_test.py
 # the units' own tests, written beside them (their WAVs in build/host/)
 for t in synth braids drumline fx seq; do
@@ -72,6 +72,16 @@ for s in tests/scenarios/*.xy; do
     rm -rf "$B/scenarios/$n" && mkdir -p "$B/scenarios/$n"
     run "scenario-$n" $B/host/loom_host "$s" "$B/scenarios/$n"
 done
+# the M-VAVE SMK-37 build (BOARD=smk37: fm1-base's SMK target, app/smk37.c) in its own simulator: its pads, faders,
+# outer keys and wheels (tests/scenarios_smk37/*.xy); the FM-1 simulator built again after it (the layout sweep uses it)
+run host-build-smk37 sh -c "BOARD=smk37 sh build.sh --host"
+for s in tests/scenarios_smk37/*.xy; do
+    n=$(basename "$s" .xy)
+    rm -rf "$B/scenarios/$n" && mkdir -p "$B/scenarios/$n"
+    run "scenario-$n" $B/host/loom-smk37_host "$s" "$B/scenarios/$n"
+done
+run sample-bank-smk37 sh -c "'$PY' tools/loom_samples.py build --board=smk37 build/gen/user_bank_smk37.bin \
+    'piano two=build/gen/wav/piano.wav:60%16k' flute=build/gen/wav/flute.wav:72"
 # every page, engine and type, through the layout audit (tools/layout_sweep.py)
 "$PY" tools/layout_sweep.py build/gen/layout_sweep.xy
 rm -rf "$B/scenarios/layout_sweep" && mkdir -p "$B/scenarios/layout_sweep"

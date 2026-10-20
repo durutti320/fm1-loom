@@ -10,10 +10,20 @@
 export const RATES = [11025, 16000, 22050, 32000];
 export const AUTO = [22050, 16000, 11025];
 export const BLK = 64;
-export const REGIONS = [[0xC1000, 0x1B000], [0xE5000, 0x17000], [0x93000, 0x4000]];
+const REGIONS_FM1 = [[0xC1000, 0x1B000], [0xE5000, 0x17000], [0x93000, 0x4000]];
+const REGIONS_SMK37 = [[0xC4000, 0x12000], [0xD6000, 0x12000], [0xE8000, 0x2000]];   // the M-VAVE SMK-37's (152 KB)
+export let REGIONS = REGIONS_FM1;
 const XDATA = [1, 2], REC_MARK = 0xF06;
-export const BANK_SIZE = REGIONS.reduce((a, r) => a + r[1], 0);
-export const BANK_HDR = 2048, BANK_MAX_DATA = BANK_SIZE - BANK_HDR, BANK_N = 32, BANK_VER = 2;
+export let BANK_SIZE = REGIONS.reduce((a, r) => a + r[1], 0);
+export const BANK_HDR = 2048, BANK_N = 32, BANK_VER = 2;
+export let BANK_MAX_DATA = BANK_SIZE - BANK_HDR;
+// the board the bank is for: "fm1", or "smk37" (the page picks it from the device's port name; sampleio.set_board)
+export function setBoard(board) {
+  REGIONS = board === "smk37" ? REGIONS_SMK37 : REGIONS_FM1;
+  BANK_SIZE = REGIONS.reduce((a, r) => a + r[1], 0);
+  BANK_MAX_DATA = BANK_SIZE - BANK_HDR;
+  STARTS = regionStarts();
+}
 export const ENT0 = 64, ENT = 40, BANK_MAGIC = 0x504D534C, NAME_LEN = 12, BARS_MAX = 16;
 export const LOOP_ROOT = 53;                  // a loop's slice 1: F3, the lowest key
 export const HDR_USED = ENT0 + BANK_N * ENT;  // the header's bytes the FM-1 keeps (1344)
@@ -205,7 +215,7 @@ export function lengthAt(nx, sr, rate) { return Math.trunc(nx * rate / sr); }
 
 // ---- the bank's layout (sampleio.user_bank)
 function regionStarts() { const out = []; let v = 0; for (const [, n] of REGIONS) { out.push(v); v += n; } return out; }
-const STARTS = regionStarts();
+let STARTS = regionStarts();
 function regionOf(v) {
   for (let r = 0; r < REGIONS.length; r++) if (STARTS[r] <= v && v < STARTS[r] + REGIONS[r][1]) return r;
   return REGIONS.length;

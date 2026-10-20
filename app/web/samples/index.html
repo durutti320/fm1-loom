@@ -334,7 +334,11 @@ async function connect() {
     await input.open();
     await output.open();
     const l = new Link(input, output);
-    try { await l.retry(25, [], 1000); return l; } catch (_) { /* not answering: the next */ }
+    try {
+      await l.retry(25, [], 1000);
+      setBoard(/smk/i.test(input.name) ? "smk37" : "fm1");   // (the SMK-37's smaller bank: its port says SMK-37)
+      return l;
+    } catch (_) { /* not answering: the next */ }
   }
   throw new Error("No FM-1 running LOOM-8 found. Connect it by USB, and close other apps that use its MIDI port.");
 }
