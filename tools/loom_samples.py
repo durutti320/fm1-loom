@@ -279,7 +279,7 @@ def main():
         sys.exit(__doc__)
     cmd = sys.argv[1]
     argv = sys.argv[2:]
-    if argv[:1] and argv[0].startswith("--board="):   # --board=smk37: the M-VAVE SMK-37's smaller bank (152 KB)
+    if argv[:1] and argv[0].startswith("--board="):   # --board=smk37: the M-VAVE SMK-37's smaller bank (144 KB)
         sio.set_board(argv[0].split("=", 1)[1])
         argv = argv[1:]
     elif os.environ.get("BOARD"):

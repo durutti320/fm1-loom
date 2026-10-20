@@ -33,21 +33,25 @@
 #if BOARD_SMK37
 /* the M-VAVE SMK-37 (fm1-base BOARD=smk37): 120 KB of store (0x9D000..0xBAFFF) and 160 KB of big data (USRFLASH
  * 0xC2000..0xE9FFF), never the unit's calibration in between: two project slots (16 objects, 128 KB: 15 in the store,
- * the panel calibration at the start of USRFLASH), and the user sample bank in the rest of USRFLASH, 152 KB
- * (dsp/sample.h). PROVISIONAL: the split between project slots and samples is to be decided (NPROJ 1: ~200 KB of
- * samples; 3: ~96 KB) */
+ * the panel calibration at the start of USRFLASH), the user sample bank in USRFLASH after it, 144 KB (dsp/sample.h),
+ * and DAW mode's settings and USER map at its end (OBJ_DAW, 0xE8000; app/smk37.c). The split chosen: two slots
+ * (NPROJ 1 would leave ~192 KB of samples, 3 ~88 KB) */
 #define NPROJ 2                         /* project slots in flash */
 #else
 #define NPROJ 3                         /* project slots in flash */
 #endif
 #define PROJ_NOSLOT 0xFFu                /* proj_slot of a new project when every slot is taken: SAVE TO gives it one */
 #define PROJ_NOBJ 7
+#if BOARD_SMK37
+enum { OBJ_PANEL, OBJ_PRESETS, OBJ_PROJ0, OBJ_DAW = OBJ_PROJ0 + NPROJ * PROJ_NOBJ, OBJ_NOBJ };   /* (DAW mode's) */
+#else
 enum { OBJ_PANEL, OBJ_PRESETS, OBJ_PROJ0, OBJ_NOBJ = OBJ_PROJ0 + NPROJ * PROJ_NOBJ };
+#endif
 #define OBJ_PROJ(slot, k) (OBJ_PROJ0 + (slot) * PROJ_NOBJ + (k))
 #if BOARD_SMK37
 #define APP_STORE_MAP {0xC2000u, 0x9D000u, \
     0x9F000u, 0xA1000u, 0xA3000u, 0xA5000u, 0xA7000u, 0xA9000u, 0xAB000u, \
-    0xAD000u, 0xAF000u, 0xB1000u, 0xB3000u, 0xB5000u, 0xB7000u, 0xB9000u}
+    0xAD000u, 0xAF000u, 0xB1000u, 0xB3000u, 0xB5000u, 0xB7000u, 0xB9000u, 0xE8000u}
 #else
 #define APP_STORE_MAP {0xDC000u, 0xDE000u, \
     0x97000u, 0x99000u, 0x9B000u, 0x9D000u, 0x9F000u, 0xA1000u, 0xA3000u, \

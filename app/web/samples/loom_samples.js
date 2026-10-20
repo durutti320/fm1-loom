@@ -11,7 +11,7 @@ export const RATES = [11025, 16000, 22050, 32000];
 export const AUTO = [22050, 16000, 11025];
 export const BLK = 64;
 const REGIONS_FM1 = [[0xC1000, 0x1B000], [0xE5000, 0x17000], [0x93000, 0x4000]];
-const REGIONS_SMK37 = [[0xC4000, 0x12000], [0xD6000, 0x12000], [0xE8000, 0x2000]];   // the M-VAVE SMK-37's (152 KB)
+const REGIONS_SMK37 = [[0xC4000, 0x12000], [0xD6000, 0x10000], [0xE6000, 0x2000]];   // the M-VAVE SMK-37's (144 KB)
 export let REGIONS = REGIONS_FM1;
 const XDATA = [1, 2], REC_MARK = 0xF06;
 export let BANK_SIZE = REGIONS.reduce((a, r) => a + r[1], 0);

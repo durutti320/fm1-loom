@@ -117,6 +117,8 @@ static int key_note(int k) { return KEY_BASE + k + ui.oct * 12; }
 static void lsmk_poll(void);
 static uint32_t lsmk_pad_keys(void);
 static void lsmk_lights(void);
+static int lsmk_daw_frame(void);
+#include "smk_daw.h"                             /* DAW mode's map and messages (daw_on: smk37.c's frame instead) */
 #else
 #define KEY_VEL(k) 127
 #endif
@@ -3161,6 +3163,10 @@ static void autosave(void)
 }
 void ui_frame(void)
 {
+#if BOARD_SMK37
+    if (lsmk_daw_frame())                        /* DAW mode: the SMK is a MIDI controller (smk37.c), LOOM-8 left alone */
+        return;
+#endif
     input();
     if (playing() != ui.playing) {
         ui.playing = (uint8_t)playing();
@@ -3196,7 +3202,14 @@ void ui_frame(void)
     ui.frame++;
 }
 
-void ui_input_only(void) { input(); }
+void ui_input_only(void)
+{
+#if BOARD_SMK37
+    if (daw_on)                                  /* (DAW mode: its controls are smk37.c's, at the next frame) */
+        return;
+#endif
+    input();
+}
 void ui_redraw(void)                             /* every band drawn again at the next frame (their signatures forgotten) */
 {
     for (uint32_t i = 0; i < sizeof ui.sig / sizeof ui.sig[0]; i++)

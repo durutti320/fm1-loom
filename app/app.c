@@ -22,10 +22,10 @@ static int load_force = -1;             /* the script's "load N": the guard sees
 #endif
 
 #if BOARD_SMK37
-_Static_assert(OBJ_NOBJ == 16 && OBJ_PROJ0 == 2, "the store map lists every object (APP_STORE_MAP)");
+_Static_assert(OBJ_NOBJ == 17 && OBJ_PROJ0 == 2 && OBJ_DAW == 16, "the store map lists every object (APP_STORE_MAP)");
 _Static_assert(SMP_REG0 == PLAT_XDATA0_LO + 0x2000u && SMP_REG0 + SMP_REG0_SIZE == SMP_REG1 &&
-               SMP_REG1 + SMP_REG1_SIZE == SMP_REG2 && SMP_REG2 + SMP_REG2_SIZE == PLAT_XDATA0_HI,
-               "SMK-37: the user sample bank is USRFLASH after the panel calibration's pair, whole (plat.h)");
+               SMP_REG1 + SMP_REG1_SIZE == SMP_REG2 && SMP_REG2 + SMP_REG2_SIZE + 0x2000u == PLAT_XDATA0_HI,
+               "SMK-37: the user sample bank is USRFLASH between the panel calibration's pair and OBJ_DAW's (plat.h)");
 #else
 _Static_assert(OBJ_NOBJ == 23 && OBJ_PROJ0 == 2, "the store map lists every object (APP_STORE_MAP)");
 _Static_assert(SMP_REG0 >= 0xC1000u && SMP_REG0 + SMP_REG0_SIZE <= 0xDC000u && SMP_REG0 >= PLAT_DATA_LO,

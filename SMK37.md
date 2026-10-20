@@ -28,8 +28,11 @@ The manual still applies: the FM-1's controls are where the SMK-37 prints the sa
 | Keys C3..E3, G#5..C6 (the outer 10) | more notes on the track the keys play, with velocity; on a kit, its keys |
 | 16 pads, on Steps and Bar (SEQ) | the bar's 16 cells, pads 1-8 the top row, 9-16 the bottom: everything the white keys do there (a tap, a hold, a later one for the length). Lit in the track's colour: a step with notes dim, the step playing bright, a step held white |
 | 16 pads, every other page | drum pads: pads 1-11 are the 11 keys of a kit, with velocity (the track selected if it is a kit, else the kit selected last). Recorded while recording. Pads 12-16 dark |
+| KNOB BANK | the pads' job. On Steps: drum pads there too (lit), again the cells. On any other page: opens Steps, with the pads as its cells |
+| < / > | the bar before / after (the bar Steps shows and the pads write), when let go. Both together: DAW mode (below) |
 | Faders 1..4 | the levels of T1-T4, or T5-T8 after FADER BANK (lit on T5-T8). A fader acts only once it moves |
 | Pitch wheel | bend of the track the keys play, +-2 semitones (as a MIDI pitch bend) |
+| Mod wheel | the filter of the track the keys play: its cutoff (a DYNAMIC filter: its hi cut). A pick-up: the wheel acts once it passes the value the track has, so nothing jumps; the screen says where to pick it up |
 | K1 | the volume (the FM-1's MASTER) |
 | K2 / K3 / K4 | SELECT / ALGORITHM / PRESETS |
 | K5..K8 | KNOB 1..4 (the help cards say K5..K8) |
@@ -38,20 +41,66 @@ The manual still applies: the FM-1's controls are where the SMK-37 prints the sa
 | ARP / SEQ / SEQ PLAY / SEQ REC | ARP / SEQ / PLAY / REC |
 | OCTAVE- / OCTAVE+ | OCT- / OCT+ |
 | OCTAVE- + OCTAVE+ held at power-on | HARDWARE CALIBRATION: teach the buttons and knobs again |
-| Mod wheel, KNOB BANK, < and > | no job yet |
 
 Not on the SMK-37: TRS MIDI IN (the SMK's jack is a MIDI output; its pin is a key row there). MIDI in works over USB.
 No Bluetooth (LOOM-8 builds without it anyway).
 
-## Storage (provisional)
+## DAW mode (MIDI controller)
+
+**< + >** (the second pressed while the first is held) switches **LOOM-8 ↔ DAW**. In DAW mode the keyboard is a USB
+MIDI controller: LOOM-8's sequencer stops and the controls leave LOOM-8 alone. MIDI IN still plays LOOM-8 (a sound
+module for the DAW). The mode is kept: the SMK starts in DAW mode if it was left there. Ported from
+[Snoop37](https://github.com/genkigenki/sloop-fm1/tree/snoop37) by genkigenki, by way of the Loom FM-1 port.
+
+- **Keys:** notes on CHANNEL (default 1), the lowest key C3 = 48 at octave 0, with velocity. OCTAVE− / OCTAVE+: the
+  octave (±3; both: 0).
+- **K1–K8** (as printed; K1 is a knob here, not the volume, which stays where it was), **faders 1–4**, the **16 pads**,
+  **13 buttons** and the **wheels** send what the map says. KNOB BANK / FADER BANK: bank A / B of the knobs / faders
+  (lit on B); both together: the pads' bank. Knobs ABSOLUTE (0–127, kept per knob) or RELATIVE (64 ± the detents).
+  `<` `>` send when let go. A CC TOGGLE flips once a press.
+- **PATCH** tapped: **LOCAL** on / off (PATCH lit: on). On: the keys also play the track selected, NOTE pads the kit,
+  the pitch wheel bends the track. Off (the default): LOOM-8 plays only what comes in.
+- **PATCH held:** K5 CHANNEL, K6 CC MAP (left DEFAULT, right USER), K7 KNOBS (left ABSOLUTE, right RELATIVE),
+  OCTAVE+ the map editor.
+- **The map editor** (your own map, USER): touch a control (turn a knob, move a fader or a wheel, hit a pad, press a
+  button), then K5 its TYPE (OFF, CC, CC TOGGLE, NOTE, MMC, PITCH BEND, as the control has them), K6 its NUMBER (the
+  CC, note or MMC command), K7 its CHANNEL (MAIN, the one PATCH + K5 sets, or 1–16). OCTAVE+ the next control,
+  OCTAVE− or PATCH done. Editing puts the USER map in use.
+- **Screen:** DAW, CHANNEL, LOCAL, the map; the last control touched (its message and value); the banks and the
+  octave; the eight knobs with their CCs.
+- **Pads:** NOTE bank A blue, bank B green; CC yellow; OFF faint. Bright while held (a CC TOGGLE: while on).
+
+The DEFAULT map uses free CCs only (no bank select, data entry, volume, pan, pedals or channel mode). A pad or button
+CC is 127 while held, 0 when let go.
+
+| Control | Bank A | Bank B | Channel |
+|---|---|---|---|
+| K1–K8 | CC 70–77 | CC 102–109 | MAIN |
+| FADER 1–4 | CC 20–23 | CC 24–27 | MAIN |
+| PAD 9–16 (bottom row) | notes 36–43 | notes 52–59 | 10 |
+| PAD 1–8 (top row) | notes 44–51 | notes 60–67 | 10 |
+| `<` `>` | CC 110, 111 | | MAIN |
+| SEQ PLAY, SEQ REC | CC 115, 117 | | MAIN |
+| SEQ, FX, PARA | CC 112, 113, 114 | | MAIN |
+| ARP, NOTE REPEAT | CC 118, 119 | | MAIN |
+| SCALE, CHORD, GLOBE, BT | CC 85, 86, 87, 88 | | MAIN |
+| Pitch wheel | pitch bend | | MAIN |
+| Mod wheel | CC 1 | | MAIN |
+| Keys | notes | | MAIN |
+
+Not here (Snoop37 has them): TRS MIDI out, the web editor's DAW map tab, RESET MAP (CC MAP DEFAULT is the map as
+shipped; the USER map stays as you left it).
+
+## Storage
 
 The SMK-37 has less flash to write than the FM-1, around its calibration and stock data: 120 KB of store and 160 KB
-of USRFLASH. This build has **two project slots** (the FM-1 has three) and a **152 KB user sample bank** (the FM-1:
-216 KB). Load a bank built for the SMK: `tools/loom_samples.py load --board=smk37 ...` (the samples page picks the
-board from the keyboard's port name). An FM-1 bank is refused by the SMK and the other way round.
+of USRFLASH. This build has **two project slots** (the FM-1 has three), a **144 KB user sample bank** (the FM-1:
+216 KB), and DAW mode's settings and map (8 KB). Load a bank built for the SMK:
+`tools/loom_samples.py load --board=smk37 ...` (the samples page picks the board from the keyboard's port name). An
+FM-1 bank is refused by the SMK and the other way round.
 
-The split is one constant (`app/app.h NPROJ`, with `APP_STORE_MAP` and `dsp/sample.h SMP_REG*`): one slot leaves
-about 200 KB of samples, three about 96 KB.
+The split is one constant (`app/app.h NPROJ`, with `APP_STORE_MAP` and `dsp/sample.h SMP_REG*`): one slot would leave
+about 192 KB of samples, three about 88 KB.
 
 ## Build
 
@@ -63,8 +112,9 @@ BOARD=smk37 ./build.sh --host           # the simulator: app/build/host/loom-smk
 ./build.sh                              # the FM-1 build again before tests/run_tests.sh
 ```
 
-The simulator takes the SMK's controls in a script: `pad`, `tappad`, `outer`, `fader`, `bend`, `modw`, `smkbtn`,
-`smktap`, `keyvel`, and `pads` prints the pads' colours (`tests/scenarios_smk37/`).
+The simulator takes the SMK's controls in a script: `pad`, `tappad`, `outer`, `fader`, `bend`, `modw`, `k1`, `smkbtn`,
+`smktap`, `keyvel`, and `pads` prints the pads' colours (`tests/scenarios_smk37/`; `smk37_daw.xy` checks DAW mode's
+MIDI out byte by byte).
 
 ## Install, and the way back
 
