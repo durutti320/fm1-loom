@@ -150,10 +150,25 @@ MIDI out byte by byte).
 ## Install, and the way back
 
 1. **Back up the whole flash first.** The SMK-37 keeps its factory key, pad and wheel calibration in flash
-   (`trimdat` at 0xC1224), unique to the unit. This firmware never writes there, but have the backup:
-   fm1-to-smk37 `docs/02-update-and-recovery.md`, section 3.
+   (`trimdat` at 0xC1224), unique to the unit. This firmware never writes there, but have the backup.
+   `tools/spider_backup.py` makes it (fm1-to-smk37 `docs/02-update-and-recovery.md`, section 3.1, in one command):
+   SPIDER's update makes its first step only (the factory firmware checks the package and starts SPIDER's loader;
+   the firmware area is not written), the loader restarts into the boot ROM (UBOOT), and
+   [jl-uboot-tool](https://github.com/kagaimiq/jl-uboot-tool) reads the 1 MiB twice. Both reads must match and hold
+   `trimdat`; the copy is kept with its SHA-256. It needs an administrator terminal (Windows) or root (Linux), and
+   checks that, the tool and the package before it touches the keyboard. It only ever reads.
+
+   ```sh
+   python3 tools/spider_backup.py app/build/spider-smk37.fwsc   # jl-uboot-tool in a folder beside it, or --jl DIR
+   python3 tools/spider_backup.py --check smk37-backup-*.bin    # check a copy later
+   ```
+
+   Then switch the keyboard off and on: it starts in SPIDER's update mode until the install below finishes.
 2. `python3 base/tools/fm1_install.py app/build/spider-smk37.fwsc` (the package for your model).
 3. The way back: M-VAVE's updater with the stock package for your model.
+
+The GitHub build's `packages` download holds all three packages, `fm1_install.py`, `spider_backup.py` and
+`START-HERE.txt` (the Windows steps: Python 3.12, whose python-rtmidi installs ready-made).
 
 The first start clears the stock firmware's settings in the store area. Before SPIDER first writes into USRFLASH it
 erases the stock firmware's marker there, so a return to stock rebuilds its factory key mapping.

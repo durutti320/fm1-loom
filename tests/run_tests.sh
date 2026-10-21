@@ -84,6 +84,7 @@ $CC -std=c99 -Wall -Wno-unused-function -o "$OUT/smk_daw_test" tests/smk_daw_tes
 run smk-daw-map "$OUT/smk_daw_test"            # DAW mode's map and messages (app/smk_daw.h, from Snoop37)
 run sample-bank-smk37 sh -c "'$PY' tools/loom_samples.py build --board=smk37 build/gen/user_bank_smk37.bin \
     'piano two=build/gen/wav/piano.wav:60%16k' flute=build/gen/wav/flute.wav:72"
+run spider-backup "$PY" tests/spider_backup_test.py   # the SMK's full flash copy (tools/spider_backup.py), simulated
 # every page, engine and type, through the layout audit (tools/layout_sweep.py)
 "$PY" tools/layout_sweep.py build/gen/layout_sweep.xy
 rm -rf "$B/scenarios/layout_sweep" && mkdir -p "$B/scenarios/layout_sweep"
