@@ -184,13 +184,13 @@ class Link:
         except ImportError:
             sys.exit("needs mido: pip install mido python-rtmidi")
         self.mido = mido
-        outs = [n for n in mido.get_output_names() if "LOOM" in n or "ARACHNE" in n]   # (ARACHNE: the SMK-37 build)
-        ins = [n for n in mido.get_input_names() if "LOOM" in n or "ARACHNE" in n]
+        outs = [n for n in mido.get_output_names() if "LOOM" in n or "SPIDER" in n]   # (SPIDER: the SMK-37 build)
+        ins = [n for n in mido.get_input_names() if "LOOM" in n or "SPIDER" in n]
         if not outs or not ins:                     # (macOS may keep an earlier firmware's name for the port)
             outs = [n for n in mido.get_output_names() if "FM-1" in n]
             ins = [n for n in mido.get_input_names() if "FM-1" in n]
         if not outs or not ins:
-            sys.exit("no MIDI port named LOOM or ARACHNE: connect the FM-1 (running LOOM-8) or the SMK-37 (running ARACHNE) by USB")
+            sys.exit("no MIDI port named LOOM or SPIDER: connect the FM-1 (running LOOM-8) or the SMK-37 (running SPIDER) by USB")
         self.o = mido.open_output(outs[0])
         self.i = mido.open_input(ins[0])
         for _ in range(3):                          # the first frame after opening the port can be lost

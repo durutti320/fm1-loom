@@ -10,7 +10,7 @@
 #include "dsp/fx.h"
 
 #if BOARD_SMK37
-#define APP_NAME "ARACHNE"              /* the M-VAVE SMK-37 build: LOOM-8 as ARACHNE (its boot: arachne_splash.c) */
+#define APP_NAME "SPIDER"              /* the M-VAVE SMK-37 build: LOOM-8 as SPIDER (its boot: spider_splash.c) */
 #else
 #define APP_NAME "LOOM-8"
 #endif

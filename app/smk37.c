@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-3.0-only
- * Copyright (C) 2026 Cam Durnsford (ARACHNE, the LOOM-8 SMK-37 port) */
+ * Copyright (C) 2026 Cam Durnsford (SPIDER, the LOOM-8 SMK-37 port) */
 /* LOOM-8 on the M-VAVE SMK-37 (fm1-base BOARD=smk37, plat.h PLAT_SMK37): what the SMK's panel adds to the FM-1's. Part
  * of app.c's build after ui.c (its helpers); ui.c calls lsmk_poll at the start of input(), takes lsmk_pad_keys into its
  * keys, plays KEY_VEL, draws lsmk_lights after leds(), and hands every frame to lsmk_daw_frame first (DAW mode). The
@@ -76,9 +76,10 @@ static void lsmk_pads(void)
 {
     int p, v;
     while (plat_pad(&p, &v)) {
-        uint32_t m = 1u << p;
+        uint32_t m;
         if (p < 0 || p >= NPADS)
             continue;
+        m = 1u << p;
         if (v) {
             if (lsmk_throws()) {                   /* a throw: on the whole mix (both its groups), while held */
                 lsmk.gt_used = 1;
@@ -126,10 +127,10 @@ static uint32_t lsmk_pad_keys(void)
     uint32_t held = plat_pads_held() | lsmk.latch, k = 0;
     int c;
     lsmk.latch = 0;
-    if (!lsmk_pads_steps())
-        return 0;
+    if (!lsmk_pads_steps() || lsmk_throws())
+        return 0;                                  /* (> held: the pads are throws, on Steps too) */
     for (c = 0; c < 16; c++)
-        if (held >> c & 1u)
+        if (held >> c & 1u && !lsmk.pad_fx[c])
             k |= 1u << WHITE_K[c];
     return k;
 }
@@ -319,7 +320,10 @@ static uint32_t lsmk_rgb(uint16_t c, uint32_t lv)  /* an RGB565 ink at lv / 256 
 static void lsmk_lights(void)
 {
     int c, t = sel_trk();
-    if (lsmk_pads_steps()) {
+    if (lsmk_throws()) {                       /* the throws (on every page): dim violet, bright while firing */
+        for (c = 0; c < NPADS; c++)
+            plat_pad_rgb(c, c >= NPUNCH ? 0u : lsmk.pad_fx[c] ? 0xF0E0FFu : lsmk_rgb(theme->ink[6], 60u));
+    } else if (lsmk_pads_steps()) {
         const tpat_t *tp = tpat(t);
         uint16_t ink = trk_ink(t);
         int ph = playing() ? eng_step[t] : -1;
@@ -336,9 +340,6 @@ static void lsmk_lights(void)
             }
             plat_pad_rgb(c, lv == 0x1000000u ? 0xC8C8C8u : lsmk_rgb(ink, lv));
         }
-    } else if (lsmk_throws()) {                /* the throws: dim violet, bright while firing */
-        for (c = 0; c < NPADS; c++)
-            plat_pad_rgb(c, c >= NPUNCH ? 0u : lsmk.pad_fx[c] ? 0xF0E0FFu : lsmk_rgb(theme->ink[6], 60u));
     } else {                                   /* mutes (lit while the track plays) and the tracks' pads */
         uint32_t held = plat_pads_held();
         for (c = 0; c < 8; c++)
@@ -426,9 +427,11 @@ static void lsmk_daw_load(void)
     if (n > 0)
         (void)daw_store_take((const uint8_t *)s, (uint32_t)n);
 }
-static void lsmk_daw_save(void)                /* a while after the last change, with nothing sounding or held */
+static void lsmk_daw_save(void)                /* a while after the last change, with nothing sounding or held (a
+                                                 * flash write cuts the audio: as autosave, stopped and quiet) */
 {
-    if (!ld.dirty || ld.edit || plat_ms() - ld.dirty_t < 1500u || eng_voices || plat_keys() || plat_pads_held())
+    if (!ld.dirty || ld.edit || plat_ms() - ld.dirty_t < 1500u || playing() || store_held || eng_voices ||
+        eng_quiet < AUTOSAVE_QUIET || plat_keys() || plat_pads_held())
         return;
     daw_store_fill(&lsmk_daw_obj);
     if (plat_store_save(OBJ_DAW, &lsmk_daw_obj, sizeof lsmk_daw_obj) == 0)
@@ -511,9 +514,10 @@ static void lsmk_daw_pads(void)
 {
     int p, v;
     while (plat_pad(&p, &v)) {
-        uint32_t i = v ? DAW_PAD0 + 16u * ld.pb + (uint32_t)p : ld.pad_ent[p];
+        uint32_t i;
         if (p < 0 || p >= NPADS)
             continue;
+        i = v ? DAW_PAD0 + 16u * ld.pb + (uint32_t)p : ld.pad_ent[p];
         if (v)
             ld.pad_ent[p] = (uint8_t)i;
         lsmk_daw_hit(i, (uint32_t)v);
@@ -888,7 +892,7 @@ static void lsmk_daw_draw(void)
                 num_s(e.num, s_cat(p, "  "));
             else
                 s_cat(p, e.type == DT_OFF ? "  off" : "");
-            cv_text((int32_t)x, (int32_t)y, &FONT_XS, t, trk_ink((int)k));   /* (each knob its colour, as on the rest of ARACHNE) */
+            cv_text((int32_t)x, (int32_t)y, &FONT_XS, t, trk_ink((int)k));   /* (each knob its colour, as on the rest of SPIDER) */
             cv_rect((int32_t)x, (int32_t)y + 18, 48, 5, K_PANEL);
             if (!daw_rel)
                 cv_rect((int32_t)x, (int32_t)y + 18, (int32_t)(48u * ld.kv[i] / 127u), 5, trk_ink((int)k));
@@ -911,14 +915,22 @@ static void lsmk_daw_draw(void)
 }
 
 /* ---- in and out */
-static void lsmk_synth_quiet(void)              /* LOOM-8's side: the pads', outer keys' notes off, the bend 0 */
+static void lsmk_synth_quiet(void)              /* LOOM-8's side: the pads' notes and throws, outer keys' notes
+                                                 * off, the bend 0 */
 {
     int i;
-    for (i = 0; i < NPADS; i++)
+    for (i = 0; i < NPADS; i++) {
+        if (lsmk.pad_fx[i]) {
+            engine_punch(lsmk.pad_fx[i] - 1, 0, -1);
+            engine_punch(lsmk.pad_fx[i] - 1 + PX_MEL, 0, -1);
+            lsmk.pad_fx[i] = 0;
+        }
         if (lsmk.pad_note[i]) {
             engine_key(lsmk.pad_trk[i], lsmk.pad_note[i], 0, 0);
             lsmk.pad_note[i] = 0;
         }
+    }
+    lsmk.gt_used = 0;
     for (i = 0; i < NOUTER; i++)
         if (lsmk.out_note[i]) {
             engine_key(lsmk.out_trk[i], lsmk.out_note[i], 0, 0);

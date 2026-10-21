@@ -1,15 +1,15 @@
 # LOOM-8 for the M-VAVE FM-1
 
-> **This is ARACHNE's home, a fork.** ARACHNE is LOOM-8 ported to the M-VAVE SMK-37 (branch `smk37`): the same
+> **This is SPIDER's home, a fork.** SPIDER is LOOM-8 ported to the M-VAVE SMK-37 (branch `smk37`): the same
 > groovebox with the SMK's pads, faders and wheels, a DAW mode, a spider's-web look and its own boot. It is not the
-> official LOOM-8, and its authors don't support it: please report ARACHNE problems here, not upstream. See
+> official LOOM-8, and its authors don't support it: please report SPIDER problems here, not upstream. See
 > [SMK37.md](SMK37.md).
 >
 > **Credits.** LOOM-8 is by Charles Vestal ([charlesvestal/fm1-loom](https://github.com/charlesvestal/fm1-loom)),
 > on his [fm1-base](https://github.com/charlesvestal/fm1-base) and on [felucca-bsp](https://github.com/hugelton/felucca-bsp)
 > by Leo Kuroshita (Hügelton Instruments), from [Felucca](https://github.com/hugelton/Felucca). The SMK-37 hardware
 > support and the DAW mode are genkigenki's ([fm1-to-smk37](https://github.com/genkigenki/fm1-to-smk37), Felucca's
-> `smk37` branch, and Snoop37 in [sloop-fm1](https://github.com/genkigenki/sloop-fm1/tree/snoop37)). The ARACHNE
+> `smk37` branch, and Snoop37 in [sloop-fm1](https://github.com/genkigenki/sloop-fm1/tree/snoop37)). The SPIDER
 > port is by Cam Durnsford, written with Claude. Not affiliated with or endorsed by M-VAVE.
 >
 > **No warranty.** Installing custom firmware is at your own risk. Back up your keyboard's flash first (SMK37.md),
@@ -34,7 +34,7 @@ discipline and Polly's menu paradigm.
 Installing is at your own risk, though it's hard to get stuck: the web installer can put M-VAVE's
 firmware back, and an FM-1 that keeps crashing starts in a safe mode.
 
-It also builds for the M-VAVE SMK-37 (Pro, Elite, MKE-P37) as **ARACHNE**, with its pads, faders, wheels, a DAW mode
+It also builds for the M-VAVE SMK-37 (Pro, Elite, MKE-P37) as **SPIDER**, with its pads, faders, wheels, a DAW mode
 and a spider's-web look: see [SMK37.md](SMK37.md) (beta).
 
 The design is in `docs/superpowers/specs/2026-10-15-xy1-design.md`.

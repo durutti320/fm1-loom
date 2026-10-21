@@ -1,15 +1,15 @@
 /* SPDX-License-Identifier: GPL-3.0-only
- * Copyright (C) 2026 Cam Durnsford (ARACHNE, the LOOM-8 SMK-37 port) */
-/* ARACHNE's boot animation (app/arachne_splash.c) drawn on a PC: frames as PPM, every STEP ms, for a look before a flash.
+ * Copyright (C) 2026 Cam Durnsford (SPIDER, the LOOM-8 SMK-37 port) */
+/* SPIDER's boot animation (app/spider_splash.c) drawn on a PC: frames as PPM, every STEP ms, for a look before a flash.
  * After a build (its fonts: app/build/gen):
- *   cc -O2 -Iapp/build/gen -o arachne_preview tests/arachne_preview.c -lm && ./arachne_preview OUTDIR [STEP_MS] */
+ *   cc -O2 -Iapp/build/gen -o spider_preview tests/spider_preview.c -lm && ./spider_preview OUTDIR [STEP_MS] */
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #define APP_CANVAS_PX (240u * 120u)
-#define APP_NAME "ARACHNE"
-#define ARC_PREVIEW 1
+#define APP_NAME "SPIDER"
+#define SPD_PREVIEW 1
 static uint16_t fb[240 * 240];
 static void lcd_sync(void) {}
 static void lcd_blit(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint16_t *px)
@@ -20,16 +20,16 @@ static void lcd_blit(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint1
 }
 #include "../base/device/gfx.c"
 #include "../app/gfx_loom.c"
-#include "../app/arachne_splash.c"
+#include "../app/spider_splash.c"
 
 int main(int argc, char **argv)
 {
     const char *dir = argc > 1 ? argv[1] : ".";
     uint32_t step = argc > 2 ? (uint32_t)atoi(argv[2]) : 40u, t, n = 0;
-    for (t = 0; t <= ARC_MS + 1000u; t += step, n++) {   /* (a second held at the end, as the boot goes on) */
+    for (t = 0; t <= SPD_MS + 1000u; t += step, n++) {   /* (a second held at the end, as the boot goes on) */
         char p[512];
         FILE *f;
-        arc_frame(t > ARC_MS ? ARC_MS : t);
+        spd_frame(t > SPD_MS ? SPD_MS : t);
         snprintf(p, sizeof p, "%s/f%04u.ppm", dir, n);
         f = fopen(p, "wb");
         if (!f)

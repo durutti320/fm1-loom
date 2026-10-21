@@ -131,8 +131,8 @@ void app_redraw(void) { ui_redraw(); }
 int app_sysex(const uint8_t *p, uint32_t n) { return smp_frame(p, n); }
 
 #if BOARD_SMK37
-#include "arachne_splash.c"                         /* ARACHNE's boot: a spider weaves its web, the name woven in */
-void app_splash(void) { arc_splash(); }
+#include "spider_splash.c"                         /* SPIDER's boot: a spider weaves its web, the name woven in */
+void app_splash(void) { spd_splash(); }
 #else
 /* the name over the eight tracks' inks woven as threads, in the default theme (pages.c THEMES[0]) */
 void app_splash(void)

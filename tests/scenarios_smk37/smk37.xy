@@ -73,3 +73,40 @@ wait 200
 bend 4000
 wait 40
 bend 0
+# on Steps, > held: the pads are the throws there too, and a throw held is never a held step
+spin ALGO -1
+expect trk 1
+tap SEQ
+expect page Steps
+expect note 1 1 1 0
+smkbtn > down
+wait 40
+pad 0 100
+wait 60
+expect punch_drum >0
+expect note 1 1 1 0
+pads
+pad 0 0
+wait 40
+expect punch_drum 0
+tappad 4
+wait 40
+expect punch_drum 0
+smkbtn > up
+wait 60
+expect note 1 1 1 0
+expect note 1 1 5 0
+# into DAW mode with a throw held: it ends
+smkbtn > down
+wait 40
+pad 2 100
+wait 40
+expect punch_drum >0
+smkbtn < down
+wait 60
+expect daw 1
+expect punch_drum 0
+pad 2 0
+smkbtn < up
+smkbtn > up
+wait 60

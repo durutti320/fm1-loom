@@ -20,9 +20,9 @@ typedef struct {
 /* the themes (Setup: THEME; the project keeps it in rsv[1]); the first is the default */
 static const theme_t THEMES[] = {
 #if BOARD_SMK37
-    /* ARACHNE's (the SMK-37 build): a web at night, near-black and violet, bone text, blood for recording; the inks
+    /* SPIDER's (the SMK-37 build): a web at night, near-black and violet, bone text, blood for recording; the inks
      * jewel tones (crimson, ember, amber, absinthe, verdigris, cold blue, amethyst, orchid), as in its boot
-     * (arachne_splash.c ARC_INK); the panel's accents take them too (below) */
+     * (spider_splash.c SPD_INK); the panel's accents take them too (below) */
     {"web", RGB(10, 8, 14), RGB(26, 20, 34), RGB(42, 32, 54), RGB(54, 42, 68), RGB(98, 84, 116),
      RGB(170, 158, 186), RGB(236, 228, 214), RGB(140, 120, 164), RGB(222, 30, 56), RGB(222, 204, 194),
      {RGB(214, 44, 64), RGB(232, 112, 52), RGB(228, 182, 82), RGB(142, 202, 92), RGB(72, 182, 162), RGB(104, 142, 232),
@@ -271,7 +271,7 @@ static int s_eq(const char *a, const char *b)
     return *a == *b;
 }
 #if BOARD_SMK37
-/* ARACHNE's colour: each page button its own ink (its page's tag, its name in the footer), each knob its own (K5..K8 as
+/* SPIDER's colour: each page button its own ink (its page's tag, its name in the footer), each knob its own (K5..K8 as
  * KNOB 1..4 and as DAW mode's: the theme's inks 5..8; SELECT, ALGORITHM, PRESETS 2..4) */
 static const uint8_t GROUP_INK[8] = {4, 3, 1, 2, 6, 5, 7, 0};   /* HOME SEQ EDIT ENV FX LFO ARP GLO */
 #define KNOB_INK(i) (theme->ink[4 + (i)])
@@ -794,7 +794,7 @@ static void draw_header(void)
             x += tw + 5;
         }
 #if BOARD_SMK37
-        cv_round(x, 4, w, 17, 3, page_ink(ui.page));   /* (ARACHNE: the button's own colour, filled) */
+        cv_round(x, 4, w, 17, 3, page_ink(ui.page));   /* (SPIDER: the button's own colour, filled) */
         cv_text(x + 3, cap_y(4, 17, &FONT_XS) - 1, &FONT_XS, bn, K_BG);
 #else
         cv_round(x, 4, w, 17, 3, K_DIM);
@@ -1300,7 +1300,7 @@ static void draw_knobs(void)
         if (nw > 46)
             nw = 46;
 #if BOARD_SMK37
-        text_fit(cx - nw / 2, 0, &FONT_XS, k[i].name, 46, hot ? K_TEXT : KNOB_INK(i));   /* (ARACHNE: the knob's colour) */
+        text_fit(cx - nw / 2, 0, &FONT_XS, k[i].name, 46, hot ? K_TEXT : KNOB_INK(i));   /* (SPIDER: the knob's colour) */
 #else
         text_fit(cx - nw / 2, 0, &FONT_XS, k[i].name, 46, hot ? K_TEXT : K_DIM);
 #endif
@@ -1667,7 +1667,7 @@ static int32_t bot_part(int32_t x, int32_t y, const char *s, uint32_t n, const f
             w = text_w(&FONT_XS, b) + 2 * pad;
             if (draw) {
 #if BOARD_SMK37
-                uint16_t pc = ctl_ink(b);        /* (ARACHNE: the control's colour) */
+                uint16_t pc = ctl_ink(b);        /* (SPIDER: the control's colour) */
                 cv_round(x, y, w, BOT_PH, enc ? 7 : 2, pc);
                 cv_round(x + 1, y + 1, w - 2, BOT_PH - 2, enc ? 6 : 1, K_BG);
                 cv_text(x + pad, cap_y(y, BOT_PH, &FONT_XS) - (s_has_q(b) ? 1 : 0), &FONT_XS, b, pc);
@@ -1839,7 +1839,7 @@ static const struct { uint8_t btn; uint32_t pages; const char *title, *l1, *l2; 
     {B_SAVE, PG_SOUND, "Save", "Tap to save the project.",
      "Hold SAVE and press a white key: the sound as that user preset."},
 #if BOARD_SMK37
-    {B_SAVE, PG_ANY, "Save", "Saves now (ARACHNE saves by itself when stopped and quiet).", "Hold SAVE and press white key 1 or 2 to save to that slot."},
+    {B_SAVE, PG_ANY, "Save", "Saves now (SPIDER saves by itself when stopped and quiet).", "Hold SAVE and press white key 1 or 2 to save to that slot."},
 #else
     {B_SAVE, PG_ANY, "Save", "Saves now (LOOM-8 saves by itself when stopped and quiet).", "Hold SAVE and press white key 1 to 3 to save to that slot."},
 #endif
@@ -3866,7 +3866,7 @@ static void draw_mix(void)
         int muted = t < NSEQT && (seq.mute >> t & 1u), sound = t < NTRK || is_fx(t);
         uint16_t ink = muted ? K_LINE : trk_ink(t);
 #if BOARD_SMK37
-        text_c(x + 7, 94, &FONT_XS, SHORT_NM[t], t == sel ? K_TEXT : muted || !sound ? K_FAINT : ink);   /* (ARACHNE: inked) */
+        text_c(x + 7, 94, &FONT_XS, SHORT_NM[t], t == sel ? K_TEXT : muted || !sound ? K_FAINT : ink);   /* (SPIDER: inked) */
 #else
         text_c(x + 7, 94, &FONT_XS, SHORT_NM[t], t == sel ? K_TEXT : muted || !sound ? K_FAINT : K_DIM);
 #endif

@@ -1,9 +1,9 @@
-# ARACHNE (LOOM-8 on the M-VAVE SMK-37): built on GitHub by the FM-1 community's shared, reviewed builder
+# SPIDER (LOOM-8 on the M-VAVE SMK-37): built on GitHub by the FM-1 community's shared, reviewed builder
 # (zvenson/fm1-build: JieLi's toolchain and the AC79 SDK, a signed build attestation, the release on a tag).
 # A push to the smk37 branch, or "Run workflow" on the Actions tab: the packages as a downloadable artifact
 # ("packages"); a tag vX.Y: also a release with them. The builder checks out this repository alone, so the build
 # first fetches the nested projects (base = fm1-base, base/bsp = felucca-bsp, the forks .gitmodules names).
-name: ARACHNE firmware
+name: SPIDER firmware
 
 on:
   push:
@@ -27,9 +27,9 @@ jobs:
         BOARD=smk37 ./build.sh "${rel[@]}"
         BOARD=smk37 MODEL=elite ./build.sh "${rel[@]}"
         BOARD=smk37 MODEL=mke ./build.sh "${rel[@]}"
-      packages: app/build/arachne-smk37*.fwsc
+      packages: app/build/spider-smk37*.fwsc
       test: |
         BOARD=smk37 ./build.sh --host
-        mkdir -p /tmp/arachne-scenarios
-        for s in tests/scenarios_smk37/*.xy; do app/build/host/arachne-smk37_host "$s" /tmp/arachne-scenarios || exit 1; done
+        mkdir -p /tmp/spider-scenarios
+        for s in tests/scenarios_smk37/*.xy; do app/build/host/spider-smk37_host "$s" /tmp/spider-scenarios || exit 1; done
         cc -std=c99 -Wall -Wno-unused-function -o /tmp/smk_daw_test tests/smk_daw_test.c && /tmp/smk_daw_test
