@@ -213,7 +213,7 @@ int app_expect(const char *what, int *got)
         *got = daw_ch;
     else if (!strcmp(what, "dawuser"))
         *got = daw_user;
-    else if (!strcmp(what, "pads_drums"))           /* KNOB BANK: the pads drum pads on Steps */
+    else if (!strcmp(what, "pads_drums"))           /* KNOB BANK: the pads mutes and tracks on Steps */
         *got = lsmk.pad_drums;
     else if (!strcmp(what, "dawobj")) {             /* OBJ_DAW as stored: its CHANNEL + 100 x its flags (-1 none) */
         daw_store_t s;

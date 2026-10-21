@@ -17,18 +17,34 @@ expect note 1 1 32 1
 tap OCT-
 wait 40
 shot smk_steps.png
-# drum pads: away from Steps the pads play the kit, with velocity
+# away from Steps: pads 1-8 mute T1-T8, pads 9-16 play T1-T8 (T1 is a kit: its first key)
 tap HOME
+expect mute 0
+tappad 1
+expect mute 2
+tappad 1
+expect mute 0
 expect drumhits 0
-tappad 2 90
-tappad 3 30
-expect drumhits 2
+tappad 8 90
+expect drumhits 1
 pads
-# a synth selected: the pads still play the kit selected last
+# > held: the pads fire the throws on the whole mix, while held; > let go after one: no bar step
+smkbtn > down
+wait 40
+pad 1 100
+wait 40
+expect punch_drum >0
+expect punch_mel >0
+pads
+pad 1 0
+wait 40
+expect punch_drum 0
+expect punch_mel 0
+smkbtn > up
+wait 40
+expect bar 1
 spin ALGO 1
 expect trk 2
-tappad 0 100
-expect drumhits 3
 # faders: T1-T4, then FADER BANK: T5-T8; a fader acts once it moves
 fader 0 127
 expect par1.level 127

@@ -326,8 +326,8 @@ async function connect() {
   if (!navigator.requestMIDIAccess) throw new Error("This browser can't talk to MIDI devices. Use Chrome or Edge.");
   const midi = await navigator.requestMIDIAccess({ sysex: true });
   const outs = [...midi.outputs.values()];
-  const ins = [...midi.inputs.values()].filter((i) => i.state !== "disconnected" && /loom|fly|fm-1|smk/i.test(i.name || ""))
-    .sort((a, b) => /loom|fly/i.test(b.name) - /loom|fly/i.test(a.name));
+  const ins = [...midi.inputs.values()].filter((i) => i.state !== "disconnected" && /loom|arachne|fm-1|smk/i.test(i.name || ""))
+    .sort((a, b) => /loom|arachne/i.test(b.name) - /loom|arachne/i.test(a.name));
   for (const input of ins) {
     const output = outs.find((o) => o.name === input.name);
     if (!output) continue;
@@ -340,7 +340,7 @@ async function connect() {
       return l;
     } catch (_) { /* not answering: the next */ }
   }
-  throw new Error("No FM-1 running LOOM-8 (or SMK-37 running FLY) found. Connect it by USB, and close other apps that use its MIDI port.");
+  throw new Error("No FM-1 running LOOM-8 (or SMK-37 running ARACHNE) found. Connect it by USB, and close other apps that use its MIDI port.");
 }
 async function readBytes(off, n, onPart) {          // SMP_READ, 224 bytes a request
   const out = new Uint8Array(n);

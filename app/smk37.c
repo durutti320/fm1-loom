@@ -1,18 +1,20 @@
 /* SPDX-License-Identifier: GPL-3.0-only
- * Copyright (C) 2026 Cam Durnsford (FLY, the LOOM-8 SMK-37 port) */
+ * Copyright (C) 2026 Cam Durnsford (ARACHNE, the LOOM-8 SMK-37 port) */
 /* LOOM-8 on the M-VAVE SMK-37 (fm1-base BOARD=smk37, plat.h PLAT_SMK37): what the SMK's panel adds to the FM-1's. Part
  * of app.c's build after ui.c (its helpers); ui.c calls lsmk_poll at the start of input(), takes lsmk_pad_keys into its
  * keys, plays KEY_VEL, draws lsmk_lights after leds(), and hands every frame to lsmk_daw_frame first (DAW mode). The
  * FM-1's controls keep their jobs (fm1-base's panel map: K1 the volume, K2 SELECT, K3 ALGORITHM, K4 PRESETS, K5..K8
  * KNOB 1..4; the middle 27 keys, with velocity).
  *
- *   pads        on Steps and Bar (SEQ), the bar's 16 cells, pads 1-8 the top row: the white keys' job there, every
- *               gesture of theirs (a tap, a hold, a later one for the length); lit in the track's colour: a step with
- *               notes dim, the step playing bright, a step held white. Elsewhere, or after KNOB BANK there, drum
- *               pads: pads 1-11 the 11 keys of a kit (the track selected, if it is a kit, else the kit selected last),
- *               with velocity, recorded while recording; 12-16 dark
- *   KNOB BANK   the pads: cells -> drums (lit) on Steps; drums -> cells there; elsewhere opens Steps, the pads its cells
- *   < >         the bar before / after (any page: the one Steps shows and the pads write), when let go
+ *   pads        pads 1-8 (the top row) mute and unmute T1-T8, lit in the track's ink while it plays, dark when
+ *               muted; pads 9-16 (the bottom row) play T1-T8, one pad a track, with velocity (a synth its C, a kit its
+ *               first key), recorded while recording. On Steps and Bar (SEQ) the bar's 16 cells instead, pads 1-8 the
+ *               top row: the white keys' job there, every gesture of theirs (a tap, a hold, a later one for the
+ *               length); lit in the track's colour: a step with notes dim, the step playing bright, a step held white
+ *   > held      the pads fire the throws, pads 1-12 the 12 of them on the whole mix, while held (13-16 dark)
+ *   KNOB BANK   on Steps: the cells <-> mutes and tracks (lit); elsewhere opens Steps, the pads its cells
+ *   < >         the bar before / after (any page: the one Steps shows and the pads write), when let go (> not if
+ *               it fired a throw)
  *   < + >       DAW mode (below)
  *   faders      the levels of T1-T4, or T5-T8 (FADER BANK, lit on T5-T8); a fader acts once it moves
  *   outer keys  C3..E3 and G#5..C6 carry on the keys: more notes, with velocity; on a kit, its keys
@@ -31,9 +33,11 @@
 
 static struct {
     uint32_t latch;                     /* Steps: pads pressed and not yet seen by input() (a tap within a frame) */
-    uint8_t pad_trk[NPADS], pad_note[NPADS];   /* a drum pad's sound playing: its track and key + 1 (0 none) */
-    uint8_t last_kit;                   /* the kit the drum pads play when a synth is selected (0xFF: none yet) */
-    uint8_t pad_drums;                  /* KNOB BANK: the pads drum pads on Steps too */
+    uint8_t pad_trk[NPADS], pad_note[NPADS];   /* a track pad's note playing: its track and note (0 none) */
+    uint8_t pad_fx[NPADS];              /* a throw pad's throw firing: its throw + 1 (0 none) */
+    uint8_t last_kit;                   /* the kit DAW mode's LOCAL pads play when a synth is selected (0xFF: none) */
+    uint8_t pad_drums;                  /* KNOB BANK: the pads mutes and tracks on Steps too */
+    uint8_t gt_used;                    /* > held fired a throw (its let-go steps no bar) */
     uint8_t fbank;                      /* the faders: 0 T1-T4, 1 T5-T8 */
     uint8_t flast[4];                   /* (soft takeover: 0xFF waits for the fader to move) */
     uint8_t out_trk[NOUTER], out_note[NOUTER];   /* an outer key's note playing: track and note (0 none) */
@@ -66,32 +70,53 @@ static int lsmk_kit(void)
 /* the track the keys play (FX tracks: the instrument selected last) */
 static int lsmk_play_trk(void) { return is_aux(sel_trk()) ? inst_trk() : sel_trk(); }
 
+/* > held (alone): the pads are the throws */
+static int lsmk_throws(void) { return (plat_smk_buttons() >> SB_RIGHT & 1u) && !lsmk.lr_both; }
 static void lsmk_pads(void)
 {
     int p, v;
     while (plat_pad(&p, &v)) {
         uint32_t m = 1u << p;
+        if (p < 0 || p >= NPADS)
+            continue;
         if (v) {
+            if (lsmk_throws()) {                   /* a throw: on the whole mix (both its groups), while held */
+                lsmk.gt_used = 1;
+                if (p < NPUNCH && !lsmk.pad_fx[p]) {
+                    lsmk.pad_fx[p] = (uint8_t)(p + 1);
+                    engine_punch(p, 1, -1);
+                    engine_punch(p + PX_MEL, 1, -1);
+                    say("THROW", PUNCH_NAME[p]);
+                }
+                continue;
+            }
             if (lsmk_pads_steps()) {               /* a cell: its white key (lsmk_pad_keys) */
                 lsmk.latch |= m;
                 continue;
             }
-            if (p < DL_NSOUND) {                  /* a drum pad: the kit's key p + 1 */
-                int kit = lsmk_kit();
-                if (kit < 0) {
-                    say_no("NO KIT", "select a kit's track");
-                    continue;
+            if (p < 8) {                           /* the top row: T1-T8's mutes */
+                if (p < NSEQT) {
+                    set_mute(p, !(seq.mute >> p & 1u));
+                    say(seq.mute >> p & 1u ? "MUTED" : "UNMUTED", TRACK_NAME[p]);
                 }
+            } else {                               /* the bottom row: T1-T8 played, a pad each */
+                int t = p - 8, n = is_drum(t) ? 1 : clampi(KEY_BASE + 7 + ui.oct * 12, 1, 127);
                 if (lsmk.pad_note[p])
                     engine_key(lsmk.pad_trk[p], lsmk.pad_note[p], 0, 0);
-                lsmk.pad_trk[p] = (uint8_t)kit;
-                lsmk.pad_note[p] = (uint8_t)(p + 1);
-                engine_key(kit, p + 1, 1, v);
-                ui.dsound = (uint8_t)(kit == sel_trk() ? p : ui.dsound);   /* (on the kit's own pages: the key shown) */
+                lsmk.pad_trk[p] = (uint8_t)t;
+                lsmk.pad_note[p] = (uint8_t)n;
+                engine_key(t, n, 1, v);
             }
-        } else if (lsmk.pad_note[p]) {             /* a drum pad let go, whatever the page is now */
-            engine_key(lsmk.pad_trk[p], lsmk.pad_note[p], 0, 0);
-            lsmk.pad_note[p] = 0;
+        } else {                                   /* let go: what it started ends, whatever the layer is now */
+            if (lsmk.pad_fx[p]) {
+                engine_punch(lsmk.pad_fx[p] - 1, 0, -1);
+                engine_punch(lsmk.pad_fx[p] - 1 + PX_MEL, 0, -1);
+                lsmk.pad_fx[p] = 0;
+            }
+            if (lsmk.pad_note[p]) {
+                engine_key(lsmk.pad_trk[p], lsmk.pad_note[p], 0, 0);
+                lsmk.pad_note[p] = 0;
+            }
         }
     }
 }
@@ -152,7 +177,7 @@ static void lsmk_pad_mode(void)
         return;
     if (lsmk_pads_steps()) {
         lsmk.pad_drums = 1;
-        say("PADS", "drum pads");
+        say("PADS", "mutes and tracks");
         return;
     }
     lsmk.pad_drums = 0;
@@ -175,8 +200,10 @@ static void lsmk_buttons(void)
         return;
     }
     if (released & lr) {
-        if (!lsmk.lr_both)
+        if (!lsmk.lr_both && !((released >> SB_RIGHT & 1u) && lsmk.gt_used))
             lsmk_bar(released >> SB_RIGHT & 1u ? 1 : -1);
+        if (released >> SB_RIGHT & 1u)
+            lsmk.gt_used = 0;
         if (!(b & lr))
             lsmk.lr_both = 0;
     }
@@ -309,13 +336,18 @@ static void lsmk_lights(void)
             }
             plat_pad_rgb(c, lv == 0x1000000u ? 0xC8C8C8u : lsmk_rgb(ink, lv));
         }
-    } else {
-        int kit = lsmk_kit();
-        uint32_t held = plat_pads_held();
+    } else if (lsmk_throws()) {                /* the throws: dim violet, bright while firing */
         for (c = 0; c < NPADS; c++)
-            plat_pad_rgb(c, kit < 0 || c >= DL_NSOUND ? 0u : lsmk_rgb(trk_ink(kit), held >> c & 1u ? 256u : 40u));
+            plat_pad_rgb(c, c >= NPUNCH ? 0u : lsmk.pad_fx[c] ? 0xF0E0FFu : lsmk_rgb(theme->ink[6], 60u));
+    } else {                                   /* mutes (lit while the track plays) and the tracks' pads */
+        uint32_t held = plat_pads_held();
+        for (c = 0; c < 8; c++)
+            plat_pad_rgb(c, lsmk_rgb(trk_ink(c), seq.mute >> c & 1u ? 10u : 200u));
+        for (c = 8; c < NPADS; c++)
+            plat_pad_rgb(c, lsmk_rgb(trk_ink(c - 8), held >> c & 1u ? 256u : 44u));
     }
-    plat_smk_leds((lsmk.fbank ? 1u << SB_FADER_BANK : 0u) | (lsmk.pad_drums ? 1u << SB_KNOB_BANK : 0u));
+    plat_smk_leds((lsmk.fbank ? 1u << SB_FADER_BANK : 0u) | (lsmk.pad_drums ? 1u << SB_KNOB_BANK : 0u) |
+                  (lsmk_throws() ? 1u << SB_RIGHT : 0u));
 }
 
 /* ======================================================================================================= DAW mode */
@@ -856,7 +888,7 @@ static void lsmk_daw_draw(void)
                 num_s(e.num, s_cat(p, "  "));
             else
                 s_cat(p, e.type == DT_OFF ? "  off" : "");
-            cv_text((int32_t)x, (int32_t)y, &FONT_XS, t, trk_ink((int)k));   /* (each knob its colour, as in FLY) */
+            cv_text((int32_t)x, (int32_t)y, &FONT_XS, t, trk_ink((int)k));   /* (each knob its colour, as on the rest of ARACHNE) */
             cv_rect((int32_t)x, (int32_t)y + 18, 48, 5, K_PANEL);
             if (!daw_rel)
                 cv_rect((int32_t)x, (int32_t)y + 18, (int32_t)(48u * ld.kv[i] / 127u), 5, trk_ink((int)k));

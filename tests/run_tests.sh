@@ -78,7 +78,7 @@ run host-build-smk37 sh -c "BOARD=smk37 sh build.sh --host"
 for s in tests/scenarios_smk37/*.xy; do
     n=$(basename "$s" .xy)
     rm -rf "$B/scenarios/$n" && mkdir -p "$B/scenarios/$n"
-    run "scenario-$n" $B/host/fly-smk37_host "$s" "$B/scenarios/$n"
+    run "scenario-$n" $B/host/arachne-smk37_host "$s" "$B/scenarios/$n"
 done
 $CC -std=c99 -Wall -Wno-unused-function -o "$OUT/smk_daw_test" tests/smk_daw_test.c
 run smk-daw-map "$OUT/smk_daw_test"            # DAW mode's map and messages (app/smk_daw.h, from Snoop37)

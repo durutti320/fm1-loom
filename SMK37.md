@@ -1,22 +1,23 @@
-# FLY: LOOM-8 on the M-VAVE SMK-37 (beta)
+# ARACHNE: LOOM-8 on the M-VAVE SMK-37 (beta)
 
 LOOM-8 also builds for the M-VAVE SMK-37, a 37-key controller with the same chip as the FM-1. There it is called
-**FLY**: the same groovebox with the SMK's pads, faders, wheels and DAW mode, its own boot and a more colourful
-screen. The FM-1 build is unchanged; everything for the SMK-37 is behind `BOARD_SMK37`, in LOOM-8 (`app/smk37.c`,
-`app/fly_splash.c` and a few switches), in fm1-base (its SMK-37 target) and in felucca-bsp (`boards/smk37`).
+**ARACHNE**, after the weaver of myth who out-wove Athena at the loom: the same groovebox with the SMK's pads,
+faders, wheels and DAW mode, a spider's web of a look and its own boot. The FM-1 build is unchanged; everything for
+the SMK-37 is behind `BOARD_SMK37`, in LOOM-8 (`app/smk37.c`, `app/arachne_splash.c` and a few switches), in fm1-base
+(its SMK-37 target) and in felucca-bsp (`boards/smk37`).
 
 ## The look
 
-- **Boot:** about 3.6 s, drawn as the unit starts (`app/fly_splash.c`, all procedural). Glowing mycelium creeps in
-  from the soil and the edges and branches across the screen. Then mushrooms pop up out of the moss, with a little
-  bounce: a big fly agaric (smiling, and it blinks), a cluster of Psilocybe subaeruginosa (pale stems bruising
-  blue, caramel caps; the tallest smiles too), a chanterelle, a porcini, an amethyst deceiver, and a cluster of
-  glowing mycena. FLY grows in, red with white spots, with fireflies and spores drifting. To watch it without a keyboard, after a build:
-  `cc -O2 -Iapp/build/gen -o fly_preview tests/fly_preview.c -lm && ./fly_preview frames/` (PPM frames, 25 a
-  second).
-- **Colour:** the default theme is **forest** (Setup: THEME; tape deck and blueprint are still there). It has
-  night-forest panels, and the eight tracks are the mushrooms' colours: amanita red, chanterelle orange, sulphur
-  yellow, moss, teal, mycena blue, amethyst and pink. Each page button has its own colour, shown on its page's tag
+- **Boot:** about 3.6 s, drawn as the unit starts (`app/arachne_splash.c`, all procedural). A night: a moon behind
+  dead branches, fog drifting. A spider drops on its line to the middle; the moorings, the frame and the spokes shoot
+  out; then it walks the capture spiral from the outside in, as orb weavers do, dew glinting on what it has laid, and
+  returns to the hub. The name is woven in row by row, the shuttle crossing back and forth, and under it LOOM-8's own
+  splash in little: eight threads in the tracks' inks, over and under. To watch it without a keyboard, after a build:
+  `cc -O2 -Iapp/build/gen -o arachne_preview tests/arachne_preview.c -lm && ./arachne_preview frames/` (PPM frames,
+  25 a second).
+- **Colour:** the default theme is **web** (Setup: THEME; tape deck and blueprint are still there): near-black and
+  violet panels, bone text, blood red for recording, and the eight tracks in jewel tones (crimson, ember, amber,
+  absinthe, verdigris, cold blue, amethyst, orchid). Each page button has its own colour, shown on its page's tag
   and in the footer hints. Each knob has its own colour too: K5–K8's names and bars, SELECT / ALGO / PRESET in the
   footer, and the same knobs in DAW mode. The Mix page's track numbers take their track's colour.
 
@@ -27,7 +28,7 @@ and `base/device/smk37_io.c`.
 
 ## Models
 
-The USB name is **FLY SMK-37** (the sample tools find it by that name too).
+The USB name is **ARACHNE SMK-37** (the sample tools find it by that name too).
 
 - **SMK-37 Pro**: the default build (identity `SMK-37 Pro_1000`; also for the Starrykey 37 Play).
 - **SMK-37 Elite**: `MODEL=elite` (`SMK-37 Elite_1000`).
@@ -40,14 +41,16 @@ factory package later. The installers take a package only for exactly the connec
 
 The manual still applies: the FM-1's controls are where the SMK-37 prints the same job.
 
-| SMK-37 | FLY |
+| SMK-37 | ARACHNE |
 | --- | --- |
 | Keys F3..G5 (the middle 27) | the FM-1's 27 keys, **with velocity** (the unit's own factory curves) |
 | Keys C3..E3, G#5..C6 (the outer 10) | more notes on the track the keys play, with velocity; on a kit, its keys |
 | 16 pads, on Steps and Bar (SEQ) | the bar's 16 cells, pads 1-8 the top row, 9-16 the bottom: everything the white keys do there (a tap, a hold, a later one for the length). Lit in the track's colour: a step with notes dim, the step playing bright, a step held white |
-| 16 pads, every other page | drum pads: pads 1-11 are the 11 keys of a kit, with velocity (the track selected if it is a kit, else the kit selected last). Recorded while recording. Pads 12-16 dark |
-| KNOB BANK | the pads' job. On Steps: drum pads there too (lit), again the cells. On any other page: opens Steps, with the pads as its cells |
-| < / > | the bar before / after (the bar Steps shows and the pads write), when let go. Both together: DAW mode (below) |
+| Pads 1-8 (top row), every other page | mute and unmute T1-T8. Lit in the track's ink while it plays, dark when muted |
+| Pads 9-16 (bottom row), every other page | play T1-T8, one pad a track, with velocity (a synth its C, a kit its first key). Recorded while recording. Dim in the track's ink, bright while hit |
+| > held, then the pads | the throws: pads 1-12 fire the 12 momentary effects (mute, stutter, repeat, echo, build, floor, jumble, warble, pan, octave, chop, ring) on the whole mix, while held. Dim violet, bright while firing; > lights |
+| KNOB BANK | the pads' job. On Steps: mutes and tracks there too (lit), again the cells. On any other page: opens Steps, with the pads as its cells |
+| < / > | the bar before / after (the bar Steps shows and the pads write), when let go; > not after it fired a throw. Both together: DAW mode (below) |
 | Faders 1..4 | the levels of T1-T4, or T5-T8 after FADER BANK (lit on T5-T8). A fader acts only once it moves |
 | Pitch wheel | bend of the track the keys play, +-2 semitones (as a MIDI pitch bend) |
 | Mod wheel | the filter of the track the keys play: its cutoff (a DYNAMIC filter: its hi cut). A pick-up: the wheel acts once it passes the value the track has, so nothing jumps; the screen says where to pick it up |
@@ -65,8 +68,8 @@ No Bluetooth (LOOM-8 builds without it anyway).
 
 ## DAW mode (MIDI controller)
 
-**< + >** (the second pressed while the first is held) switches **FLY ↔ DAW**. In DAW mode the keyboard is a USB
-MIDI controller: FLY's sequencer stops and the controls leave FLY alone. MIDI IN still plays FLY (a sound
+**< + >** (the second pressed while the first is held) switches **ARACHNE ↔ DAW**. In DAW mode the keyboard is a USB
+MIDI controller: ARACHNE's sequencer stops and the controls leave ARACHNE alone. MIDI IN still plays ARACHNE (a sound
 module for the DAW). The mode is kept: the SMK starts in DAW mode if it was left there. Ported from
 [Snoop37](https://github.com/genkigenki/sloop-fm1/tree/snoop37) by genkigenki, by way of the Loom FM-1 port.
 
@@ -77,7 +80,7 @@ module for the DAW). The mode is kept: the SMK starts in DAW mode if it was left
   (lit on B); both together: the pads' bank. Knobs ABSOLUTE (0–127, kept per knob) or RELATIVE (64 ± the detents).
   `<` `>` send when let go. A CC TOGGLE flips once a press.
 - **PATCH** tapped: **LOCAL** on / off (PATCH lit: on). On: the keys also play the track selected, NOTE pads the kit,
-  the pitch wheel bends the track. Off (the default): FLY plays only what comes in.
+  the pitch wheel bends the track. Off (the default): ARACHNE plays only what comes in.
 - **PATCH held:** K5 CHANNEL, K6 CC MAP (left DEFAULT, right USER), K7 KNOBS (left ABSOLUTE, right RELATIVE),
   OCTAVE+ the map editor.
 - **The map editor** (your own map, USER): touch a control (turn a knob, move a fader or a wheel, hit a pad, press a
@@ -123,14 +126,14 @@ about 192 KB of samples, three about 88 KB.
 ## Build
 
 ```sh
-BOARD=smk37 ./build.sh                  # app/build/fly-smk37.fwsc (SMK-37 Pro)
-BOARD=smk37 MODEL=elite ./build.sh      # app/build/fly-smk37-elite.fwsc
-BOARD=smk37 MODEL=mke ./build.sh        # app/build/fly-smk37-mke.fwsc
-BOARD=smk37 ./build.sh --host           # the simulator: app/build/host/fly-smk37_host
+BOARD=smk37 ./build.sh                  # app/build/arachne-smk37.fwsc (SMK-37 Pro)
+BOARD=smk37 MODEL=elite ./build.sh      # app/build/arachne-smk37-elite.fwsc
+BOARD=smk37 MODEL=mke ./build.sh        # app/build/arachne-smk37-mke.fwsc
+BOARD=smk37 ./build.sh --host           # the simulator: app/build/host/arachne-smk37_host
 ./build.sh                              # the FM-1 build again before tests/run_tests.sh
 ```
 
-On GitHub, `.github/workflows/fly.yml` builds all three packages with the FM-1 community's shared builder
+On GitHub, `.github/workflows/arachne.yml` builds all three packages with the FM-1 community's shared builder
 ([zvenson/fm1-build](https://github.com/zvenson/fm1-build), the one the [Firmware Hub](https://thefirmwarehub.com)
 trusts): a push to `smk37` (or "Run workflow" on the Actions tab) gives them as the run's `packages` download, with
 a signed build attestation; a tag `vX.Y` also makes a release. It runs the SMK simulator scenarios and the DAW map
@@ -145,8 +148,8 @@ MIDI out byte by byte).
 1. **Back up the whole flash first.** The SMK-37 keeps its factory key, pad and wheel calibration in flash
    (`trimdat` at 0xC1224), unique to the unit. This firmware never writes there, but have the backup:
    fm1-to-smk37 `docs/02-update-and-recovery.md`, section 3.
-2. `python3 base/tools/fm1_install.py app/build/fly-smk37.fwsc` (the package for your model).
+2. `python3 base/tools/fm1_install.py app/build/arachne-smk37.fwsc` (the package for your model).
 3. The way back: M-VAVE's updater with the stock package for your model.
 
-The first start clears the stock firmware's settings in the store area. Before FLY first writes into USRFLASH it
+The first start clears the stock firmware's settings in the store area. Before ARACHNE first writes into USRFLASH it
 erases the stock firmware's marker there, so a return to stock rebuilds its factory key mapping.

@@ -2,7 +2,7 @@
 # Template and patterns: github.com/genkigenki/fm1-to-smk37 (smk37-port.yaml, docs/06-mapping-patterns.md).
 
 firmware:
-  name: "LOOM-8"             # on the SMK-37: FLY (app.h APP_NAME; fm1.toml smk37_name, smk37_usb_product "FLY SMK-37")
+  name: "LOOM-8"             # on the SMK-37: ARACHNE (app.h APP_NAME; fm1.toml smk37_name, smk37_usb_product "ARACHNE SMK-37")
   upstream: "https://github.com/charlesvestal/fm1-loom"
   base: "6e202b5"            # fm1-loom main, 2026-10-19; fm1-base e35f7e2; felucca-bsp 33cac69
   family: other              # an app on fm1-base / felucca-bsp (Felucca's platform as a library), not a Felucca fork
@@ -11,7 +11,7 @@ firmware:
     - TRS MIDI IN (PH8 is a key-matrix row on the SMK)
     - one project slot and 72 KB of user samples (storage below)
   priorities:
-    - the pads as drum pads and as the Steps cells
+    - the pads as mutes, track pads and throws, and as the Steps cells
     - the 8 tracks' levels on the faders
     - velocity on keys and pads
     - DAW mode (a USB MIDI controller), as Snoop37's
@@ -25,13 +25,13 @@ licence:
 
 delivery:
   mode: own_fork             # the owner's forks of fm1-loom, fm1-base and felucca-bsp, branch smk37 in each
-  package: "fly-smk37.fwsc, fly-smk37-elite.fwsc, fly-smk37-mke.fwsc"
-  usb_name: "FLY SMK-37"     # (fm1.toml smk37_usb_product)
+  package: "arachne-smk37.fwsc, arachne-smk37-elite.fwsc, arachne-smk37-mke.fwsc"
+  usb_name: "ARACHNE SMK-37"     # (fm1.toml smk37_usb_product)
   identity: "SMK-37 Pro_1000 (dev), SMK-37 Pro_10XXYYZZ (release); Elite releases drop the patch digits (20 chars)"
 
 look:
-  boot: "app/fly_splash.c: mycelium, a fly agaric, Psilocybe subaeruginosa and other mushrooms, FLY grown in (3.6 s, procedural)"
-  theme: "forest (default on the SMK): the tracks the mushrooms' colours"
+  boot: "app/arachne_splash.c: a spider drops, spins its orb web, the name woven in, LOOM-8's eight threads under it (3.6 s, procedural)"
+  theme: "web (default on the SMK): near-black and violet, bone, blood; the tracks in jewel tones"
   accents: "each page button and each knob its own colour (tags, footer, knob bars, DAW mode)"
 
 models: [pro, elite, mke]
@@ -42,11 +42,13 @@ keys:
   velocity: factory
 
 pads:
-  pattern: custom            # "drum pads and step sequencer"
+  pattern: custom            # mutes, tracks and throws; the step sequencer on Steps
   steps: "on Steps and Bar: the bar's 16 cells as the white keys (pads 1-8 top row); every white-key gesture"
-  drums: "every other page: pads 1-11 the kit's 11 keys with velocity (the kit selected, else the last), recorded
-          while recording; pads 12-16 dark"
-  colours: "the track's ink (theme): steps dim, the playhead bright, held white; drum pads dim, hit bright"
+  mutes: "every other page: pads 1-8 mute / unmute T1-T8 (lit while playing)"
+  tracks: "every other page: pads 9-16 play T1-T8, a pad each, with velocity (a synth its C, a kit its first key),
+           recorded while recording"
+  throws: "> held: pads 1-12 the 12 throws on the whole mix, while held"
+  colours: "the track's ink (theme): steps dim, the playhead bright, held white; mutes lit / dark; throws violet"
 
 faders:
   pattern: banks
@@ -66,10 +68,10 @@ knobs:
 buttons:
   map: printed
   extra:
-    KNOB BANK: "the pads: cells <-> drum pads on Steps (lit: drums); elsewhere opens Steps, its cells on the pads"
+    KNOB BANK: "the pads: cells <-> mutes and tracks on Steps (lit); elsewhere opens Steps, its cells on the pads"
     FADER BANK: "the faders' bank: T1-T4 / T5-T8"
     "<": "the bar before (when let go)"
-    ">": "the bar after (when let go)"
+    ">": "held: the pads fire the throws; let go alone: the bar after"
     "< + >": "DAW mode"
 
 daw_mode:                    # ported from Snoop37 (genkigenki/sloop-fm1 snoop37) by way of the Loom FM-1 port
