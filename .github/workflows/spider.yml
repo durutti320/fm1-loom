@@ -20,16 +20,42 @@ jobs:
       id-token: write
       attestations: write
     uses: zvenson/fm1-build/.github/workflows/build.yml@v1
+    # Each block runs in a bash of its own; when one fails, its last lines also go up as an error note on the run's
+    # page (readable where the full log isn't).
     with:
+      sdk: true
       build: |
+        rc=0
+        bash -euo pipefail > /tmp/spider-build.log 2>&1 <<'EOF' || rc=$?
+        # the builder checks out without submodules: fm1-base (base/) and its felucca-bsp (base/bsp/), at the
+        # commits this one links (.gitmodules: SPIDER's forks)
         git submodule update --init --recursive
+        # the fonts' OpenType features (base/tools/gen_font.py): Pillow's raqm, which loads the system's FriBiDi
+        # (as LOOM-8's own release.yml)
+        sudo apt-get install -y -qq libfribidi0
+        python3 -c "from PIL import features; assert features.check('raqm'), 'Pillow without raqm'"
         if [[ "$GITHUB_REF" == refs/tags/v* ]]; then rel=(--release "${GITHUB_REF_NAME#v}"); else rel=(); fi
         BOARD=smk37 ./build.sh "${rel[@]}"
         BOARD=smk37 MODEL=elite ./build.sh "${rel[@]}"
         BOARD=smk37 MODEL=mke ./build.sh "${rel[@]}"
+        EOF
+        cat /tmp/spider-build.log
+        if [ "$rc" != 0 ]; then
+          echo "::error title=SPIDER build failed::$(tail -n 60 /tmp/spider-build.log | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"
+          exit "$rc"
+        fi
       packages: app/build/spider-smk37*.fwsc
       test: |
+        rc=0
+        bash -euo pipefail > /tmp/spider-test.log 2>&1 <<'EOF' || rc=$?
         BOARD=smk37 ./build.sh --host
         mkdir -p /tmp/spider-scenarios
-        for s in tests/scenarios_smk37/*.xy; do app/build/host/spider-smk37_host "$s" /tmp/spider-scenarios || exit 1; done
-        cc -std=c99 -Wall -Wno-unused-function -o /tmp/smk_daw_test tests/smk_daw_test.c && /tmp/smk_daw_test
+        for s in tests/scenarios_smk37/*.xy; do app/build/host/spider-smk37_host "$s" /tmp/spider-scenarios; done
+        cc -std=c99 -Wall -Wno-unused-function -o /tmp/smk_daw_test tests/smk_daw_test.c
+        /tmp/smk_daw_test
+        EOF
+        cat /tmp/spider-test.log
+        if [ "$rc" != 0 ]; then
+          echo "::error title=SPIDER tests failed::$(tail -n 60 /tmp/spider-test.log | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"
+          exit "$rc"
+        fi
