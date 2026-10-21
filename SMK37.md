@@ -132,6 +132,11 @@ BOARD=smk37 ./build.sh --host           # the simulator: app/build/host/spider-s
 ./build.sh                              # the FM-1 build again before tests/run_tests.sh
 ```
 
+SPIDER lives in [durutti320/fm1-loom](https://github.com/durutti320/fm1-loom/tree/smk37), branch `smk37`, with its
+nested projects in [durutti320/fm1-base](https://github.com/durutti320/fm1-base/tree/smk37) and
+[durutti320/felucca-bsp](https://github.com/durutti320/felucca-bsp/tree/smk37) (`.gitmodules` names them):
+`git clone --recursive --branch smk37 https://github.com/durutti320/fm1-loom`.
+
 On GitHub, `.github/workflows/spider.yml` builds all three packages with the FM-1 community's shared builder
 ([zvenson/fm1-build](https://github.com/zvenson/fm1-build), the one the [Firmware Hub](https://thefirmwarehub.com)
 trusts): a push to `smk37` (or "Run workflow" on the Actions tab) gives them as the run's `packages` download, with

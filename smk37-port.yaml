@@ -25,6 +25,11 @@ licence:
 
 delivery:
   mode: own_fork             # the owner's forks of fm1-loom, fm1-base and felucca-bsp, branch smk37 in each
+  repos:                     # .gitmodules: fm1-loom's base and fm1-base's bsp name these
+    - "https://github.com/durutti320/fm1-loom"
+    - "https://github.com/durutti320/fm1-base"
+    - "https://github.com/durutti320/felucca-bsp"
+  build: "GitHub Actions in durutti320/fm1-loom (.github/workflows/spider.yml, zvenson/fm1-build@v1)"
   package: "spider-smk37.fwsc, spider-smk37-elite.fwsc, spider-smk37-mke.fwsc"
   usb_name: "SPIDER SMK-37"     # (fm1.toml smk37_usb_product)
   identity: "SMK-37 Pro_1000 (dev), SMK-37 Pro_10XXYYZZ (release); Elite releases drop the patch digits (20 chars)"
