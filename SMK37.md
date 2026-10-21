@@ -130,6 +130,12 @@ BOARD=smk37 ./build.sh --host           # the simulator: app/build/host/fly-smk3
 ./build.sh                              # the FM-1 build again before tests/run_tests.sh
 ```
 
+On GitHub, `.github/workflows/fly.yml` builds all three packages with the FM-1 community's shared builder
+([zvenson/fm1-build](https://github.com/zvenson/fm1-build), the one the [Firmware Hub](https://thefirmwarehub.com)
+trusts): a push to `smk37` (or "Run workflow" on the Actions tab) gives them as the run's `packages` download, with
+a signed build attestation; a tag `vX.Y` also makes a release. It runs the SMK simulator scenarios and the DAW map
+test first.
+
 The simulator takes the SMK's controls in a script: `pad`, `tappad`, `outer`, `fader`, `bend`, `modw`, `k1`, `smkbtn`,
 `smktap`, `keyvel`, and `pads` prints the pads' colours (`tests/scenarios_smk37/`; `smk37_daw.xy` checks DAW mode's
 MIDI out byte by byte).
