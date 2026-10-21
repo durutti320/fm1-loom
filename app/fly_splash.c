@@ -1,4 +1,5 @@
-/* SPDX-License-Identifier: GPL-3.0-only */
+/* SPDX-License-Identifier: GPL-3.0-only
+ * Copyright (C) 2026 Cam Durnsford (FLY, the LOOM-8 SMK-37 port) */
 /* FLY's boot (LOOM-8 on the M-VAVE SMK-37: app.h APP_NAME): about 3.6 s drawn as the unit starts. Mycelium threads
  * creep in from the soil and the edges, branching and glowing as they go; mushrooms pop up out of the moss (a big fly
  * agaric and a small one, both smiling, a chanterelle, a porcini, an amethyst deceiver, a cluster of glowing mycena);

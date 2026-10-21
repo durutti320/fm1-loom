@@ -1,4 +1,5 @@
-/* SPDX-License-Identifier: GPL-3.0-only */
+/* SPDX-License-Identifier: GPL-3.0-only
+ * SMK-37 port: Copyright (C) 2026 M. Geisler (genkigenki/makkuro); from Snoop37, by way of the Loom FM-1 port */
 /* SMK-37 DAW mode's map and messages (app/smk_daw.h), no hardware: the DEFAULT map (no CC with a fixed meaning),
  * each control's types, the USB-MIDI packets (CC, notes, pitch bend, MMC), ABSOLUTE / RELATIVE knobs, a toggle once per
  * press, the rate of the continuous controls, and the flash object (round trip, older data, a bad entry, a bad magic). */

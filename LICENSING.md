@@ -15,6 +15,18 @@ under MPL-2.0. LOOM-8 keeps its own licence, GPL-3.0-only; moving onto fm1-base 
 LOOM-8 is inspired by the teenage engineering OP-XY's way of working. It is not affiliated with,
 endorsed by or derived from teenage engineering; the name is only used descriptively.
 
+## FLY, the SMK-37 port (branch `smk37`)
+
+FLY stays GPL-3.0-only like the rest of LOOM-8: whoever shares a FLY firmware file must offer its complete source
+under the same licence (a public fork of these repositories does). What it adds, and where from:
+
+| Files | Origin | Licence |
+| --- | --- | --- |
+| `app/smk37.c`, `app/fly_splash.c`, `tests/fly_preview.c`, `tests/scenarios_smk37/`, the `BOARD_SMK37` switches in `app/` | the FLY port (Cam Durnsford, with Claude) | GPL-3.0-only |
+| `app/smk_daw.h`, `tests/smk_daw_test.c` | genkigenki's DAW mode, from Snoop37 ([genkigenki/sloop-fm1](https://github.com/genkigenki/sloop-fm1), branch `snoop37`), by way of a Loom FM-1 port | GPL-3.0-only |
+| `base/bsp/boards/smk37/`, `base/bsp/chip/fm1_flash_smk37.h`, `base/device/smk37_io.c` | genkigenki's SMK-37 layer for Felucca (Felucca branch `smk37`; [fm1-to-smk37](https://github.com/genkigenki/fm1-to-smk37)) | GPL-3.0-only, kept in files of their own (`base/LICENSING.md`, `base/bsp/LICENSING.md`) |
+| the SMK-37 target in `base/` and `base/bsp/` (`device/plat_smk37.c`, the `BOARD_SMK37` switches) | the FLY port | MPL-2.0, as the files they are in |
+
 ## Where the code comes from
 
 LOOM-8 began on its own copy of Felucca's platform layer (through X0X and FoMni). On fm1-base that copy is gone:

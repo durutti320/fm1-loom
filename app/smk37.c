@@ -1,4 +1,5 @@
-/* SPDX-License-Identifier: GPL-3.0-only */
+/* SPDX-License-Identifier: GPL-3.0-only
+ * Copyright (C) 2026 Cam Durnsford (FLY, the LOOM-8 SMK-37 port) */
 /* LOOM-8 on the M-VAVE SMK-37 (fm1-base BOARD=smk37, plat.h PLAT_SMK37): what the SMK's panel adds to the FM-1's. Part
  * of app.c's build after ui.c (its helpers); ui.c calls lsmk_poll at the start of input(), takes lsmk_pad_keys into its
  * keys, plays KEY_VEL, draws lsmk_lights after leds(), and hands every frame to lsmk_daw_frame first (DAW mode). The

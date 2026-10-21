@@ -1,4 +1,5 @@
-/* SPDX-License-Identifier: GPL-3.0-only */
+/* SPDX-License-Identifier: GPL-3.0-only
+ * Copyright (C) 2026 Cam Durnsford (FLY, the LOOM-8 SMK-37 port) */
 /* FLY's boot animation (app/fly_splash.c) drawn on a PC: frames as PPM, every STEP ms, for a look before a flash.
  * After a build (its fonts: app/build/gen):
  *   cc -O2 -Iapp/build/gen -o fly_preview tests/fly_preview.c -lm && ./fly_preview OUTDIR [STEP_MS] */

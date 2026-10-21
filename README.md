@@ -1,5 +1,20 @@
 # LOOM-8 for the M-VAVE FM-1
 
+> **This is FLY's home, a fork.** FLY is LOOM-8 ported to the M-VAVE SMK-37 (branch `smk37`): the same groovebox with
+> the SMK's pads, faders and wheels, a DAW mode, a mushroom-forest look and its own boot. It is not the official
+> LOOM-8, and its authors don't support it: please report FLY problems here, not upstream. See [SMK37.md](SMK37.md).
+>
+> **Credits.** LOOM-8 is by Charles Vestal ([charlesvestal/fm1-loom](https://github.com/charlesvestal/fm1-loom)),
+> on his [fm1-base](https://github.com/charlesvestal/fm1-base) and on [felucca-bsp](https://github.com/hugelton/felucca-bsp)
+> by Leo Kuroshita (Hügelton Instruments), from [Felucca](https://github.com/hugelton/Felucca). The SMK-37 hardware
+> support and the DAW mode are genkigenki's ([fm1-to-smk37](https://github.com/genkigenki/fm1-to-smk37), Felucca's
+> `smk37` branch, and Snoop37 in [sloop-fm1](https://github.com/genkigenki/sloop-fm1/tree/snoop37)). The FLY port
+> is by Cam Durnsford, written with Claude. Not affiliated with or endorsed by M-VAVE.
+>
+> **No warranty.** Installing custom firmware is at your own risk. Back up your keyboard's flash first (SMK37.md),
+> and M-VAVE's own updater puts the factory firmware back. Licences as below (LICENSING.md): GPL-3.0-only, with
+> MPL-2.0 platform files.
+
 LOOM-8 turns the M-VAVE FM-1 into a pocket groovebox: eight instrument tracks, each in its own colour, on
 nine engines (six synths: knit, rayon, jacquard, bellows, cane and voile; a sample player, a break slicer and a drum kit), 85 factory presets; a 64-step sequencer with step tricks and parameter locks; players (arp,
 strum, hold); weave, which crosses two patterns (bar by bar, step by step, or one's rhythm with the other's
