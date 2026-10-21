@@ -9,9 +9,9 @@ screen. The FM-1 build is unchanged; everything for the SMK-37 is behind `BOARD_
 
 - **Boot:** about 3.6 s, drawn as the unit starts (`app/fly_splash.c`, all procedural). Glowing mycelium creeps in
   from the soil and the edges and branches across the screen. Then mushrooms pop up out of the moss, with a little
-  bounce: a big fly agaric and a small one (both smiling, one blinks), a chanterelle, a porcini, an amethyst
-  deceiver, and a cluster of glowing mycena. FLY grows in, red with white spots, over "it grows on you", with
-  fireflies and spores drifting. To watch it without a keyboard, after a build:
+  bounce: a big fly agaric (smiling, and it blinks), a cluster of Psilocybe subaeruginosa (pale stems bruising
+  blue, caramel caps; the tallest smiles too), a chanterelle, a porcini, an amethyst deceiver, and a cluster of
+  glowing mycena. FLY grows in, red with white spots, with fireflies and spores drifting. To watch it without a keyboard, after a build:
   `cc -O2 -Iapp/build/gen -o fly_preview tests/fly_preview.c -lm && ./fly_preview frames/` (PPM frames, 25 a
   second).
 - **Colour:** the default theme is **forest** (Setup: THEME; tape deck and blueprint are still there). It has

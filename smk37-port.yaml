@@ -30,7 +30,7 @@ delivery:
   identity: "SMK-37 Pro_1000 (dev), SMK-37 Pro_10XXYYZZ (release); Elite releases drop the patch digits (20 chars)"
 
 look:
-  boot: "app/fly_splash.c: mycelium, fly agarics and other mushrooms, FLY grown in (3.6 s, procedural)"
+  boot: "app/fly_splash.c: mycelium, a fly agaric, Psilocybe subaeruginosa and other mushrooms, FLY grown in (3.6 s, procedural)"
   theme: "forest (default on the SMK): the tracks the mushrooms' colours"
   accents: "each page button and each knob its own colour (tags, footer, knob bars, DAW mode)"
 

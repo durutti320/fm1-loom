@@ -2,7 +2,8 @@
  * Copyright (C) 2026 Cam Durnsford (FLY, the LOOM-8 SMK-37 port) */
 /* FLY's boot (LOOM-8 on the M-VAVE SMK-37: app.h APP_NAME): about 3.6 s drawn as the unit starts. Mycelium threads
  * creep in from the soil and the edges, branching and glowing as they go; mushrooms pop up out of the moss (a big fly
- * agaric and a small one, both smiling, a chanterelle, a porcini, an amethyst deceiver, a cluster of glowing mycena);
+ * agaric, smiling; a cluster of Psilocybe subaeruginosa, the tallest smiling too; a chanterelle, a porcini, an
+ * amethyst deceiver, a cluster of glowing mycena);
  * the name grows in, red with white spots; fireflies and spores drift. All of it procedural: every frame is drawn
  * again from the time alone (the same seeds, nothing kept), in two bands of 240 x 120 through fm1-base's canvas
  * (gfx.c cv_*; LOOM-8's faces, gfx_loom.c), so it costs no RAM beyond the canvas and a few KB of code.
@@ -253,7 +254,7 @@ static void fly_mycelium(uint32_t t)
 }
 
 /* ---- the mushrooms */
-enum { FM_FLY, FM_CHANT, FM_PORCINI, FM_AMETHYST, FM_MYCENA };
+enum { FM_FLY, FM_CHANT, FM_PORCINI, FM_AMETHYST, FM_PSILO, FM_MYCENA };
 typedef struct {
     uint8_t kind, face;
     int16_t x, h, r;
@@ -262,7 +263,7 @@ typedef struct {
 static const fly_shroom_t FLY_SHROOMS[] = {         /* back to front */
     {FM_PORCINI, 0, 26, 26, 17, 1250}, {FM_AMETHYST, 0, 150, 20, 9, 1650}, {FM_CHANT, 0, 174, 30, 15, 1150},
     {FM_MYCENA, 0, 196, 30, 4, 1600},  {FM_MYCENA, 0, 214, 36, 5, 1500},   {FM_MYCENA, 0, 204, 46, 6, 1350},
-    {FM_FLY, 1, 122, 40, 18, 1450},    {FM_FLY, 1, 72, 70, 33, 950},
+    {FM_PSILO, 1, 124, 44, 13, 1400},  {FM_FLY, 1, 72, 70, 33, 950},
 };
 #define FLY_NSHROOM (sizeof FLY_SHROOMS / sizeof FLY_SHROOMS[0])
 static const float FLY_SPOTS[7][3] = {{-0.55f, -0.35f, 0.13f}, {-0.1f, -0.74f, 0.12f}, {0.42f, -0.5f, 0.15f},
@@ -357,6 +358,45 @@ static void fly_shroom(const fly_shroom_t *m, uint32_t t)
         }
         break;
     }
+    case FM_PSILO: {                             /* Psilocybe subaeruginosa: a cluster of three, slender pale stems
+                                                  * bruising blue at the foot, caramel caps with a small umbo and a
+                                                  * paler margin; the tallest (in front) smiles */
+        static const float OFS[3][3] = {{-14.0f, 0.66f, 0.72f}, {13.0f, 0.8f, 0.8f}, {0.0f, 1.0f, 1.0f}};
+        int k;
+        for (k = 0; k < 3; k++) {
+            float gk = fly_pop(t, m->t0 + (uint32_t)(2 - k) * 140u, 620u), ck, hk, rk, sx, tk;
+            int32_t y;
+            if (gk <= 0.0f)
+                continue;
+            ck = fly_clamp01((gk - 0.25f) / 0.75f) * (gk > 1.0f ? gk : 1.0f);
+            hk = (float)m->h * OFS[k][1] * (gk > 1.0f ? 1.0f + (gk - 1.0f) * 0.5f : gk);
+            rk = r * OFS[k][2];
+            sx = cx + OFS[k][0];
+            tk = gy - hk;
+            for (y = (int32_t)tk; y <= (int32_t)gy; y++) {   /* the stem: a gentle curve, blue towards its foot */
+                float p = (gy - (float)y) / (hk > 1.0f ? hk : 1.0f), w = k == 2 ? 4.4f : rk * 0.13f + 0.6f;
+                float bx = sx + fly_sin(p * 2.2f + (float)k) * 1.6f * (1.0f - p);
+                uint16_t c = fly_mix(RGB(240, 234, 216), RGB(70, 140, 196), (uint32_t)((p < 0.3f ? 0.3f - p : 0.0f) * 640.0f));
+                int32_t x;
+                if (!fly_rows((float)y, (float)y))
+                    continue;
+                for (x = (int32_t)(bx - w); x <= (int32_t)(bx + w); x++)
+                    fly_blend(x, y, c, 256u);
+            }
+            if (m->face && k == 2 && gk > 0.85f)
+                fly_face(sx, tk + hk * 0.5f, 10.0f, t, m->t0);
+            if (ck > 0.0f) {
+                float rx = rk * ck, ry = rk * 0.58f * ck, cy = tk + ry * 0.15f;
+                fly_ellipse(sx, cy, rx * 0.86f, ry * 0.22f, -1000.0f, 1000.0f, RGB(104, 72, 56), 256u);   /* gills */
+                fly_ellipse(sx, cy, rx, ry, -1000.0f, cy, RGB(222, 182, 120), 256u);   /* the paler margin */
+                fly_ellipse(sx, cy, rx * 0.8f, ry * 0.92f, -1000.0f, cy, RGB(186, 116, 54), 256u);
+                fly_ellipse(sx - rx * 0.2f, cy - ry * 0.35f, rx * 0.4f, ry * 0.4f, -1000.0f, cy, RGB(214, 150, 84), 120u);
+                fly_ellipse(sx, cy - ry * 0.86f, rx * 0.22f, ry * 0.26f, -1000.0f, 1000.0f, RGB(142, 84, 40), 256u);   /* umbo */
+                fly_disc(sx + rx * 0.6f, cy - ry * 0.12f, rx * 0.1f, RGB(70, 150, 160), 80u);   /* a faint blue bruise */
+            }
+        }
+        break;
+    }
     default: {                                   /* mycena: a thin stem, a bell, glowing (and breathing) */
         float glow = 0.75f + 0.25f * fly_sin((float)t * 0.006f + (float)m->x);
         int32_t y;
@@ -383,7 +423,7 @@ static void fly_shroom(const fly_shroom_t *m, uint32_t t)
 
 /* ---- the name, FLY_TS times FONT_L (smoothly scaled), red with white spots, grown in from the left with a ragged
  * edge; and its line under it, faded in */
-#define FLY_TS 2.4f
+#define FLY_TS 2.7f
 static int fly_spot(int32_t x, int32_t y)       /* a spot in x, y's cell of 13 x 13 (each wholly in its cell) */
 {
     int32_t cx = x / 13, cy = y / 13;
@@ -433,7 +473,7 @@ static void fly_title(uint32_t t)
     const char *s = APP_NAME;
     const uint32_t T0 = 1850u;
     float x = (240.0f - (float)loom_text_w(f, s) * FLY_TS) * 0.5f;
-    int32_t y = 4, qh = (int32_t)((float)f->h * FLY_TS);
+    int32_t y = 8, qh = (int32_t)((float)f->h * FLY_TS);
     fly_glyph_t g;
     if (t < T0 || !fly_rows((float)y, (float)(y + qh + 4)))
         goto line;
@@ -463,13 +503,7 @@ static void fly_title(uint32_t t)
         x += (float)f->adv[gi] * FLY_TS;
     }
 line:
-    if (t > 2500u && fly_rows(84.0f, 102.0f)) {
-        const char *l = "it grows on you";
-        uint32_t k = (uint32_t)(fly_clamp01((float)(t - 2500u) / 500.0f) * 256.0f);
-        int32_t lx = (240 - loom_text_w(&LFONT_S, l)) / 2;
-        loom_text(lx + 1, 87, &LFONT_S, l, fly_mix(fly_sky(94), RGB(6, 4, 16), k));
-        loom_text(lx, 86, &LFONT_S, l, fly_mix(fly_sky(94), FLY_CREAM, k));
-    }
+    return;
 }
 
 /* ---- the little lights: fireflies over it all, spores rising from the caps */
