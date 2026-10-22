@@ -31,12 +31,23 @@ KNOBS = {"knit": ["wave", "detune", "voices", "width"], "rayon": ["bright", "rat
          "jacquard": ["table", "scan", "bend", "ripple"], "bellows": ["stops", "pedal", "rotor", "rate"],
          "cane": ["model", "timbre", "color", "damp"], "voile": ["model", "timbre", "color", "breath"],
          "sample": ["sample", "start", "length", "mode"], "slice": ["sample", "slices", "pitch", "gate"]}
+# SPIDER (BOARD=smk37: dsp/synth_spider.c) has its own engines: poly, mono, acid, then sample and slice. A preset of an
+# engine the board has not is left out (P), so the FM-1's files and SPIDER's (poly.py, mono.py, acid.py) live side by side
+import os  # noqa: E402
+SMK = os.environ.get("BOARD", "fm1").lower().replace("-", "") == "smk37"
+if SMK:
+    ENGINES = ["poly", "mono", "acid", "sample", "slice", "kit"]
+    KNOBS = {"poly": ["saw", "pulse", "width", "sub"], "mono": ["saw", "pulse", "width", "sub"],
+             "acid": ["cutoff", "reso", "env mod", "decay"],
+             "sample": ["sample", "start", "length", "mode"], "slice": ["sample", "slices", "pitch", "gate"]}
 MODES = ["poly", "mono", "legato"]                    # VM_*
 FILTERS = ["lp24", "ladder", "lp12", "hp12", "dynamic", "bp12"]   # FT_*
 LFOS = ["off", "wave", "wobble", "drift", "pump"]    # LT_*
 DESTS = ["synth", "envelope", "filter", "voice", "synth free", "envelope free", "filter free", "voice free"]   # LD_*
 CHARS = ["off", "drive", "fold", "crush", "ring", "tilt", "tape", "sampler"]   # CT_*
 X_DEF = {"knit": (64, 0, 0, 0)}   # the engines' second pages as sound_default leaves them
+if SMK:                           # (synth_spider.c POLY_X_P ...: poly noise hpf chorus drift, mono sub type noise pw env
+    X_DEF = {"poly": (0, 1, 1, 16), "mono": (0, 0, 0, 10), "acid": (90, 0, 0, 0)}   # drift, acid accent wave)
 NOLFO = ("off", 3, 64, "filter", 0, 1)
 NOCHAR = ("off", 64, 64, 127)
 
@@ -47,6 +58,8 @@ def P(name, role, engine, knobs, mode="poly", glide=0, bend=2, volume=100, amp=(
       fenv=(0, 64, 0, 40), filter=("lp24", 127, 0, 64, 64), sends=(0, 0), lfo=None, char=None, x=None, octave=None,
       genres=()):
     if any(v is None for v in knobs.values()):  # a sample this build's bank leaves out (SPIDER: smp below): no preset
+        return
+    if engine not in KNOBS:                      # an engine this board has not (the FM-1's on SPIDER, SPIDER's on the FM-1)
         return
     assert role in ROLES, (name, role)
     assert engine in KNOBS, (name, engine)

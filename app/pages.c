@@ -543,7 +543,11 @@ static int page_trk(int p)
 static int x_page(int t)                             /* the engine has a second page of knobs (TP_X1..X4) */
 {
     int e = t < NTRK ? proj.trk[t].par[TP_ENGINE] : -1;
+#if BOARD_SMK37
+    return e == EG_POLY || e == EG_MONO || e == EG_ACID;   /* (SPIDER's engines: dsp/synth_spider.c) */
+#else
     return e == EG_RAYON || e == EG_KNIT;
+#endif
 }
 static int group_n(int g)
 {
@@ -2654,6 +2658,7 @@ static void draw_bar(void)
 
 /* the engines' pictures */
 /* the engines' pictures: each follows its four knobs (p[TP_E1..E4], 0..127), redrawn as they turn */
+#if !BOARD_SMK37
 static float weft_pic_v(float ph, float d, float kd, float kd2, float mo, float r, int reso)   /* synth.c weft_wave */
 {
     float qs = ph < d ? ph * kd : 0.5f + (ph - d) * kd2;
@@ -2665,10 +2670,66 @@ static float weft_pic_v(float ph, float d, float kd, float kd2, float mo, float 
         return pl + (rs - pl) * mo;
     }
 }
+#endif
 /* the engine pictures move while the track sounds and rest when it is quiet: their clock (pic_f) runs only then, and
  * pic_lvl is the track's level (eng_peak, held and falling: a plucked string rings and settles with its note) */
 static uint32_t pic_f;
 static float pic_lvl;
+#if BOARD_SMK37
+/* SPIDER's engines' pictures (dsp/synth_spider.c). poly and mono: two cycles of the oscillator's mix as the knobs set
+ * it (saw, pulse at its width, the sub, under the noise's grain); poly's chorus a second trace beside it, swinging
+ * while the track sounds. acid: a note's sweep, the cutoff falling from the envelope's peak over the decay, the
+ * resonance ringing on it, an accented note's (brighter, shorter) faint behind */
+static float pic_vco_y(const uint8_t *p, float ph, int sub_type)
+{
+    float fr = ph - fm_floorf(ph), w = 0.5f - 0.45f * (float)p[TP_E3] / 127.0f, sp = ph * 0.5f / (sub_type ? 2.0f : 1.0f);
+    float gs = (float)p[TP_E1] / 127.0f, gp = (float)p[TP_E2] / 127.0f, gb = (float)p[TP_E4] / 127.0f * 0.75f;
+    float sf = sp - fm_floorf(sp), sub = sub_type == 2 ? (sf < 0.25f ? 1.5f : -0.5f) : (sf < 0.5f ? 1.0f : -1.0f);
+    float y = gs * (2.0f * fr - 1.0f) + gp * ((fr < w ? 1.0f : -1.0f) - (2.0f * w - 1.0f)) + gb * 0.7f * sub;
+    return y / fm_maxf(1.0f, 0.62f * (gs + gp + gb));
+}
+static void pic_vco(int32_t x0, int32_t y0, int32_t w, int32_t h, const uint8_t *p, uint32_t f, int mono)
+{
+    int st = mono ? p[TP_X1] % 3 : 0, cho = mono ? 0 : p[TP_X3] & 3;
+    float cy = (float)(y0 + h / 2), amp = (float)(h / 2 - 10), nz = (float)p[mono ? TP_X2 : TP_X1] / 127.0f;
+    uint32_t r = 2463534242u;
+    cv_rect(x0, y0 + h / 2, w, 1, K_LINE);
+    if (cho) {                                   /* the chorus: the same wave a little behind, swinging */
+        pen_t pc = {0, 0, 0};
+        float lag = 0.03f + 0.025f * fm_sin_turns((float)f * (cho == 3 ? 0.08f : cho == 2 ? 0.012f : 0.007f));
+        for (int32_t x = 0; x <= w; x++)
+            pen_to(&pc, (float)(x0 + x), cy - pic_vco_y(p, (float)x / (float)w * 2.0f - lag, st) * amp, K_DIM);
+    }
+    {
+        pen_t pn = {0, 0, 0};
+        for (int32_t x = 0; x <= w; x++) {
+            float y = pic_vco_y(p, (float)x / (float)w * 2.0f, st);
+            r ^= r << 13, r ^= r >> 17, r ^= r << 5;
+            y += nz * 0.3f * (float)(int32_t)r * (1.0f / 2147483648.0f);
+            pen_to(&pn, (float)(x0 + x), cy - fm_clampf(y, -1.2f, 1.2f) * amp, K_NOW);
+        }
+    }
+}
+static void pic_acid(int32_t x0, int32_t y0, int32_t w, int32_t h, const uint8_t *p, uint32_t f)
+{
+    float base = (float)p[TP_E1] / 127.0f, res = (float)p[TP_E2] / 127.0f, mod = (float)p[TP_E3] / 127.0f;
+    float dec = 0.15f * fm_exp2f((float)p[TP_E4] / 127.0f * 4.0f), acc = (float)p[TP_X1] / 127.0f;
+    float bot = (float)(y0 + h - 6), span = (float)(h - 14);
+    (void)f;
+    cv_rect(x0, y0 + h - 6, w, 1, K_LINE);
+    for (int k = 1; k >= 0; k--) {               /* the accented note behind, then the plain one */
+        pen_t pn = {0, 0, 0};
+        float d = k ? 0.15f : dec, m = mod * (k ? 1.0f + acc * 0.5f : 1.0f);
+        for (int32_t x = 0; x <= w; x++) {
+            float t = (float)x / (float)w * 1.2f, e = fm_expf(-t / d);
+            float c = fm_clampf(base * 0.55f + m * 0.45f * e, 0.0f, 1.0f);
+            float ring = res * res * 0.12f * e * fm_sin_turns(t * (6.0f + 20.0f * c));
+            pen_to(&pn, (float)(x0 + x), bot - fm_clampf(c + ring, 0.0f, 1.05f) * span, k ? K_FAINT : K_NOW);
+        }
+    }
+    text_r(x0 + w, y0, &FONT_XS, p[TP_X2] & 1 ? "square" : "saw", K_DIM);
+}
+#else
 static void pic_wave(int32_t x0, int32_t y0, int32_t w, int32_t h, const uint8_t *p, uint32_t f)
 {
     /* table: the harmonics; scan: their mix; bend: the phase bent; ripple: a second cycle sliding */
@@ -2868,6 +2929,7 @@ static void pic_voile(int32_t x0, int32_t y0, int32_t w, int32_t h, const uint8_
         cv_rect(x0 + (int32_t)((r >> 8) % (uint32_t)w), y0 + h - 4 - (int32_t)((r >> 20) % 24u), 2, 2, K_DIM);
     }
 }
+#endif
 /* the sample engine: the sample's waveform (each column its lowest and highest), the region that plays bright,
  * the rest faint, the loop's ends marked; its name, root and the mode above */
 static int8_t smp_col_lo[200], smp_col_hi[200];
@@ -3086,6 +3148,13 @@ static void draw_engine(void)
             text_r(230, 3, &FONT_S, nm, K_DIM);
     }
     switch (eg) {
+#if BOARD_SMK37
+    case EG_POLY: pic_vco(20, 24, 200, 88, p, pic_f, 0); break;
+    case EG_MONO: pic_vco(20, 24, 200, 88, p, pic_f, 1); break;
+    case EG_ACID: pic_acid(20, 24, 200, 88, p, pic_f); break;
+    case EG_SAMPLE: pic_sample(20, 24, 200, 88, p); break;
+    case EG_SLICE: pic_slice(20, 24, 200, 88, p, trk); break;
+#else
     case EG_JACQUARD: pic_wave(20, 24, 200, 88, p, pic_f); break;
     case EG_RAYON: pic_rayon(20, 24, 200, 88, p, pic_f); break;
     case EG_BELLOWS: pic_organ(20, 24, 200, 88, p, pic_f); break;
@@ -3094,6 +3163,7 @@ static void draw_engine(void)
     case EG_CANE: pic_cane(20, 24, 200, 88, p, pic_f); break;
     case EG_VOILE: pic_voile(20, 24, 200, 88, p, pic_f); break;
     case EG_KNIT: pic_knit(20, 24, 200, 88, p, pic_f); break;
+#endif
     default: pic_drumline(10, 26, 220, 90, p, pic_f); break;
     }
     cv_blit(0, MAIN_Y);
@@ -3302,6 +3372,62 @@ static void draw_play2(void)
     }
     cv_blit(0, MAIN_Y);
 }
+#if BOARD_SMK37
+/* the Sub page (SPIDER: the engine's second page, TP_X1..X4): poly and mono, the mixer's layers stacked, each as tall as
+ * its level (saw, pulse at its width, the sub of its kind, the noise), and what the page sets in words; acid, a note's
+ * sweep and an accented one's */
+static void draw_sub(void)
+{
+    int trk = sel_trk(), eg = proj.trk[trk].par[TP_ENGINE] % NENGINE;
+    const uint8_t *p = proj.trk[trk].par;
+    uint32_t h = hash_u(hash_u(2166136261u, 0xA5u), (uint32_t)trk | (uint32_t)eg << 4);
+    char t[40];
+    for (int i = 0; i < 4; i++)
+        h = hash_u(hash_u(h, p[TP_E1 + i]), p[TP_X1 + i]);
+    if (!begin_main(h))
+        return;
+    if (eg == EG_ACID) {
+        pic_acid(20, 10, 200, 90, p, 0);
+        text_r(230, 104, &FONT_XS, "faint: an accented note", K_DIM);
+    } else {
+        static const char *const NM[4] = {"saw", "pulse", "sub", "noise"};
+        static const char *const SUBT[3] = {"-1 oct", "-2 oct", "-2 pulse"};
+        static const char *const HPF[4] = {"boost", "flat", "240 Hz", "720 Hz"};
+        static const char *const CHO[4] = {"off", "I", "II", "I+II"};
+        int mono = eg == EG_MONO, st = mono ? p[TP_X1] % 3 : 0;
+        float lv[4] = {(float)p[TP_E1] / 127.0f, (float)p[TP_E2] / 127.0f, (float)p[TP_E4] / 127.0f,
+                       (float)p[mono ? TP_X2 : TP_X1] / 127.0f};
+        float w = 0.5f - 0.45f * (float)p[TP_E3] / 127.0f;
+        uint32_t r = 12345u;
+        for (int l = 0; l < 4; l++) {
+            pen_t pn = {0, 0, 0};
+            float cy = 14.0f + (float)l * 24.0f, amp = 9.0f * lv[l];
+            cv_text(8, (int32_t)cy - 6, &FONT_XS, NM[l], lv[l] > 0.0f ? K_DIM : K_FAINT);
+            for (int32_t x = 0; x <= 170; x++) {
+                float ph = (float)x / 170.0f * 3.0f, fr = ph - fm_floorf(ph), y;
+                if (l == 0) {
+                    y = 2.0f * fr - 1.0f;
+                } else if (l == 1) {
+                    y = fr < w ? 1.0f : -1.0f;
+                } else if (l == 2) {
+                    float sp = ph * 0.5f / (st ? 2.0f : 1.0f), sf = sp - fm_floorf(sp);
+                    y = st == 2 ? (sf < 0.25f ? 1.0f : -1.0f) : (sf < 0.5f ? 1.0f : -1.0f);
+                } else {
+                    r = r * 1664525u + 1013904223u;
+                    y = (float)(int32_t)r * (1.0f / 2147483648.0f);
+                }
+                pen_to(&pn, (float)(56 + x), cy - y * amp, K_NOW);
+            }
+        }
+        if (mono)
+            s_cat(s_cat(t, "sub "), SUBT[st]);
+        else
+            s_cat(s_cat(s_cat(s_cat(t, "hpf "), HPF[p[TP_X2] & 3]), ", chorus "), CHO[p[TP_X3] & 3]);
+        text_r(230, 104, &FONT_XS, t, K_DIM);
+    }
+    cv_blit(0, MAIN_Y);
+}
+#else
 /* orbit's Sub page: the FM index from the note's start over two seconds (fall, floor), and how keyscale lowers it
  * up the keyboard (a second, fainter curve: two octaves up) */
 static void draw_rayon_fall(void)
@@ -3377,6 +3503,7 @@ static void draw_sub(void)
     else
         draw_knit_x();
 }
+#endif
 /* a drum key's own envelope: its lag (flat), the attack's rise, the hold, the decay's fall (or, off, the level
  * held to the right edge: the sound's own length rules), the key's colour under it */
 static void draw_key_env(void)

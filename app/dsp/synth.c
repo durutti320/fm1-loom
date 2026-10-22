@@ -1,4 +1,7 @@
 /* SPDX-License-Identifier: GPL-3.0-only */
+#if BOARD_SMK37
+#include "synth_spider.c"                    /* SPIDER's voices: poly, mono, acid (the SMK-37 build) */
+#else
 /* LOOM-8 voices: sixteen voices playing fourteen engines (synth.h), each with two ADSRs, a filter (six
  * types), a character stage (five types: drive, fold, crush, ring, tilt), a steal fade and sends; per track an LFO, a mono stack, parameter locks and
  * performance offsets.
@@ -3088,3 +3091,4 @@ int preset_first(int engine)
             return i;
     return -1;
 }
+#endif

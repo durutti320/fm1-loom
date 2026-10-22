@@ -27,8 +27,16 @@
  * the slice plays). The note at the sample's root plays slice 1, the next note slice 2 ..., wrapping:
  * slice = (note - root) mod slices. A sample that states its bars (sample.h smp_t.bars) plays at the
  * tempo (its bars last as many bars of the song), the pitch knob on top; one that does not, at its own rate */
+#if BOARD_SMK37
+/* SPIDER's engines (the SMK-37 build: dsp/synth_spider.c): poly (after the Juno-106: a DCO's saw, pulse, sub and noise,
+ * its high-pass, its chorus), mono (after the SH-101: a VCO's mixer, its sub's three kinds, the pulse's width on the
+ * envelope), acid (after the TB-303: its own filter and envelope, accent and slide); sample and slice as LOOM-8's;
+ * the kit. LOOM-8's own six are the FM-1's only */
+enum { EG_POLY, EG_MONO, EG_ACID, EG_SAMPLE, EG_SLICE, EG_DRUMLINE, NENGINE };
+#else
 enum { EG_KNIT, EG_RAYON, EG_JACQUARD, EG_BELLOWS, EG_CANE, EG_VOILE, EG_SAMPLE, EG_SLICE, EG_DRUMLINE,
        NENGINE };                                    /* (saved by number: PROJ_FORMAT 10 renumbered them) */
+#endif
 /* the Braids engines (dsp/braids.h, after Mutable Instruments Braids, MIT): E1 the model, E2 Braids' timbre, E3 its
  * color, E4 cane's damp, voile's breath. cane: pluck, bow, reed, flute, bell, drum, at most CN_SLOTS of its voices
  * (each a slot of CN_LEN int16 for its lines); voile: vosim, vowel, choir, whisper */

@@ -56,6 +56,7 @@ static void apply_preset(trk_t *t, int k)
     t->name[i] = 0;
 }
 
+#if !BOARD_SMK37
 static int preset_named(int engine, const char *word)   /* the engine's first preset whose name has the word */
 {
     int k, first = preset_first(engine);
@@ -80,6 +81,7 @@ static int preset_named(int engine, const char *word)   /* the engine's first pr
     return first;
 }
 
+#endif
 static void set_name(trk_t *t, const char *s)
 {
     int i;
@@ -88,12 +90,17 @@ static void set_name(trk_t *t, const char *s)
     t->name[i] = 0;
 }
 
+#if BOARD_SMK37
+#define EG_SOUND0 EG_POLY                                /* (a synth engine's defaults: SPIDER's first) */
+#else
+#define EG_SOUND0 EG_KNIT
+#endif
 static void aux_defaults(void)
 {
     int t, k;
     for (t = NTRK; t < NALLTRK; t++) {
         uint8_t *p = proj.trk[t].par;
-        sound_default(p, EG_KNIT);                       /* mix and sends at their defaults */
+        sound_default(p, EG_SOUND0);                     /* mix and sends at their defaults */
         for (k = TP_ENGINE; k <= TP_E4; k++)
             p[k] = 0;
         p[TP_LEVEL] = 100;
@@ -120,6 +127,29 @@ static void aux_defaults(void)
     proj.trk[AUX_FX2].par[TP_FENV] = 52;                 /* the reverb from 230 Hz: the kick and the bass stay dry */
 }
 
+#if BOARD_SMK37
+/* a new band (SPIDER): each synth track (poly, mono, acid) a random factory preset of its own engine, the kit and the
+ * sample tracks as they are. The tracks keep their mix, player and following (a preset is the sound part) */
+void project_random_sounds(uint32_t seed)
+{
+    uint32_t r = seed ? seed : 0x9E3779B9u;
+    for (int t = 1; t < NTRK; t++) {
+        int eg = proj.trk[t].par[TP_ENGINE], n = 0, k, pick = -1;
+        if (eg != EG_POLY && eg != EG_MONO && eg != EG_ACID)
+            continue;
+        for (k = 0; k < NPRESETS; k++) {                 /* reservoir: one of the engine's presets, evenly */
+            if (PRESETS[k].par[TP_ENGINE] != eg)
+                continue;
+            n++;
+            r ^= r << 13, r ^= r >> 17, r ^= r << 5;
+            if (r % (uint32_t)n == 0)
+                pick = k;
+        }
+        if (pick >= 0)
+            apply_preset(&proj.trk[t], pick);
+    }
+}
+#else
 /* a new band: T2-T8 each a random factory preset of a part, so a project starts as one: a bass, a polyphonic synth,
  * a pad, a mono lead, keys, an effect, a pluck or bell. Sample and slice presets are left out (they need the bank's
  * sounds); the kit (T1) stays. The tracks keep their mix, player and following (a preset is the sound part) */
@@ -153,10 +183,16 @@ void project_random_sounds(uint32_t seed)
     }
 }
 
+#endif
 void project_defaults(void)
 {
+#if BOARD_SMK37
+    static const uint8_t ORDER[NTRK] = {EG_DRUMLINE, EG_POLY, EG_MONO, EG_ACID, EG_SLICE};   /* SPIDER: the kit, poly,
+                                                                                             * mono, acid, samples */
+#else
     static const uint8_t ORDER[NTRK] = {EG_DRUMLINE, EG_KNIT, EG_RAYON, EG_JACQUARD, EG_KNIT, EG_BELLOWS, EG_CANE,
                                         EG_VOILE};
+#endif
     int t, k;
     uint8_t *z = (uint8_t *)&proj, theme = proj.rsv[1], aoff = proj.rsv[2] & 4u;   /* a new project keeps the theme
                                                                                     * and the autosave (pages.c AUTOSAVE_OFF) */
@@ -195,8 +231,10 @@ void project_defaults(void)
             tr->par[TP_S] = 0;
             tr->par[TP_R] = 64;
             set_name(tr, "kit");
+#if !BOARD_SMK37
         } else if (t == 1) {
             apply_preset(tr, preset_named(EG_KNIT, "sub"));     /* knit's round sub under everything */
+#endif
         } else {
             apply_preset(tr, preset_first(ORDER[t]));
         }
