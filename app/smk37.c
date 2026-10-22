@@ -7,7 +7,8 @@
  * KNOB 1..4; the middle 27 keys, with velocity).
  *
  *   pads        pads 1-6 (the top row) mute and unmute T1-T6, lit in the track's ink while it plays, dark when
- *               muted; pad 7 the throws (tapped; held, the conductor), pad 8 both effect returns, delay and reverb; pads 9-16 (the bottom row) are the drums: the kit's first eight sounds (kick, snare, hat,
+ *               muted; pad 7 the throws (tapped; held, the conductor), pad 8 the effects' pages: tapped, the delay
+ *               (FX I), again the reverb (FX II), again back to the page it was on; pads 9-16 (the bottom row) are the drums: the kit's first eight sounds (kick, snare, hat,
  *               open hat, clap, low tom, high tom, conga in a new kit), whatever track is selected (the kit: the track
  *               selected if it is one, else the kit selected last, else the first), with velocity; recorded into the
  *               kit while recording (REC + PLAY, as the keys: quantised, overdub or replace). On Steps and Bar (SEQ)
@@ -59,24 +60,43 @@ static struct {
     uint8_t lr_both;                    /* < + > pressed together: neither steps a bar (until both are up) */
     uint32_t sbtn;                      /* the SMK buttons as last seen */
     uint8_t p6_down;                    /* pad 7 pressed as the throws' mute: its let-go decides (a hold: the conductor) */
+    uint8_t fx_back;                    /* pad 8: the page it opened the delay from (0xFF none) */
     uint32_t p6_ms;
-} lsmk = {.last_kit = 0xFF, .flast = {0xFF, 0xFF, 0xFF, 0xFF}, .bend_trk = 0xFF, .mw_trk = 0xFF, .nr_rate = SEQ_RP_16};
+} lsmk = {.last_kit = 0xFF, .flast = {0xFF, 0xFF, 0xFF, 0xFF}, .bend_trk = 0xFF, .mw_trk = 0xFF, .nr_rate = SEQ_RP_16, .fx_back = 0xFF};
 static const char *const LSMK_RATE[NSEQ_RP] = {"1/4", "1/8", "1/8T", "1/16", "1/16T", "1/32", "1/32T", "1/64"};
 #define LSMK_NR_TAP_MS 400u                     /* NOTE REPEAT let go sooner: a tap (on / off); later: the LFO page */
-/* the top row's eight (away from Steps): T1-T6's mutes, then the throws' (pad 7; held, the conductor's), and the
- * effects' (pad 8: FX I's and FX II's returns together, the delay and the reverb: engine.c) */
+/* the top row's eight (away from Steps): T1-T6's mutes, then the throws' (pad 7; held, the conductor's); pad 8 the
+ * effects' pages (lsmk_fx_pages) */
 #define LSMK_PAD_THROW 6
 #define LSMK_PAD_FX 7
 static const uint8_t LSMK_TOP[8] = {0, 1, 2, 3, 4, 5, AUX_PUNCH, AUX_FX1};
 /* the faders: T1-T4; FADER BANK: T5, T6, both returns (-2), the master (-1) */
 static const int8_t LSMK_FADER[2][4] = {{0, 1, 2, 3}, {4, 5, -2, -1}};
+/* pad 8: the delay's page (FX I), then the reverb's (FX II), then back to the page it was on */
+static void lsmk_fx_pages(void)
+{
+    ui.ask = 0;
+    lst.open = 0;
+    ui.held = 0;
+    ui.touched = -1;
+    if (ui.page == P_FX1) {
+        ui.page = P_FX2;
+        say("FX II", "the reverb");
+        return;
+    }
+    if (ui.page == P_FX2) {
+        ui.page = lsmk.fx_back != 0xFF ? lsmk.fx_back : P_ARRANGE;
+        lsmk.fx_back = 0xFF;
+        return;
+    }
+    lsmk.fx_back = ui.page;
+    ui.page = P_FX1;
+    say("FX I", "the delay");
+}
 static void lsmk_mute(int t)
 {
-    if (t == AUX_FX1 || t == AUX_FX2) {        /* (pad 8: both returns as one) */
-        int m = !(seq.mute >> AUX_FX1 & 1u);
-        set_mute(AUX_FX1, m);
-        set_mute(AUX_FX2, m);
-        say(m ? "MUTED" : "UNMUTED", "FX");
+    if (t == AUX_FX1 || t == AUX_FX2) {        /* (pad 8: the effects' pages, not a mute) */
+        lsmk_fx_pages();
         return;
     }
     set_mute(t, !(seq.mute >> t & 1u));
@@ -468,8 +488,10 @@ static void lsmk_pad_rest(uint32_t *col)
 {
     int c, kit = lsmk_kit();
     for (c = 0; c < 8; c++)                    /* (the conductor muted: pad 6 in the recording red) */
-        col[c] = lsmk_rgb(c == LSMK_PAD_THROW && seq.mute >> AUX_BRAIN & 1u ? theme->rec : trk_ink(LSMK_TOP[c]),
-                          seq.mute >> LSMK_TOP[c] & 1u ? 10u : 200u);
+        col[c] = c == LSMK_PAD_FX ? lsmk_rgb(trk_ink(AUX_FX1), ui.page == P_FX1 || ui.page == P_FX2 ? 256u : 60u)
+                                  : lsmk_rgb(c == LSMK_PAD_THROW && seq.mute >> AUX_BRAIN & 1u ? theme->rec
+                                                                                           : trk_ink(LSMK_TOP[c]),
+                                             seq.mute >> LSMK_TOP[c] & 1u ? 10u : 200u);
     for (c = 8; c < NPADS; c++)
         col[c] = kit < 0 ? 0u : lsmk_rgb(trk_ink(kit), 44u);
 }

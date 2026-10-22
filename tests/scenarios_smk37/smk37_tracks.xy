@@ -1,6 +1,6 @@
 # SPIDER's six tracks (pattern.h NTRK) and its engines (dsp/synth_spider.c): a new project is the kit, mono, poly, fm,
 # acid and samples (slice). Away from Steps the top row mutes T1-T6, then pad 7 the throws (held, the conductor), pad 8
-# both returns together (FX I and FX II: seq.mute's bits, engine.c mutes the returns); FADER BANK: T5, T6, both
+# the effects' pages (a tap the delay, again the reverb, again back); FADER BANK: T5, T6, both
 # returns, the master. seq.mute's bits: 0-5 the tracks, 6 the conductor, 7 the throws, 8 FX I, 9 FX II
 wait 300
 expect par1.0 6
@@ -33,11 +33,17 @@ wait 600
 pad 6 0
 wait 40
 expect mute 0
-# pad 8: both returns
-tappad 7
-expect mute 768
+# pad 8: the effects' pages: the delay (FX I), the reverb (FX II), back to the page it was on; no mute
 shot tracks_mutes.png
 tappad 7
+expect mute 0
+expect page FX_I
+shot tracks_fx1.png
+tappad 7
+expect page FX_II
+shot tracks_fx2.png
+tappad 7
+expect page Arrange
 expect mute 0
 # the faders' second bank
 smktap FADERBANK

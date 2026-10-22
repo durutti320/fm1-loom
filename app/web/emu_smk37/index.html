@@ -186,7 +186,7 @@ body.learn [data-learn] { cursor: crosshair; }
         <li><b>Six tracks:</b> T1 the kit, T2 <b>mono</b> (after the SH-101), T3 <b>poly</b> (after the Juno-106), T4 <b>fm</b> (six operators, sixteen patches: electric pianos, basses, brass, bells, organ...), T5 <b>acid</b> (after the TB-303: velocity 110+ accents, a note held into the next slides), T6 samples (a break). <b>ALGORITHM</b> (K3) picks the track.</li>
         <li><b>Sounds:</b> <b>PARA</b> opens the track's sound; <b>K4</b> (PRESETS) steps through its presets, auditioned as you go. On fm, K5 picks the patch, K6 makes it brighter or duller, K7 its decay longer or shorter, K8 spreads it (detune).</li>
         <li><b>The keys</b> play the selected track on every page, Steps too (the pads are the steps there).</li>
-        <li><b>Pads 9–16</b> the kit's drums, whatever track is selected. <b>Pads 1–6</b> the tracks' mutes, <b>7</b> the throws (held: the conductor), <b>8</b> the effects, delay and reverb together. On <b>SEQ</b> they are the bar's steps; <b>KNOB BANK</b> flips them to live pads.</li>
+        <li><b>Pads 9–16</b> the kit's drums, whatever track is selected. <b>Pads 1–6</b> the tracks' mutes, <b>7</b> the throws (held: the conductor), <b>8</b> the effects: a tap opens the delay's page, another the reverb's, another goes back. On <b>SEQ</b> they are the bar's steps; <b>KNOB BANK</b> flips them to live pads.</li>
         <li><b>Faders</b> T1–T4; <b>FADER BANK</b>: T5, T6, the effects, the master.</li>
         <li><b>NOTE REPEAT</b> tapped: repeat on or off (lit). Held, then a top pad: its rate. Held alone and let go: the LFO page.</li>
         <li><b>Kits:</b> a new project starts on ACOUSTIC. With T1 (the kit) selected, <b>PARA</b> opens its Engine page; <b>SCALE</b> opens the list with <b>KIT</b> first: turn <b>K3</b> for ACOUSTIC, 909 or SYNTH, <b>SCALE</b> again puts it on.</li>
@@ -332,7 +332,7 @@ for (let p = 0; p < 16; p++) {
   const d = document.createElement("div");
   d.className = "pad ctl"; d.tabIndex = -1; d.setAttribute("role", "button");
   d.dataset.learn = "pad:" + p; d.dataset.name = "pad " + (p + 1);
-  d.setAttribute("aria-label", p < 8 ? `Pad ${p + 1}: mute ${["T1", "T2", "T3", "T4", "T5", "T6", "the throws", "the effects"][p]}` : `Pad ${p + 1}: drum ${p - 7}`);
+  d.setAttribute("aria-label", p < 8 ? (p === 7 ? "Pad 8: the delay and reverb pages" : `Pad ${p + 1}: mute ${["T1", "T2", "T3", "T4", "T5", "T6", "the throws"][p]}`) : `Pad ${p + 1}: drum ${p - 7}`);
   d.innerHTML = `<span>${p + 1}</span>`;
   padBox.appendChild(d); padEls.push(d);
   d.addEventListener("pointerdown", (e) => {
