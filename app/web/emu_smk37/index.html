@@ -103,7 +103,8 @@ kbd { font: 600 .82em var(--mono); background: var(--body); border: 1px solid va
 .inrow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
 select { font: 500 .95rem var(--ui); color: var(--bone); background: var(--body); border: 1px solid var(--rule); border-radius: 8px;
          padding: .35em .6em; max-width: 100%; }
-.heard { font: 400 .82rem var(--mono); color: var(--bone); min-height: 1.5em; margin: 0; overflow-wrap: anywhere; }
+.heard { font: 400 .82rem var(--mono); color: var(--bone); min-height: 1.5em; margin: 0; overflow-wrap: anywhere;
+         white-space: pre; max-height: 15em; overflow: auto; }
 .learning { outline: 3px solid var(--amber) !important; outline-offset: 2px; }
 body.learn [data-learn] { cursor: crosshair; }
 /* phone width: last, so it wins over the rules above */
@@ -167,10 +168,11 @@ body.learn [data-learn] { cursor: crosshair; }
         <select id="midiPort" hidden aria-label="MIDI input"></select>
         <button id="learn" type="button" hidden>Learn a control</button>
         <button id="unlearn" type="button" hidden>Forget learned controls</button>
+        <button id="panic" type="button" hidden>Let go of everything</button>
       </div>
       <p id="midiState">Its keys play the keys, the wheels the wheels; pads sending notes 36–51 on channel 10 play the pads (36–43
         the drums). For the rest, <b>Learn a control</b>: click a knob, fader, pad or button here, then move or press yours.</p>
-      <p class="heard" id="heard" aria-live="polite"></p>
+      <p class="heard" id="heard"></p>
     </section>
     <section>
       <h2>MIDI out</h2>
@@ -433,6 +435,7 @@ const ccLast = {}, ccMode = {};
 const midiGo = document.getElementById("midiGo"), midiPort = document.getElementById("midiPort");
 const learnBtn = document.getElementById("learn"), unlearnBtn = document.getElementById("unlearn");
 const midiState = document.getElementById("midiState"), heard = document.getElementById("heard");
+const panicBtn = document.getElementById("panic");
 function saveMap() { try { localStorage.setItem(MAP_KEY, JSON.stringify(midiMap)); } catch { /* this visit only */ } }
 function targetName(t) {
   const el = document.querySelector(`[data-learn="${t}"]`);
@@ -474,6 +477,15 @@ function learnTake(key, isNote) {                                // the message 
   learnStop(`${learnEl.dataset.name} ← ${kind === "n" ? "note" : "CC"} ${num}, channel ${+ch + 1}. Learn another, or play.`);
   return true;
 }
+// An SMK on Snoop37 (or SPIDER) in DAW mode, its DEFAULT map: knobs CC 70-77 (bank B 102-109), faders CC 20-23
+// (24-27), buttons CC 127 held / 0 let go, on any channel; pads notes 36-67 on channel 10 (the lot below). A control
+// learned here comes first
+const DAW_CC = {};
+for (let i = 0; i < 8; i++) DAW_CC[70 + i] = DAW_CC[102 + i] = "knob:" + KNOBS[i][0];
+for (let f = 0; f < 4; f++) DAW_CC[20 + f] = DAW_CC[24 + f] = "fader:" + f;
+Object.assign(DAW_CC, { 110: "smk:" + SB.LEFT, 111: "smk:" + SB.RIGHT, 115: "btn:" + BTN.PLAY, 117: "btn:" + BTN.REC,
+  112: "btn:" + BTN.SEQ, 113: "btn:" + BTN.FX, 114: "btn:" + BTN.EDIT, 118: "btn:" + BTN.ARP, 119: "btn:" + BTN.LFO,
+  85: "btn:" + BTN.SEL, 86: "btn:" + BTN.ENV, 87: "btn:" + BTN.GLO, 88: "btn:" + BTN.SAVE });
 function ccTurns(key, v) {                                       // a knob's detents from one CC message
   const last = ccLast[key];
   ccLast[key] = v;
@@ -492,17 +504,36 @@ function midiControl(t, id, on, v) {                             // a mapped con
     sync();
   }
 }
+const inLines = [];
+let inLast = "", inRep = 0;
+function logIn(t) {                                              // the last 40 messages in, a repeat counted not listed
+  if (t === inLast) inLines[0] = `${t}  ×${++inRep + 1}`;
+  else { inLast = t; inRep = 0; inLines.unshift(t); inLines.length = Math.min(inLines.length, 40); }
+  heard.textContent = "in:\n" + inLines.join("\n");
+}
+function letGo() {                                               // every note, pad and button the keyboard holds, let go
+  for (const id of [...keyHeld.keys()]) if (id[0] === "m") noteUp(id);
+  for (const id of [...padHeld.keys()]) if (id[0] === "m") padUp(id);
+  for (const m of [btnHeld, smkHeld]) for (const id of [...m.keys()]) if (id[0] === "m") m.delete(id);
+  sync();
+}
 function onMidi(data) {
   const st = data[0], d1 = data[1] || 0, d2 = data[2] || 0, ty = st & 0xF0, ch = st & 15;
   if (st >= 0xF0) return;                                        // (clock, sense, SysEx)
-  heard.textContent = `heard: ${[st, d1, d2].map((x) => x.toString(16).toUpperCase().padStart(2, "0")).join(" ")}` +
-    `  ch ${ch + 1}  ${ty === 0x90 && d2 ? "note on " + d1 + " vel " + d2 : ty === 0x80 || ty === 0x90 ? "note off " + d1 :
-      ty === 0xB0 ? "CC " + d1 + " = " + d2 : ty === 0xE0 ? "pitch bend" : ""}`;
+  logIn(`${[st, d1, d2].map((x) => x.toString(16).toUpperCase().padStart(2, "0")).join(" ")}  ch ${String(ch + 1).padStart(2)}  ` +
+    (ty === 0x90 && d2 ? `note on  ${d1} vel ${d2}` : ty === 0x80 || ty === 0x90 ? `note off ${d1}` :
+     ty === 0xB0 ? `CC ${d1} = ${d2}` : ty === 0xE0 ? `pitch bend ${((d2 << 7) | d1) - 8192}` :
+     ty === 0xD0 ? `aftertouch ${d1} (ignored)` : ty === 0xA0 ? `poly aftertouch ${d1} ${d2} (ignored)` :
+     ty === 0xC0 ? `program ${d1} (ignored)` : ""));
+  if (ty === 0xB0 && (d1 === 120 || d1 === 123)) return letGo();  // (all sound off, all notes off)
   if (ty === 0x90 || ty === 0x80) {
     const on = ty === 0x90 && d2 > 0, key = `n${ch}:${d1}`, id = "m" + key;
     if (on && learnEl) learnTake(key, true);
     if (midiMap[key]) return midiControl(midiMap[key], id, on, d2);
-    if (ch === 9 && d1 >= 36 && d1 <= 51) return midiControl("pad:" + (d1 < 44 ? d1 - 28 : d1 - 44), id, on, d2);
+    if (ch === 9 && d1 >= 36 && d1 <= 67) {                     // pads: 36-43 / 52-59 the bottom row, 44-51 / 60-67 the top
+      const r = (d1 - 36) % 16;
+      return midiControl("pad:" + (r < 8 ? r + 8 : r - 8), id, on, d2);
+    }
     let n = d1;
     while (n < 48) n += 12;
     while (n > 84) n -= 12;
@@ -510,7 +541,7 @@ function onMidi(data) {
   } else if (ty === 0xB0) {
     const key = `c${ch}:${d1}`;
     if (learnEl) learnTake(key, false);
-    const t = midiMap[key] || (d1 === 1 ? "modw" : null);
+    const t = midiMap[key] || (d1 === 1 ? "modw" : DAW_CC[d1] || null);
     if (!t) return;
     const [kind, arg] = t.split(":");
     if (kind === "knob") {
@@ -534,10 +565,11 @@ function midiPorts() {
   midiPort.innerHTML = "";
   for (const i of ins) midiPort.add(new Option(i.name || "MIDI input", i.id));
   if (ins.length > 1) midiPort.add(new Option("All of them", "*"), 0);
-  const smk = ins.find((i) => /smk|spider|m-?vave/i.test(i.name || ""));
+  const named = ins.filter((i) => /smk|spider|m-?vave|felucca|sloop/i.test(i.name || ""));
+  const smk = named.find((i) => !/midiin\s*\d|port\s*2|\b2\)?$/i.test(i.name || "")) || named[0];
   midiPort.value = [...midiPort.options].some((o) => o.value === keep) ? keep : smk ? smk.id : ins.length ? midiPort.options[0].value : "";
   midiPort.hidden = !ins.length;
-  learnBtn.hidden = unlearnBtn.hidden = !ins.length;
+  learnBtn.hidden = unlearnBtn.hidden = panicBtn.hidden = !ins.length;
   midiListen();
   if (!ins.length) midiState.textContent = "No MIDI keyboard found: plug it in by USB (it shows up here when it is).";
   else if (!document.body.classList.contains("learn") && !learnEl)
@@ -546,12 +578,10 @@ function midiPorts() {
 }
 function midiListen() {
   for (const i of midiAccess.inputs.values()) i.onmidimessage = midiPort.value === "*" || midiPort.value === i.id ? (e) => onMidi(e.data) : null;
-  for (const id of [...keyHeld.keys()]) if (id[0] === "m") noteUp(id);
-  for (const id of [...padHeld.keys()]) if (id[0] === "m") padUp(id);
-  for (const m of [btnHeld, smkHeld]) for (const id of [...m.keys()]) if (id[0] === "m") m.delete(id);
-  sync();
+  letGo();
 }
 midiPort.addEventListener("change", midiListen);
+panicBtn.addEventListener("click", letGo);
 midiGo.addEventListener("click", async () => {
   if (!navigator.requestMIDIAccess) {
     midiState.textContent = "This browser has no MIDI (Safari, and phones, don't). Chrome or Edge on a computer do.";
