@@ -68,8 +68,8 @@ const char *const EG_KNOB[NENGINE][4] = {
 /* each engine's plain sound (INIT), 0..127; bellows' four are discrete 1..8, knit's voices 1..7, the Braids engines'
  * models a name each (synth.h NCANE ...) */
 static const uint8_t EG_DEF[NENGINE][4] = {{0, 20, 1, 0},  {40, 25, 0, 0}, {0, 40, 0, 0},  {3, 4, 2, 5},
-                                           {0, 64, 64, 0}, {2, 0, 64, 0},  {5, 0, 127, SM_ONESHOT}, {SMP_BREAK, 1, 64, 127},
-                                           {0, 0, 0, 0}};
+                                           {0, 64, 64, 0}, {2, 0, 64, 0},  {SMP_KEYS_DEF, 0, 127, SM_ONESHOT},
+                                           {SMP_BREAK, 1, 64, 127}, {0, 0, 0, 0}};
 static const char *const VMODE_N[3] = {"poly", "mono", "legato"};
 static const char *const FTYPE_N[NFT] = {"lp24", "ladder", "lp12", "hp12", "dynamic", "bp12"};
 static const char *const LTYPE_N[NLT] = {"off", "wave", "wobble", "drift", "pump"};

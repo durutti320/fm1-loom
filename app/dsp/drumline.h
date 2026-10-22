@@ -43,12 +43,29 @@ extern const uint8_t DM_DEFAULT[NDM][4];
 enum { PM_ONESHOT, PM_GATED, PM_LOOP, PM_CHOKE1, PM_CHOKE2, PM_CHOKE3, NPM };
 extern const char *const PM_NAME[NPM];
 extern const char *const DL_SOUND_NAME[DL_NSOUND];     /* the default kit's key names: "kick", "snare", "hat", "open", ... */
+#if BOARD_SMK37
+/* SPIDER's kits (the SMK-37 build), eleven keys each: ACOUSTIC (SLOOP's sampled studio kit: VCSL's recordings, CC0; a
+ * new drum track's), 909 (the factory 909 samples on kick, snare, hat and clap, the models on the rest), SYNTH
+ * (LOOM-8's own kit, the models). The kit's Engine page's list, KIT, puts one on the track (ui.c A_KIT) */
+enum { DK_ACOUSTIC, DK_909, DK_SYNTH, NDK };
+extern const char *const DK_NAME[NDK];
+extern const uint8_t DL_KITS[NDK][DL_NSOUND][DP_N];
+#define DL_DEFAULT_KIT (DL_KITS[DK_ACOUSTIC])
+const char *dl_key_name(const uint8_t *par, int k);   /* a key's name: a sample key's sample's ("crash"), else its
+                                                        * place's (DL_SOUND_NAME) (smk37.c) */
+#else
 extern const uint8_t DL_DEFAULT_KIT[DL_NSOUND][DP_N];  /* DP_* of each key of a new drum track */
+#define dl_key_name(par, k) DL_SOUND_NAME[k]
+#endif
 
 typedef struct drumline drumline_t;
+#if BOARD_SMK37
+#define DRUMLINE_BYTES 4736                            /* (SPIDER: six sample windows) */
+#else
 #define DRUMLINE_BYTES 4608                            /* 8 voices (each with its key's envelope and filter state),
                                                         * four sample windows (80 B each), the dynamic filter and
                                                         * two strings (int16, 512 each) */
+#endif
 
 void drumline_init(drumline_t *d, const uint8_t *par);  /* par: the track's par[] (reads TP_DRUM0.., TP_A..TP_R at a hit,
                                                          * TP_SEND* each chunk) */

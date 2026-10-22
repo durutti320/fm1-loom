@@ -182,6 +182,9 @@ static struct {
     uint16_t solo_mute;                              /* the mutes before the solo */
     uint16_t preset_i, pick_preset;               /* (more than 255 presets and user slots) */
     uint8_t pick_engine, pick_slot, pick_fx, pick_weave, pick_save;   /* (pick_save: SAVE TO's slot) */
+#if BOARD_SMK37
+    uint8_t pick_kit;                                /* KIT's kit (drumline.h DK_*) */
+#endif
     uint8_t name_slot;
     uint8_t playing;
     uint8_t scene_seen;
@@ -194,14 +197,22 @@ enum { A_CLEAR_NOTES, A_CLEAR_LOCKS, A_CLEAR_BOTH, A_COPY_PAT, A_PASTE_PAT, A_RO
        A_ENGINE, A_PRESET, A_SCRAMBLE, A_SAVE_PRESET, A_INIT, A_FOLLOW, A_INSERT_SLOT, A_DELETE_SLOT, A_CLEAR_SONG,
        A_PLAY_SONG, A_LOAD_PROJ, A_NEW_PROJ, A_USB_AUDIO, A_CLEAR_SCENE, A_PANIC, A_EFFECT, A_REMOVE_NOTE,
        A_COUNT_IN, A_PLAYMODE, A_FTYPE, A_FX_HP, A_FX_LP, A_FX_SEND, A_WEAVE, A_THEME, A_PUMP_BY, A_PUMP_REL,
-       A_PUMP_ACC, A_LEVEL, A_SCENE_AT, A_SAVE_TO, A_AUTOSAVE, A_RANDOM_SOUNDS, NACTIONS };
+       A_PUMP_ACC, A_LEVEL, A_SCENE_AT, A_SAVE_TO, A_AUTOSAVE, A_RANDOM_SOUNDS,
+#if BOARD_SMK37
+       A_KIT,                                   /* SPIDER: a drum track's kit (drumline.h DL_KITS) */
+#endif
+       NACTIONS };
 static const char *const ACTION_NAME[NACTIONS] = {
     "CLEAR NOTES", "CLEAR LOCKS", "CLEAR NOTES AND LOCKS", "COPY PATTERN", "PASTE PATTERN", "ROTATE FORWARD",
     "ROTATE BACK", "DUPLICATE BAR", "ENGINE", "PRESET", "SCRAMBLE", "SAVE AS PRESET", "RESET SOUND", "FOLLOWS CONDUCTOR",
     "INSERT SCENE", "DELETE SLOT", "CLEAR SONG", "PLAY SONG", "LOAD PROJECT", "NEW PROJECT", "USB AUDIO", "CLEAR SCENE",
     "ALL NOTES OFF", "EFFECT", "REMOVE", "COUNT-IN", "PLAY MODE", "FILTER TYPE", "HIGH-PASS", "LOW-PASS",
     "TO FX II", "KEEP AS PATTERN", "THEME", "PUMP BY", "RELEASE", "ACCENT", "LEVEL", "SCENES SWITCH", "SAVE TO", "AUTOSAVE",
-    "RANDOMIZE PRESETS"};
+    "RANDOMIZE PRESETS"
+#if BOARD_SMK37
+    , "KIT"
+#endif
+};
 /* the weave's ways (pattern.h WV_*): what this pattern keeps of itself */
 static const char *const WEAVE_NAME[NWV] = {"bars", "steps", "rhythm", "notes"};
 #define LIST_ROWS 28
@@ -1376,7 +1387,7 @@ static void page_tag(char *t)
             int lp = ui.lockpg - 1;
             e = num_s((uint32_t)step_shown(ui.held_first) + 1u, s_cat(t + s_len(t), ">step "));
             if (is_drum(sel_trk()) && (lp == P_ENGINE || lp == P_PLAY || lp == P_ENV || lp == P_FILTER))
-                e = s_cat(s_cat(e, ">"), DL_SOUND_NAME[ui.dsound % DL_NSOUND]);   /* the key the locks reach */
+                e = s_cat(s_cat(e, ">"), dl_key_name(proj.trk[sel_trk()].par, ui.dsound % DL_NSOUND));   /* the key the locks reach */
             s_cat(s_cat(e, ">"), page_name_of(lp, sel_trk()));
         } else if (ui.held)
             num_s((uint32_t)step_shown(ui.held_first) + 1u, s_cat(t + s_len(t), ">step "));
@@ -1386,7 +1397,7 @@ static void page_tag(char *t)
         track_crumb(t);
         if (is_drum(sel_trk()))                      /* the key the knobs edit (the kit's own pages: the whole kit) */
             s_cat(s_cat(t + s_len(t), ">"), ui.page == P_ENV2 || ui.page == P_KITF ? "all keys"
-                                             : DL_SOUND_NAME[ui.dsound % DL_NSOUND]);
+                                             : dl_key_name(proj.trk[sel_trk()].par, ui.dsound % DL_NSOUND));
         break;
     case P_SENDS:
         s_cat(s_cat(t, TRACK_NAME[inst_trk()]), ">sends");
@@ -1928,7 +1939,7 @@ static void list_build(void)
         if (is_drum(trk)) {                           /* each sound on the step, by key */
             for (int i = 1, r = 0; i <= NDRUM; i++)
                 if (kit_has(st, i)) {
-                    s_cat(s_cat(rm[r], "REMOVE "), DL_SOUND_NAME[i - 1]);
+                    s_cat(s_cat(rm[r], "REMOVE "), dl_key_name(proj.trk[trk].par, i - 1));
                     list_add(rm[r++], 0, LK_ACTION, A_REMOVE_NOTE);
                 }
             return;
@@ -1936,7 +1947,7 @@ static void list_build(void)
         for (int i = 0; i < SN && st->note[i]; i++) {
             char *e = s_cat(rm[i], "REMOVE ");
             if (is_drum(trk))
-                s_cat(e, DL_SOUND_NAME[(st->note[i] - 1) % DL_NSOUND]);
+                s_cat(e, dl_key_name(proj.trk[trk].par, (st->note[i] - 1) % DL_NSOUND));
             else if (trk == AUX_PUNCH)
                 s_cat(e, PX_VALID(st->note[i] - 1) ? PUNCH_NAME[(st->note[i] - 1) & 15] : "fx");
             else
@@ -2016,6 +2027,9 @@ static void list_build(void)
         else
             list_add(ACTION_NAME[A_FTYPE], fi->names[proj.trk[trk].par[fq] % (fi->hi + 1u)], LK_PICK, A_FTYPE);
     } else if ((keep == P_ENGINE || keep == P_PLAY) && is_drum(trk)) {   /* the key's play mode, then the sound's */
+#if BOARD_SMK37
+        list_add(ACTION_NAME[A_KIT], DK_NAME[ui.pick_kit % NDK], LK_PICK, A_KIT);   /* (the whole kit: first) */
+#endif
         list_add(ACTION_NAME[A_PLAYMODE], PM_NAME[proj.trk[trk].par[TP_DRUM(ui.dsound % DL_NSOUND, DP_MODE)] % NPM],
                  LK_PICK, A_PLAYMODE);
         list_add(ACTION_NAME[A_SCRAMBLE], 0, LK_ACTION, A_SCRAMBLE);
@@ -2399,7 +2413,7 @@ static void draw_steps(void)
         nm[NAME_LEN] = 0;
         x = text_fit(ST_X + 2, 0, &FONT_XS, nm[0] ? nm : EG_NAME[proj.trk[trk].par[TP_ENGINE] % NENGINE], 96, K_TEXT);
         if (drum)
-            s_cat(t, DL_SOUND_NAME[ui.dsound % DL_NSOUND]);
+            s_cat(t, dl_key_name(proj.trk[trk].par, ui.dsound % DL_NSOUND));
         else {
             char *e = t;
             *e = 0;
@@ -2478,7 +2492,7 @@ static void draw_steps(void)
                     j++;
                 }
             if (on) {
-                s_cat(t, DL_SOUND_NAME[ui.dsound % DL_NSOUND]);
+                s_cat(t, dl_key_name(proj.trk[trk].par, ui.dsound % DL_NSOUND));
                 t[3] = 0;
                 text_c(x + ST_MID, y + ST_L1, &FONT_XS, t, fg);
             }
@@ -2996,6 +3010,10 @@ static void pic_drumline(int32_t x0, int32_t y0, int32_t w, int32_t h, const uin
                                              "smpl"};
         const char *nm = PAD[p[TP_DRUM(k, DP_MODEL)] % NDM];
         char t[4];
+#if BOARD_SMK37
+        if (p[TP_DRUM(k, DP_MODEL)] == DM_SAMPLE && smp_get(p[TP_DRUM(k, DP_K1)]))
+            nm = dl_key_name(p, k);                  /* (SPIDER: its kits are samples, a key shows its sample's name) */
+#endif
         cv_round(x, y, pw - 4, ph - 4, 4, hit > 40 ? K_NOW : k == ui.dsound ? K_PANEL2 : K_PANEL);
         if (k == ui.dsound)
             cv_frame(x, y, pw - 4, ph - 4, 4, K_SEL, hit > 40 ? K_NOW : K_PANEL2);
@@ -3404,7 +3422,7 @@ static void draw_key_env(void)
         }
     for (int i = 0; i < n; i++)
         pen_to(&pn, px[i], py[i], K_NOW);
-    s_cat(s_cat(t, DL_SOUND_NAME[key]), open ? "'s envelope, decay off: its own length" : "'s envelope");
+    s_cat(s_cat(t, dl_key_name(proj.trk[trk].par, key)), open ? "'s envelope, decay off: its own length" : "'s envelope");
     text_fit(16, 16 + 84 + 3, &FONT_XS, t, 208, K_DIM);
     cv_blit(0, MAIN_Y);
 }
@@ -3437,7 +3455,7 @@ static void draw_key_filter(void)
     cv_rect(x0, y0 + hh, w, 1, K_LINE);
     if (ft == DF_OFF) {
         cv_rect(x0, y0 + 14, w, 2, K_DIM);
-        s_cat(s_cat(t, DL_SOUND_NAME[key]), ": no filter, PRESET picks one");
+        s_cat(s_cat(t, dl_key_name(proj.trk[trk].par, key)), ": no filter, PRESET picks one");
         text_fit(x0, y0 + hh + 3, &FONT_XS, t, w, K_DIM);
         cv_blit(0, MAIN_Y);
         return;
@@ -3466,7 +3484,7 @@ static void draw_key_filter(void)
     }
     cv_rect(fc, y0, 1, hh, K_FAINT);
     {
-        char *e = s_cat(s_cat(s_cat(t, DL_SOUND_NAME[key]), ": "), tp_info_par(TP_DRUM(key, DP_FTYPE), proj.trk[trk].par)->names[ft]);
+        char *e = s_cat(s_cat(s_cat(t, dl_key_name(proj.trk[trk].par, key)), ": "), tp_info_par(TP_DRUM(key, DP_FTYPE), proj.trk[trk].par)->names[ft]);
         if (p[DP_DRIVE])
             e = s_cat(e, ", driven");
         if (p[DP_FENV] != 64)
@@ -3663,7 +3681,7 @@ static void draw_sends(void)                         /* the instrument's two sen
                       (uint32_t)(drum ? key + 1 : 0) << 16);
     if (!begin_main(h))
         return;
-    s_cat(s_cat(t, drum ? DL_SOUND_NAME[key] : TRACK_NAME[trk]), " sends to");
+    s_cat(s_cat(t, drum ? dl_key_name(proj.trk[trk].par, key) : TRACK_NAME[trk]), " sends to");
     cv_text(12, 4, &FONT_B, t, K_TEXT);
     for (int i = 0; i < 2; i++) {
         int32_t y = 40 + i * 32, v = sv[i] * 132 / 127;

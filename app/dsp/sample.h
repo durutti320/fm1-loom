@@ -57,7 +57,13 @@
 #define SMP_ENT0 64u                      /* the header's first entry */
 #define SMP_ENT 40u                       /* bytes an entry */
 #define SMP_HDR_USED (SMP_ENT0 + SMP_NUSER * SMP_ENT)   /* 1344: what an upload stages */
+#if BOARD_SMK37
+#define SMP_BREAK 6                       /* (SPIDER's bank leaves the recorded instruments out: gen_samples.py SMK_DROP) */
+#define SMP_KEYS_DEF 0                    /* the sample engine's plain sound: the 909 kick, to play tuned */
+#else
 #define SMP_BREAK 12                      /* the factory break (tools/gen_samples.py): the slice engine's default */
+#define SMP_KEYS_DEF 5                    /* the sample engine's plain sound (synth.c EG_DEF): the piano */
+#endif
 #define SMP_BARS_MAX 16                   /* a user entry's bars above this: not stated */
 
 typedef struct {

@@ -74,6 +74,24 @@ The manual still applies: the FM-1's controls are where the SMK-37 prints the sa
 Not on the SMK-37: TRS MIDI IN (the SMK's jack is a MIDI output; its pin is a key row there). MIDI in works over USB.
 No Bluetooth (LOOM-8 builds without it anyway).
 
+## Sounds
+
+SPIDER is a poly, a mono and an acid box with drums and breaks, so its built-in samples are not quite the FM-1's:
+
+- **Three kits.** A drum track takes one from SEL's list on its Engine page: **KIT**, the list's first action (ALGORITHM
+  picks, SEL puts it on; the track takes the kit's name, its mix, sends and patterns stay). **ACOUSTIC**: SLOOP's
+  sampled studio kit, CC0 recordings from Versilian Studios' VCSL, cut as SLOOP cuts them and a little lighter
+  (`tools/prep_acoustic.py`: the metal at 24 kHz, the kick and the toms at 16 kHz, about 49 KB), levelled to LOOM-8's
+  kit. **909**: the factory 909 samples on kick, snare, hat and clap, LOOM-8's models on the rest. **SYNTH**: LOOM-8's
+  own kit. A new project starts on ACOUSTIC. The kits keep the keys' places (kick, snare, closed hat, open hat, clap,
+  low tom, high tom), so a pattern plays its like on another kit; ACOUSTIC's eighth key, the drum pads' last, is its
+  crash, then the ride, the rim and the tambourine. A sample key is named after its sample (the key grid, the
+  messages). Six sample keys sound at once (the FM-1: four), so a crash rings on under a fill.
+- **No recorded instruments.** The piano, upright bass, strings, brass, flute and orchestra hit, and their 15 presets,
+  are the FM-1's only: their room holds the kits (`tools/gen_samples.py SMK_DROP`). The 909 samples, the sweep, the
+  vinyl and the four breaks stay; the sample engine's plain sound is the 909 kick, to play tuned. Samples of your own
+  go into the user bank (below).
+
 ## DAW mode (MIDI controller)
 
 **< + >** (the second pressed while the first is held) switches **SPIDER ↔ DAW**. In DAW mode the keyboard is a USB

@@ -80,6 +80,38 @@ static int lsmk_kit(void)
             return t;
     return -1;
 }
+/* a drum key's name: a sample key's sample's (a kit's prefix left off: "ac crash" is "crash"), else its place's */
+const char *dl_key_name(const uint8_t *par, int k)
+{
+    const uint8_t *p = par + TP_DRUM(k % DL_NSOUND, 0);
+    if (p[DP_MODEL] == DM_SAMPLE && smp_get(p[DP_K1])) {
+        const char *n = smp_name(p[DP_K1]);
+        return n[0] && n[1] && n[2] == ' ' && n[3] ? n + 3 : n;
+    }
+    return DL_SOUND_NAME[k % DL_NSOUND];
+}
+/* the kit a drum track has (drumline.h DL_KITS: the one its eleven keys are), -1 none of them (a key changed) */
+static int lsmk_kit_of(int trk)
+{
+    for (int k = 0; k < NDK; k++)
+        if (!memcmp(proj.trk[trk].par + TP_DRUM(0, 0), DL_KITS[k], sizeof DL_KITS[k]))
+            return k;
+    return -1;
+}
+/* KIT (the kit's list): kit k on a drum track, its eleven keys (the kit's own pages, its mix and its patterns kept),
+ * the track named after it as a preset names one */
+static void lsmk_kit_put(int trk, int k)
+{
+    const char *n = DK_NAME[k % NDK];
+    int i;
+    memcpy(proj.trk[trk].par + TP_DRUM(0, 0), DL_KITS[k % NDK], sizeof DL_KITS[0]);
+    memset(proj.trk[trk].name, 0, NAME_LEN);
+    for (i = 0; i < NAME_LEN - 1 && n[i]; i++)
+        proj.trk[trk].name[i] = n[i];
+    engine_set_all(trk);
+    mark_dirty();
+    say("KIT", n);
+}
 /* the track the keys play (FX tracks: the instrument selected last) */
 static int lsmk_play_trk(void) { return is_aux(sel_trk()) ? inst_trk() : sel_trk(); }
 

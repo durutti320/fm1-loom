@@ -81,19 +81,62 @@ const char *const DL_SOUND_NAME[DL_NSOUND] = {"kick", "snare", "hat", "open", "c
  * its sends to FX I and FX II (a little room on the clap and the fm key; the rest dry) */
 #define VOL0 76
 #define KEYN 0, 0, 127, 0, 127, 0, 64, 0, DF_OFF
-const uint8_t DL_DEFAULT_KIT[DL_NSOUND][DP_N] = {
-    {DM_KICK, 82, 42, 64, 64, 0, 64, VOL0, PM_ONESHOT, KEYN, 0, 0},
-    {DM_SNARE, 79, 40, 84, 64, 0, 64, VOL0, PM_ONESHOT, KEYN, 0, 0},
-    {DM_HIHAT, 93, 23, 64, 88, 0, 74, VOL0, PM_CHOKE1, KEYN, 0, 0},
-    {DM_HIHAT, 93, 88, 64, 88, 0, 74, VOL0, PM_CHOKE1, KEYN, 0, 0},
-    {DM_CLAP, 100, 64, 64, 38, 0, 54, VOL0, PM_ONESHOT, KEYN, 0, 24},
-    {DM_TOM, 70, 46, 38, 64, 0, 44, VOL0, PM_ONESHOT, KEYN, 0, 0},
-    {DM_TOM, 100, 46, 38, 64, 0, 84, VOL0, PM_ONESHOT, KEYN, 0, 0},
-    {DM_CONGA, 109, 46, 64, 0, 0, 54, VOL0, PM_ONESHOT, KEYN, 0, 0},
-    {DM_SHAKER, 31, 64, 64, 101, 0, 80, VOL0, PM_ONESHOT, KEYN, 0, 0},
-    {DM_RESO, 36, 70, 70, 100, 0, 50, VOL0, PM_ONESHOT, KEYN, 0, 0},
-    {DM_FM, 103, 100, 46, 15, 0, 64, VOL0, PM_ONESHOT, KEYN, 0, 12},
+/* (a macro: SPIDER's SYNTH kit is this one) */
+#define DL_SYNTH_KIT {                                                     \
+    {DM_KICK, 82, 42, 64, 64, 0, 64, VOL0, PM_ONESHOT, KEYN, 0, 0},       \
+    {DM_SNARE, 79, 40, 84, 64, 0, 64, VOL0, PM_ONESHOT, KEYN, 0, 0},      \
+    {DM_HIHAT, 93, 23, 64, 88, 0, 74, VOL0, PM_CHOKE1, KEYN, 0, 0},       \
+    {DM_HIHAT, 93, 88, 64, 88, 0, 74, VOL0, PM_CHOKE1, KEYN, 0, 0},       \
+    {DM_CLAP, 100, 64, 64, 38, 0, 54, VOL0, PM_ONESHOT, KEYN, 0, 24},     \
+    {DM_TOM, 70, 46, 38, 64, 0, 44, VOL0, PM_ONESHOT, KEYN, 0, 0},        \
+    {DM_TOM, 100, 46, 38, 64, 0, 84, VOL0, PM_ONESHOT, KEYN, 0, 0},       \
+    {DM_CONGA, 109, 46, 64, 0, 0, 54, VOL0, PM_ONESHOT, KEYN, 0, 0},      \
+    {DM_SHAKER, 31, 64, 64, 101, 0, 80, VOL0, PM_ONESHOT, KEYN, 0, 0},    \
+    {DM_RESO, 36, 70, 70, 100, 0, 50, VOL0, PM_ONESHOT, KEYN, 0, 0},      \
+    {DM_FM, 103, 100, 46, 15, 0, 64, VOL0, PM_ONESHOT, KEYN, 0, 12},      \
+}
+#if BOARD_SMK37
+#include "samples_idx.h"
+/* a sample key: the sample, its own pitch, from its start, forward; pan, volume (dB: 0.4 a step under VOL0), mode
+ * and sends. The kits keep the keys' places where they can (a pattern made on one plays its like on another: kick,
+ * snare, closed hat, open hat choked by it, clap, low tom, high tom); ACOUSTIC's eighth is the crash (the drum pads'
+ * last, for fills), then the ride, the rim and the tambourine. Its levels as SLOOP balances it (GM_GAIN: the metal
+ * and the hand percussion further back), with the kick, the hats and the toms brought up to the loudness LOOM-8's own
+ * kit has (its first 150 ms: a kit switched keeps its level) */
+#define SK(i, pan, vol, mode, s1, s2) {DM_SAMPLE, i, 64, 0, 0, 0, pan, vol, mode, KEYN, s1, s2}
+const char *const DK_NAME[NDK] = {"acoustic", "909", "synth"};
+const uint8_t DL_KITS[NDK][DL_NSOUND][DP_N] = {
+    [DK_ACOUSTIC] = {
+        SK(SMPI_AC_KICK, 64, 87, PM_ONESHOT, 0, 0),
+        SK(SMPI_AC_SNARE, 64, VOL0, PM_ONESHOT, 0, 0),
+        SK(SMPI_AC_HAT, 74, 60, PM_CHOKE1, 0, 0),
+        SK(SMPI_AC_OPEN, 74, 64, PM_CHOKE1, 0, 0),
+        SK(SMPI_AC_CLAP, 54, VOL0, PM_ONESHOT, 0, 24),
+        SK(SMPI_AC_LTOM, 44, 82, PM_ONESHOT, 0, 0),
+        SK(SMPI_AC_HTOM, 84, 79, PM_ONESHOT, 0, 0),
+        SK(SMPI_AC_CRASH, 88, 56, PM_ONESHOT, 0, 0),
+        SK(SMPI_AC_RIDE, 40, 54, PM_ONESHOT, 0, 0),
+        SK(SMPI_AC_RIM, 58, VOL0, PM_ONESHOT, 0, 0),
+        SK(SMPI_AC_TAMB, 80, 61, PM_ONESHOT, 0, 0),
+    },
+    [DK_909] = {                                    /* the 909 samples where there are some, the models after */
+        SK(SMPI_KICK, 64, VOL0, PM_ONESHOT, 0, 0),
+        SK(SMPI_SNARE, 64, VOL0, PM_ONESHOT, 0, 0),
+        SK(SMPI_HAT, 74, VOL0, PM_CHOKE1, 0, 0),
+        {DM_HIHAT, 93, 88, 64, 88, 0, 74, VOL0, PM_CHOKE1, KEYN, 0, 0},
+        SK(SMPI_CLAP, 54, VOL0, PM_ONESHOT, 0, 24),
+        {DM_TOM, 70, 46, 38, 64, 0, 44, VOL0, PM_ONESHOT, KEYN, 0, 0},
+        {DM_TOM, 100, 46, 38, 64, 0, 84, VOL0, PM_ONESHOT, KEYN, 0, 0},
+        {DM_CONGA, 109, 46, 64, 0, 0, 54, VOL0, PM_ONESHOT, KEYN, 0, 0},
+        {DM_SHAKER, 31, 64, 64, 101, 0, 80, VOL0, PM_ONESHOT, KEYN, 0, 0},
+        {DM_RESO, 36, 70, 70, 100, 0, 50, VOL0, PM_ONESHOT, KEYN, 0, 0},
+        {DM_FM, 103, 100, 46, 15, 0, 64, VOL0, PM_ONESHOT, KEYN, 0, 12},
+    },
+    [DK_SYNTH] = DL_SYNTH_KIT,
 };
+#else
+const uint8_t DL_DEFAULT_KIT[DL_NSOUND][DP_N] = DL_SYNTH_KIT;
+#endif
 volatile uint8_t drumline_hitv[DL_NSOUND];
 
 /* a model's length range, seconds to -60 dB at the length knob's ends, and its trim (the balanced gain) */
@@ -149,7 +192,11 @@ typedef struct {
     float lo[4], hi[4];               /* low cut L1 L2 R1 R2, hi cut the same */
 } dynf_t;
 
+#if BOARD_SMK37
+#define NDSC 6                        /* (SPIDER: its kits are samples, a crash under a fill keeps ringing) */
+#else
 #define NDSC 4                        /* sample caches: sample keys sounding at once (a fifth takes the oldest's) */
+#endif
 struct drumline {
     const uint8_t *par;
     dvoice_t v[NDVOICE];

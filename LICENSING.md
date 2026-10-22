@@ -23,6 +23,7 @@ under the same licence (a public fork of these repositories does). What it adds,
 | Files | Origin | Licence |
 | --- | --- | --- |
 | `app/smk37.c`, `app/spider_splash.c`, `tests/spider_preview.c`, `tests/scenarios_smk37/`, the `BOARD_SMK37` switches in `app/` | the SPIDER port (Cam Durnsford, with Claude) | GPL-3.0-only |
+| `app/samples/ac_*.wav` (SPIDER's ACOUSTIC kit), cut by `tools/prep_acoustic.py` | SLOOP's acoustic kit ([genkigenki/sloop-fm1](https://github.com/genkigenki/sloop-fm1), `assets/samples-cc0/KIT`): recordings from Versilian Studios' [VCSL](https://github.com/sgossner/VCSL); the cutting chain is SLOOP's (`tools/gen_samples.py` there) | the recordings CC0 1.0; the tool GPL-3.0-only |
 | `app/smk_daw.h`, `tests/smk_daw_test.c` | genkigenki's DAW mode, from Snoop37 ([genkigenki/sloop-fm1](https://github.com/genkigenki/sloop-fm1), branch `snoop37`), by way of a Loom FM-1 port | GPL-3.0-only |
 | `base/bsp/boards/smk37/`, `base/bsp/chip/fm1_flash_smk37.h`, `base/device/smk37_io.c` | genkigenki's SMK-37 layer for Felucca (Felucca branch `smk37`; [fm1-to-smk37](https://github.com/genkigenki/fm1-to-smk37)) | GPL-3.0-only, kept in files of their own (`base/LICENSING.md`, `base/bsp/LICENSING.md`) |
 | the SMK-37 target in `base/` and `base/bsp/` (`device/plat_smk37.c`, the `BOARD_SMK37` switches) | the SPIDER port | MPL-2.0, as the files they are in |
@@ -69,6 +70,9 @@ Where LOOM-8's own parts come from:
 - The factory drum samples (`app/samples/909_kick.wav`, `909_snare.wav`, `909_hat.wav`, `909_clap.wav`) are renders
   of [9W9](https://github.com/athousanddetails/schwung-9W9), a TR-909 model (its ER-99 engine and its hat samples),
   GPL-3.0, cut by `tools/prep_909.py`.
+- SPIDER's ACOUSTIC kit (`app/samples/ac_*.wav`, the SMK-37 build only) is cut from the Versilian Community Sample
+  Library (VCSL, github.com/sgossner/VCSL), CC0 1.0, as SLOOP (github.com/genkigenki/sloop-fm1) picks and cuts it,
+  by `tools/prep_acoustic.py`.
 - The recorded instruments (`app/samples/piano.wav`, `upright.wav`, `strings.wav`, `brass.wav`, `flute.wav`,
   `orch_hit.wav`) are cut from the Versilian Studios Chamber Orchestra 2 Community Edition (VSCO 2 CE,
   github.com/sgossner/VSCO-2-CE), CC0 1.0, by `tools/prep_recordings.py`.

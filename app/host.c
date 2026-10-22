@@ -215,6 +215,10 @@ int app_expect(const char *what, int *got)
         *got = daw_user;
     else if (!strcmp(what, "pads_drums"))           /* KNOB BANK: the pads mutes and tracks on Steps */
         *got = lsmk.pad_drums;
+    else if (!strcmp(what, "kit")) {                /* the drum pads' kit's kit (drumline.h DK_* + 1; 0: its own) */
+        int t = lsmk_kit();
+        *got = t < 0 ? -1 : lsmk_kit_of(t) + 1;
+    }
     else if (!strcmp(what, "dawobj")) {             /* OBJ_DAW as stored: its CHANNEL + 100 x its flags (-1 none) */
         daw_store_t s;
         *got = plat_store_load(OBJ_DAW, &s, sizeof s) > 0 && s.magic == DAW_MAGIC ? s.ch + 100 * s.flags : -1;

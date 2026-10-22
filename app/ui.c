@@ -120,6 +120,8 @@ static void lsmk_lights(void);
 static int lsmk_daw_frame(void);
 static int lsmk_nr_release(uint32_t held_ms);
 static int lsmk_nr_lit(void);
+static int lsmk_kit_of(int trk);
+static void lsmk_kit_put(int trk, int k);
 #include "smk_daw.h"                             /* DAW mode's map and messages (daw_on: smk37.c's frame instead) */
 #else
 #define KEY_VEL(k) 127
@@ -935,7 +937,7 @@ static void keyboard_down(int k)
         ui.kmode[k] = KM_IDLE;                   /* playing: a black key on a kit's page picks the key it edits,
                                                   * without a preview over the beat (white keys still play it) */
         ui.dsound = (uint8_t)(key_sound(k) - 1);
-        say("KEY", DL_SOUND_NAME[ui.dsound]);
+        say("KEY", dl_key_name(proj.trk[trk].par, ui.dsound));
         return;
     }
     {
@@ -949,7 +951,7 @@ static void keyboard_down(int k)
             if ((steps_page(ui.page) || b >= 0) && ui.dsound != note - 1) {
                 ui.dsound = (uint8_t)(note - 1);
                 if (!steps_page(ui.page) || !playing())
-                    say("KEY", DL_SOUND_NAME[ui.dsound]);
+                    say("KEY", dl_key_name(proj.trk[trk].par, ui.dsound));
             }
         } else if (!is_aux(sel_trk())) {
             for (int i = 0; i < SN && i < ui.nchord; i++)
@@ -1084,7 +1086,7 @@ static void key_down(int k)
             on = kit_has(st, b + 1);
             ui.kmode[k] = KM_STEPSOUND;
             ui.held_used = 1;
-            say(DL_SOUND_NAME[b], on ? "on the step" : "off the step");
+            say(dl_key_name(proj.trk[trk].par, b), on ? "on the step" : "off the step");
             mark_dirty();
             return;
         }
@@ -1643,7 +1645,7 @@ static void presets(int32_t e)
     case P_STEPS: case P_BAR:
         if (is_drum(trk)) {
             ui.dsound = (uint8_t)((ui.dsound + d + DL_NSOUND) % DL_NSOUND);
-            say("SOUND", DL_SOUND_NAME[ui.dsound]);
+            say("SOUND", dl_key_name(proj.trk[trk].par, ui.dsound));
         } else if (is_seqt(trk))
             pattern_pick(trk, cur_pat(trk) + d);
         break;
@@ -1682,7 +1684,7 @@ static void presets(int32_t e)
         else if (is_drum(trk) && (ui.page == P_ENGINE || ui.page == P_PLAY || ui.page == P_PLAY2 || ui.page == P_ENV ||
                                   ui.page == P_SENDS)) {
             ui.dsound = (uint8_t)((ui.dsound + d + DL_NSOUND) % DL_NSOUND);
-            say("KEY", DL_SOUND_NAME[ui.dsound]);
+            say("KEY", dl_key_name(proj.trk[trk].par, ui.dsound));
         } else if (!is_aux(trk) && ui.page >= P_ENGINE && ui.page <= P_PLAYERS3)
             preset_step(trk, d);
         (void)t;
@@ -1721,6 +1723,10 @@ static void list_open(void)
     lst.open = 1;
     lst.sel = lst.top = 0;
     ui.pick_engine = proj.trk[sel_trk()].par[TP_ENGINE] % NENGINE;
+#if BOARD_SMK37
+    if (is_drum(sel_trk()))                      /* (a kit of its own: the first offered) */
+        ui.pick_kit = (uint8_t)(lsmk_kit_of(sel_trk()) < 0 ? 0 : lsmk_kit_of(sel_trk()));
+#endif
     if (is_fx(sel_trk()))
         ui.pick_fx = proj.trk[sel_trk()].par[TP_ENGINE] % NFXPICK;
     if (fx_page(ui.page))
@@ -1774,6 +1780,9 @@ static void list_change(int32_t e)
     case LK_PICK:
         switch (lst.row[lst.sel].id) {
         case A_ENGINE: ui.pick_engine = (uint8_t)clampi(ui.pick_engine + d, 0, NENGINE - 1); break;
+#if BOARD_SMK37
+        case A_KIT: ui.pick_kit = (uint8_t)clampi(ui.pick_kit + d, 0, NDK - 1); break;
+#endif
         case A_EFFECT: {
             int t = ui.pick_fx, trk = fx_page(ui.page) ? (ui.page == P_FX1 ? AUX_FX1 : AUX_FX2) : sel_trk();
             for (int tries = 0; tries < NFXPICK; tries++) {
@@ -2199,7 +2208,7 @@ static void act_remove_note(int row)             /* a step held: the row's note 
         kit_toggle(st, snd);
         ui.held_used = 1;
         mark_dirty();
-        say("REMOVED", DL_SOUND_NAME[snd - 1]);
+        say("REMOVED", dl_key_name(proj.trk[trk].par, snd - 1));
         return;
     }
     if (row < 0 || row >= SN || !st->note[row])
@@ -2246,6 +2255,12 @@ static void action_run(int a)
         say("ENGINE", EG_NAME[ui.pick_engine % NENGINE]);
         break;
     }
+#if BOARD_SMK37
+    case A_KIT:
+        if (is_drum(sel_trk()))
+            lsmk_kit_put(sel_trk(), ui.pick_kit % NDK);
+        break;
+#endif
     case A_EFFECT: {
         int ft = fx_page(ui.page) ? (ui.page == P_FX1 ? AUX_FX1 : AUX_FX2) : sel_trk();
         set_tp(ft, TP_ENGINE, ui.pick_fx % NFXPICK);

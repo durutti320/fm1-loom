@@ -1,0 +1,44 @@
+# SPIDER's kits (drumline.h DL_KITS; smk37.c lsmk_kit_put): a new project's kit is ACOUSTIC (its keys samples: SLOOP's
+# acoustic kit, in SPIDER's bank); SEL's list on the kit's Engine page offers KIT first (the kit it has): ALGORITHM picks
+# one, SEL puts it on (the eleven keys, the track's name). A key changed: a kit of its own, KIT offers ACOUSTIC. The drum
+# pads play whichever kit is on (pad 16: ACOUSTIC's crash)
+wait 300
+expect trk 1
+expect kit 1
+expect par1.d1.model 10
+expect par1.d8.model 10
+expect par1.d3.mode 3
+shot kit_acoustic.png
+# 909: its samples on kick, snare, hat and clap, the models on the rest
+tap EDIT
+expect page Engine
+tap SEL
+shot kit_list.png
+turn ALGO 1 30
+tap SEL
+expect kit 2
+expect par1.d1.model 10
+expect par1.d1.k1 0
+expect par1.d4.model 2
+# SYNTH: LOOM-8's own kit, every key a model
+tap SEL
+turn ALGO 1 30
+tap SEL
+expect kit 3
+expect par1.d1.model 0
+expect par1.d11.model 9
+# a key changed: no kit of the three; KIT offers ACOUSTIC, SEL puts it back
+param 1 d1.volume 70
+expect kit 0
+tap SEL
+tap SEL
+expect kit 1
+expect par1.d1.volume 87
+# the drum pads: ACOUSTIC's crash on pad 16, whatever track is selected
+spin ALGO 1
+expect trk 2
+expect drumhits 0
+tappad 15 100
+expect drumhits 1
+wait 200
+shot kit_crash.png

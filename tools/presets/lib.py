@@ -46,6 +46,8 @@ PRESETS = []
 def P(name, role, engine, knobs, mode="poly", glide=0, bend=2, volume=100, amp=(0, 64, 127, 40),
       fenv=(0, 64, 0, 40), filter=("lp24", 127, 0, 64, 64), sends=(0, 0), lfo=None, char=None, x=None, octave=None,
       genres=()):
+    if any(v is None for v in knobs.values()):  # a sample this build's bank leaves out (SPIDER: smp below): no preset
+        return
     assert role in ROLES, (name, role)
     assert engine in KNOBS, (name, engine)
     assert len(name) <= 11 and name == name.lower(), name
@@ -70,6 +72,9 @@ def P(name, role, engine, knobs, mode="poly", glide=0, bend=2, volume=100, amp=(
 
 
 def smp(name):
-    """a factory sample's index by its name (tools/gen_samples.py's order)"""
+    """a factory sample's index by its name (tools/gen_samples.py's order); None for one SPIDER's bank leaves out
+    (gen_samples.py SMK_DROP, BOARD=smk37): P then leaves its preset out"""
     import gen_samples
+    if gen_samples.SMK and name in gen_samples.SMK_DROP:
+        return None
     return gen_samples.names().index(name)
