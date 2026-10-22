@@ -11,7 +11,7 @@ firmware:
     - TRS MIDI IN (PH8 is a key-matrix row on the SMK)
     - one project slot and 72 KB of user samples (storage below)
   priorities:
-    - the pads as mutes, track pads and throws, and as the Steps cells
+    - the pads as mutes, drums (with note repeat) and throws, and as the Steps cells
     - the 8 tracks' levels on the faders
     - velocity on keys and pads
     - DAW mode (a USB MIDI controller), as Snoop37's
@@ -50,13 +50,18 @@ keys:
   velocity: factory
 
 pads:
-  pattern: custom            # mutes, tracks and throws; the step sequencer on Steps
+  pattern: custom            # mutes, drums and throws; the step sequencer on Steps
   steps: "on Steps and Bar: the bar's 16 cells as the white keys (pads 1-8 top row); every white-key gesture"
   mutes: "every other page: pads 1-8 mute / unmute T1-T8 (lit while playing)"
-  tracks: "every other page: pads 9-16 play T1-T8, a pad each, with velocity (a synth its C, a kit its first key),
-           recorded while recording"
+  drums: "every other page: pads 9-16 the kit's sounds 1-8 whatever track is selected (the kit: selected, else
+          the last selected, else the first), with velocity, recorded into the kit while recording; DAW mode's map
+          sends them as notes 36-43 and LOCAL plays the same sounds"
+  note_repeat: "NOTE REPEAT tapped: on / off (lit); held + pads 1-8: the rate (1/4 .. 1/64); held alone: the LFO page.
+                The drum pads held repeat in the sequencer (seq.c rp_*, BOARD_SMK37): on the grid while playing,
+                recorded while recording"
   throws: "> held: pads 1-12 the 12 throws on the whole mix, while held"
-  colours: "the track's ink (theme): steps dim, the playhead bright, held white; mutes lit / dark; throws violet"
+  colours: "the track's ink (theme): steps dim, the playhead bright, held white; mutes lit / dark; drums in the kit's ink;
+            throws violet; NOTE REPEAT's rates amber"
 
 faders:
   pattern: banks
@@ -76,7 +81,8 @@ knobs:
 buttons:
   map: printed
   extra:
-    KNOB BANK: "the pads: cells <-> mutes and tracks on Steps (lit); elsewhere opens Steps, its cells on the pads"
+    KNOB BANK: "the pads: cells <-> live pads (mutes and drums) on Steps (lit); elsewhere opens Steps, its cells on the pads"
+    NOTE REPEAT: "tapped: note repeat on / off; held + top pads: its rate; held alone: the LFO page"
     FADER BANK: "the faders' bank: T1-T4 / T5-T8"
     "<": "the bar before (when let go)"
     ">": "held: the pads fire the throws; let go alone: the bar after"

@@ -7,12 +7,19 @@
  * KNOB 1..4; the middle 27 keys, with velocity).
  *
  *   pads        pads 1-8 (the top row) mute and unmute T1-T8, lit in the track's ink while it plays, dark when
- *               muted; pads 9-16 (the bottom row) play T1-T8, one pad a track, with velocity (a synth its C, a kit its
- *               first key), recorded while recording. On Steps and Bar (SEQ) the bar's 16 cells instead, pads 1-8 the
- *               top row: the white keys' job there, every gesture of theirs (a tap, a hold, a later one for the
- *               length); lit in the track's colour: a step with notes dim, the step playing bright, a step held white
+ *               muted; pads 9-16 (the bottom row) are the drums: the kit's first eight sounds (kick, snare, hat,
+ *               open hat, clap, low tom, high tom, conga in a new kit), whatever track is selected (the kit: the track
+ *               selected if it is one, else the kit selected last, else the first), with velocity; recorded into the
+ *               kit while recording (REC + PLAY, as the keys: quantised, overdub or replace). On Steps and Bar (SEQ)
+ *               the bar's 16 cells instead, pads 1-8 the top row: the white keys' job there, every gesture of
+ *               theirs (a tap, a hold, a later one for the length); lit in the track's colour: a step with notes dim,
+ *               the step playing bright, a step held white
+ *   NOTE REPEAT tapped: note repeat on / off (lit): the drum pads held sound again in time (seq.c rp_*: on the
+ *               grid while playing, and recorded while recording); held: pads 1-8 pick its rate (1/4 1/8 1/8T 1/16
+ *               1/16T 1/32 1/32T 1/64, lit while held; a pick turns it on); held and let go alone: the LFO page (the
+ *               FM-1's LFO button, where the SMK prints NOTE REPEAT)
  *   > held      the pads fire the throws, pads 1-12 the 12 of them on the whole mix, while held (13-16 dark)
- *   KNOB BANK   on Steps: the cells <-> mutes and tracks (lit); elsewhere opens Steps, the pads its cells
+ *   KNOB BANK   on Steps: the cells <-> live pads, mutes and drums (lit); elsewhere opens Steps, the pads its cells
  *   < >         the bar before / after (any page: the one Steps shows and the pads write), when let go (> not if
  *               it fired a throw)
  *   < + >       DAW mode (below)
@@ -26,15 +33,19 @@
  * USB MIDI controller and LOOM-8 is left alone (the sequencer stops on the way in; MIDI IN still plays it, a sound
  * module for the DAW). The keys notes on CHANNEL (OCT- / OCT+ the octave, both: 0); K1..K8 (KNOB BANK: A / B), the
  * faders (FADER BANK: A / B), the pads (KNOB BANK + FADER BANK together: A / B), 13 buttons and the wheels what the map
- * says. K1 is a knob here, not the volume. < and > send when let go. PATCH tapped: LOCAL (the keys, NOTE pads and
- * the pitch wheel also play LOOM-8). PATCH held: K5 CHANNEL, K6 CC MAP (DEFAULT / USER), K7 KNOBS (ABSOLUTE /
+ * says. K1 is a knob here, not the volume. < and > send when let go. PATCH tapped: LOCAL (the keys, the bottom row's
+ * NOTE pads (the kit's first eight, as SPIDER's drum pads and as the map's notes 36..43) and the pitch wheel also
+ * play LOOM-8). PATCH held: K5 CHANNEL, K6 CC MAP (DEFAULT / USER), K7 KNOBS (ABSOLUTE /
  * RELATIVE); + OCT+ the map editor: touch a control, K5 its TYPE, K6 its NUMBER, K7 its CHANNEL; OCT+ the next
  * control, OCT- or PATCH done. Kept in flash (OBJ_DAW): the mode, the settings, the USER map. */
 
 static struct {
     uint32_t latch;                     /* Steps: pads pressed and not yet seen by input() (a tap within a frame) */
-    uint8_t pad_trk[NPADS], pad_note[NPADS];   /* a track pad's note playing: its track and note (0 none) */
+    uint8_t pad_trk[NPADS], pad_note[NPADS];   /* a drum pad's sound playing: its kit and key (0 none) */
+    uint8_t pad_vel[NPADS], pad_rp[NPADS];   /* its velocity; repeating (seq_repeat) */
     uint8_t pad_fx[NPADS];              /* a throw pad's throw firing: its throw + 1 (0 none) */
+    uint8_t nr_on, nr_rate;             /* NOTE REPEAT: on, its rate (SEQ_RP_*) */
+    uint32_t nr_pads;                   /* pads pressed as a rate while NOTE REPEAT was held (not cells) */
     uint8_t last_kit;                   /* the kit DAW mode's LOCAL pads play when a synth is selected (0xFF: none) */
     uint8_t pad_drums;                  /* KNOB BANK: the pads mutes and tracks on Steps too */
     uint8_t gt_used;                    /* > held fired a throw (its let-go steps no bar) */
@@ -46,7 +57,9 @@ static struct {
     uint8_t mw_trk, mw_par, mw_last, mw_armed;   /* the mod wheel: its track and parameter, as last seen, picked up */
     uint8_t lr_both;                    /* < + > pressed together: neither steps a bar (until both are up) */
     uint32_t sbtn;                      /* the SMK buttons as last seen */
-} lsmk = {.last_kit = 0xFF, .flast = {0xFF, 0xFF, 0xFF, 0xFF}, .bend_trk = 0xFF, .mw_trk = 0xFF};
+} lsmk = {.last_kit = 0xFF, .flast = {0xFF, 0xFF, 0xFF, 0xFF}, .bend_trk = 0xFF, .mw_trk = 0xFF, .nr_rate = SEQ_RP_16};
+static const char *const LSMK_RATE[NSEQ_RP] = {"1/4", "1/8", "1/8T", "1/16", "1/16T", "1/32", "1/32T", "1/64"};
+#define LSMK_NR_TAP_MS 400u                     /* NOTE REPEAT let go sooner: a tap (on / off); later: the LFO page */
 
 static void lsmk_daw_set(int on);
 
@@ -72,6 +85,43 @@ static int lsmk_play_trk(void) { return is_aux(sel_trk()) ? inst_trk() : sel_trk
 
 /* > held (alone): the pads are the throws */
 static int lsmk_throws(void) { return (plat_smk_buttons() >> SB_RIGHT & 1u) && !lsmk.lr_both; }
+/* NOTE REPEAT (the FM-1's LFO button) held: the top row picks the rate */
+static int lsmk_nr_held(void) { return (plat_buttons() >> B_LFO & 1u) && !daw_on && !ui.ask; }
+
+/* a drum pad's sound and its repeat end */
+static void lsmk_drum_off(int p)
+{
+    if (lsmk.pad_rp[p]) {
+        engine_repeat(lsmk.pad_trk[p], lsmk.pad_note[p], 0, 0);
+        lsmk.pad_rp[p] = 0;
+    }
+    if (lsmk.pad_note[p]) {
+        engine_key(lsmk.pad_trk[p], lsmk.pad_note[p], 0, 0);
+        lsmk.pad_note[p] = 0;
+    }
+}
+/* note repeat on / off: the drum pads held start / stop repeating */
+static void lsmk_nr_set(int on)
+{
+    int p;
+    lsmk.nr_on = (uint8_t)(on != 0);
+    for (p = 8; p < NPADS; p++)
+        if (lsmk.pad_note[p] && lsmk.nr_on != lsmk.pad_rp[p]) {
+            engine_repeat(lsmk.pad_trk[p], lsmk.pad_note[p], lsmk.nr_on, lsmk.pad_vel[p]);
+            lsmk.pad_rp[p] = lsmk.nr_on;
+        }
+    say("NOTE REPEAT", lsmk.nr_on ? LSMK_RATE[lsmk.nr_rate] : "off");
+}
+/* NOTE REPEAT let go, unused (no rate picked): a tap turns it on / off (1: taken); a hold leaves it to ui.c (LFO) */
+static int lsmk_nr_release(uint32_t held_ms)
+{
+    if (daw_on || held_ms >= LSMK_NR_TAP_MS)
+        return 0;
+    lsmk_nr_set(!lsmk.nr_on);
+    return 1;
+}
+static int lsmk_nr_lit(void) { return lsmk.nr_on; }
+
 static void lsmk_pads(void)
 {
     int p, v;
@@ -91,6 +141,15 @@ static void lsmk_pads(void)
                 }
                 continue;
             }
+            if (p < 8 && lsmk_nr_held()) {         /* NOTE REPEAT held: a rate (and repeat on) */
+                lsmk.nr_pads |= m;
+                ui.btn_used |= 1u << B_LFO;         /* (no tap, no LFO page when it is let go) */
+                ui.card = 0;
+                lsmk.nr_rate = (uint8_t)p;
+                engine_repeat_rate(p);
+                lsmk_nr_set(1);
+                continue;
+            }
             if (lsmk_pads_steps()) {               /* a cell: its white key (lsmk_pad_keys) */
                 lsmk.latch |= m;
                 continue;
@@ -100,24 +159,30 @@ static void lsmk_pads(void)
                     set_mute(p, !(seq.mute >> p & 1u));
                     say(seq.mute >> p & 1u ? "MUTED" : "UNMUTED", TRACK_NAME[p]);
                 }
-            } else {                               /* the bottom row: T1-T8 played, a pad each */
-                int t = p - 8, n = is_drum(t) ? 1 : clampi(KEY_BASE + 7 + ui.oct * 12, 1, 127);
-                if (lsmk.pad_note[p])
-                    engine_key(lsmk.pad_trk[p], lsmk.pad_note[p], 0, 0);
-                lsmk.pad_trk[p] = (uint8_t)t;
-                lsmk.pad_note[p] = (uint8_t)n;
-                engine_key(t, n, 1, v);
+            } else {                               /* the bottom row: the kit's sounds 1-8 (its keys), a pad each */
+                int kit = lsmk_kit(), key = p - 7;
+                lsmk_drum_off(p);
+                if (kit < 0) {
+                    say_no("NO KIT", "make a track a kit");
+                    continue;
+                }
+                lsmk.pad_trk[p] = (uint8_t)kit;
+                lsmk.pad_note[p] = (uint8_t)key;
+                lsmk.pad_vel[p] = (uint8_t)v;
+                engine_key(kit, key, 1, v);        /* (recorded while recording: seq.c key_in) */
+                if (lsmk.nr_on) {
+                    engine_repeat(kit, key, 1, v);
+                    lsmk.pad_rp[p] = 1;
+                }
             }
         } else {                                   /* let go: what it started ends, whatever the layer is now */
+            lsmk.nr_pads &= ~m;
             if (lsmk.pad_fx[p]) {
                 engine_punch(lsmk.pad_fx[p] - 1, 0, -1);
                 engine_punch(lsmk.pad_fx[p] - 1 + PX_MEL, 0, -1);
                 lsmk.pad_fx[p] = 0;
             }
-            if (lsmk.pad_note[p]) {
-                engine_key(lsmk.pad_trk[p], lsmk.pad_note[p], 0, 0);
-                lsmk.pad_note[p] = 0;
-            }
+            lsmk_drum_off(p);
         }
     }
 }
@@ -130,7 +195,7 @@ static uint32_t lsmk_pad_keys(void)
     if (!lsmk_pads_steps() || lsmk_throws())
         return 0;                                  /* (> held: the pads are throws, on Steps too) */
     for (c = 0; c < 16; c++)
-        if (held >> c & 1u && !lsmk.pad_fx[c])
+        if (held >> c & 1u && !lsmk.pad_fx[c] && !(lsmk.nr_pads >> c & 1u))
             k |= 1u << WHITE_K[c];
     return k;
 }
@@ -178,7 +243,7 @@ static void lsmk_pad_mode(void)
         return;
     if (lsmk_pads_steps()) {
         lsmk.pad_drums = 1;
-        say("PADS", "mutes and tracks");
+        say("PADS LIVE", "mutes and drums");
         return;
     }
     lsmk.pad_drums = 0;
@@ -317,6 +382,16 @@ static uint32_t lsmk_rgb(uint16_t c, uint32_t lv)  /* an RGB565 ink at lv / 256 
     uint32_t r = (c >> 11) << 3 | (c >> 13), g = ((c >> 5) & 0x3Fu) << 2 | ((c >> 9) & 3u), b = (c & 0x1Fu) << 3 | ((c >> 2) & 7u);
     return (r * lv >> 8) << 16 | (g * lv >> 8) << 8 | (b * lv >> 8);
 }
+/* the pads at rest away from Steps (nothing held): the mutes lit while their track plays, the drums dim in the kit's
+ * ink (dark with no kit). Also the boot's last picture (spider_splash.c), so the UI takes over without a jump */
+static void lsmk_pad_rest(uint32_t *col)
+{
+    int c, kit = lsmk_kit();
+    for (c = 0; c < 8; c++)
+        col[c] = lsmk_rgb(trk_ink(c), seq.mute >> c & 1u ? 10u : 200u);
+    for (c = 8; c < NPADS; c++)
+        col[c] = kit < 0 ? 0u : lsmk_rgb(trk_ink(kit), 44u);
+}
 static void lsmk_lights(void)
 {
     int c, t = sel_trk();
@@ -340,13 +415,15 @@ static void lsmk_lights(void)
             }
             plat_pad_rgb(c, lv == 0x1000000u ? 0xC8C8C8u : lsmk_rgb(ink, lv));
         }
-    } else {                                   /* mutes (lit while the track plays) and the tracks' pads */
-        uint32_t held = plat_pads_held();
-        for (c = 0; c < 8; c++)
-            plat_pad_rgb(c, lsmk_rgb(trk_ink(c), seq.mute >> c & 1u ? 10u : 200u));
-        for (c = 8; c < NPADS; c++)
-            plat_pad_rgb(c, lsmk_rgb(trk_ink(c - 8), held >> c & 1u ? 256u : 44u));
+    } else {                                   /* mutes (lit while the track plays) and the drums */
+        uint32_t held = plat_pads_held(), col[NPADS];
+        lsmk_pad_rest(col);
+        for (c = 0; c < NPADS; c++)
+            plat_pad_rgb(c, c >= 8 && held >> c & 1u && lsmk_kit() >= 0 ? lsmk_rgb(trk_ink(lsmk_kit()), 256u) : col[c]);
     }
+    if (lsmk_nr_held() && !lsmk_throws())      /* NOTE REPEAT held: the rates, the one in use bright */
+        for (c = 0; c < 8; c++)
+            plat_pad_rgb(c, lsmk_rgb(theme->ink[2], c == lsmk.nr_rate ? 240u : 40u));
     plat_smk_leds((lsmk.fbank ? 1u << SB_FADER_BANK : 0u) | (lsmk.pad_drums ? 1u << SB_KNOB_BANK : 0u) |
                   (lsmk_throws() ? 1u << SB_RIGHT : 0u));
 }
@@ -525,12 +602,13 @@ static void lsmk_daw_pads(void)
             engine_key(ld.pad_loc_trk[p], ld.pad_loc[p], 0, 0);
             ld.pad_loc[p] = 0;
         }
-        if (v && daw_local && lsmk_daw_ok() && daw_ent(i).type == DT_NOTE && p < DL_NSOUND) {   /* LOCAL: the kit */
+        if (v && daw_local && lsmk_daw_ok() && daw_ent(i).type == DT_NOTE && p >= 8) {   /* LOCAL: the kit's sounds
+                                                                                       * 1-8, as SPIDER's drum pads */
             int kit = lsmk_kit();
             if (kit >= 0) {
                 ld.pad_loc_trk[p] = (uint8_t)kit;
-                ld.pad_loc[p] = (uint8_t)(p + 1);
-                engine_key(kit, p + 1, 1, v);
+                ld.pad_loc[p] = (uint8_t)(p - 7);
+                engine_key(kit, p - 7, 1, v);
             }
         }
     }
@@ -925,12 +1003,10 @@ static void lsmk_synth_quiet(void)              /* LOOM-8's side: the pads' note
             engine_punch(lsmk.pad_fx[i] - 1 + PX_MEL, 0, -1);
             lsmk.pad_fx[i] = 0;
         }
-        if (lsmk.pad_note[i]) {
-            engine_key(lsmk.pad_trk[i], lsmk.pad_note[i], 0, 0);
-            lsmk.pad_note[i] = 0;
-        }
+        lsmk_drum_off(i);
     }
     lsmk.gt_used = 0;
+    lsmk.nr_pads = 0;
     for (i = 0; i < NOUTER; i++)
         if (lsmk.out_note[i]) {
             engine_key(lsmk.out_trk[i], lsmk.out_note[i], 0, 0);

@@ -12,8 +12,8 @@ boot. The FM-1 build is unchanged; everything for the SMK-37 is behind `BOARD_SM
   shoot out; then it walks the capture spiral from the outside in, as orb weavers do, dew glinting on what it has
   laid, and goes back to the hub. The name is woven in row by row, the shuttle crossing back and forth, and at the
   foot, small, the repositories SPIDER is woven from. The pads light along: the line down the middle, a flash at
-  each spoke, a light running round with the spider, a red pulse, then the eight tracks' inks woven in (LOOM-8's
-  eight threads), as the UI starts them. Under it a deep note, spidery: a cluster that skitters, glides apart into a
+  each spoke, a light running round with the spider, a red pulse, then the UI's own pad colours woven in (the
+  eight tracks' inks on the mutes, LOOM-8's eight threads; the drums in the kit's). Under it a deep note, spidery: a cluster that skitters, glides apart into a
   wide D minor as it swells, the web ringing as it is strung (a pluck at each spoke), dying away under the UI; at
   the volume's middle (where the SMK starts) it peaks about -21 dBFS. A key, pad or button ends it at once. As
   Snoop37's boot: the first still at power-on, the rest once audio and input are up (fm1-base `APP_SPLASH_LATE`);
@@ -52,9 +52,12 @@ The manual still applies: the FM-1's controls are where the SMK-37 prints the sa
 | Keys C3..E3, G#5..C6 (the outer 10) | more notes on the track the keys play, with velocity; on a kit, its keys |
 | 16 pads, on Steps and Bar (SEQ) | the bar's 16 cells, pads 1-8 the top row, 9-16 the bottom: everything the white keys do there (a tap, a hold, a later one for the length). Lit in the track's colour: a step with notes dim, the step playing bright, a step held white |
 | Pads 1-8 (top row), every other page | mute and unmute T1-T8. Lit in the track's ink while it plays, dark when muted |
-| Pads 9-16 (bottom row), every other page | play T1-T8, one pad a track, with velocity (a synth its C, a kit its first key). Recorded while recording, each into its own track. Dim in the track's ink, bright while hit |
+| Pads 9-16 (bottom row), every other page | the drums: the kit's first eight sounds (in a new kit: kick, snare, hat, open hat, clap, low tom, high tom, conga), whatever track is selected, with velocity. The kit: the track selected if it is one, else the kit selected last, else the first kit. Recorded into the kit while recording (REC + PLAY, as the keys: quantised, overdub or replace). Dim in the kit's ink, bright while hit |
+| NOTE REPEAT tapped | note repeat on / off (lit): a drum pad held sounds again in time, on the grid while playing (the first repeat at the grid line after the hit), from the hit when stopped; recorded while recording, for fills |
+| NOTE REPEAT held + pads 1-8 | its rate: 1/4, 1/8, 1/8T, 1/16 (the default), 1/16T, 1/32, 1/32T, 1/64 (lit while held, the one in use bright); a pick turns repeat on |
+| NOTE REPEAT held, let go alone | the LFO page (the FM-1's LFO button, where the SMK prints NOTE REPEAT) |
 | > held, then the pads | the throws: pads 1-12 fire the 12 momentary effects (mute, stutter, repeat, echo, build, floor, jumble, warble, pan, octave, chop, ring) on the whole mix, while held, on every page (Steps too: no step is touched). Dim violet, bright while firing; > lights |
-| KNOB BANK | the pads' job. On Steps: mutes and tracks there too (lit), again the cells. On any other page: opens Steps, with the pads as its cells |
+| KNOB BANK | the pads' job. On Steps: live pads there too, mutes and drums (lit; REC + PLAY records the drums you play), again the cells. On any other page: opens Steps, with the pads as its cells |
 | < / > | the bar before / after (the bar Steps shows and the pads write), when let go; > not after it fired a throw. Both together: DAW mode (below) |
 | Faders 1..4 | the levels of T1-T4, or T5-T8 after FADER BANK (lit on T5-T8). A fader acts only once it moves |
 | Pitch wheel | bend of the track the keys play, +-2 semitones (as a MIDI pitch bend) |
@@ -62,7 +65,7 @@ The manual still applies: the FM-1's controls are where the SMK-37 prints the sa
 | K1 | the volume (the FM-1's MASTER) |
 | K2 / K3 / K4 | SELECT / ALGORITHM / PRESETS |
 | K5..K8 | KNOB 1..4 (the help cards say K5..K8) |
-| FX, SCALE, CHORD, NOTE REPEAT, PARA, GLOBE | FX, SEL, ENV, LFO, EDIT, GLO |
+| FX, SCALE, CHORD, PARA, GLOBE | FX, SEL, ENV, EDIT, GLO (NOTE REPEAT: above) |
 | PATCH / BT | HOME / SAVE |
 | ARP / SEQ / SEQ PLAY / SEQ REC | ARP / SEQ / PLAY / REC |
 | OCTAVE- / OCTAVE+ | OCT- / OCT+ |
@@ -84,8 +87,10 @@ module for the DAW). The mode is kept: the SMK starts in DAW mode if it was left
   **13 buttons** and the **wheels** send what the map says. KNOB BANK / FADER BANK: bank A / B of the knobs / faders
   (lit on B); both together: the pads' bank. Knobs ABSOLUTE (0–127, kept per knob) or RELATIVE (64 ± the detents).
   `<` `>` send when let go. A CC TOGGLE flips once a press.
-- **PATCH** tapped: **LOCAL** on / off (PATCH lit: on). On: the keys also play the track selected, NOTE pads the kit,
-  the pitch wheel bends the track. Off (the default): SPIDER plays only what comes in.
+- **PATCH** tapped: **LOCAL** on / off (PATCH lit: on). On: the keys also play the track selected, the bottom row's
+  NOTE pads the kit's sounds 1-8 (as SPIDER's drum pads, which the DEFAULT map sends as notes 36-43: a drum rack's
+  first eight slots in the same order), the pitch wheel bends the track. Off (the default): SPIDER plays only what
+  comes in. (Note repeat is SPIDER's; in DAW mode NOTE REPEAT sends its CC, for the DAW's own.)
 - **PATCH held:** K5 CHANNEL, K6 CC MAP (left DEFAULT, right USER), K7 KNOBS (left ABSOLUTE, right RELATIVE),
   OCTAVE+ the map editor.
 - **The map editor** (your own map, USER): touch a control (turn a knob, move a fader or a wheel, hit a pad, press a

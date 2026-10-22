@@ -13,14 +13,14 @@ expect bar 2
 smktap <
 wait 40
 expect bar 1
-# KNOB BANK on Steps: the pads mutes and tracks (a pad writes no step), again: the cells
+# KNOB BANK on Steps: the pads live, mutes and drums (a pad writes no step), again: the cells
 smktap KNOBBANK
 wait 40
 expect pads_drums 1
 expect drumhits 0
 tappad 10 90
 tappad 8 90
-expect drumhits 1
+expect drumhits 2
 expect note 1 1 3 0
 expect note 1 1 9 0
 smktap KNOBBANK
@@ -134,6 +134,12 @@ wait 40
 expect voices 1
 key 5 up
 wait 300
+# LOCAL: the bottom row's pads play the kit's sounds 1-8 too (pad 10: the snare), and send their notes (37)
+expect drumhits 2
+out
+tappad 9 100
+expect drumhits 3
+expect_out USB 99 25 64
 # PATCH held: K5 CHANNEL (LOCAL stays)
 press HOME
 wait 40

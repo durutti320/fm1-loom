@@ -118,6 +118,8 @@ static void lsmk_poll(void);
 static uint32_t lsmk_pad_keys(void);
 static void lsmk_lights(void);
 static int lsmk_daw_frame(void);
+static int lsmk_nr_release(uint32_t held_ms);
+static int lsmk_nr_lit(void);
 #include "smk_daw.h"                             /* DAW mode's map and messages (daw_on: smk37.c's frame instead) */
 #else
 #define KEY_VEL(k) 127
@@ -1345,6 +1347,9 @@ static void holds(void)
     uint32_t now = plat_ms();
     for (int b = 0; b < NB; b++)
         if (ui.btn == 1u << b && !ui.keys && b != B_HOME && !(ui.btn_used >> b & 1u) &&
+#if BOARD_SMK37
+            b != B_LFO &&                           /* (NOTE REPEAT: held and let go, the LFO page: smk37.c) */
+#endif
             now - ui.btn_t[b] >= CARD_MS) {
             ui.card = (uint8_t)(b + 1);
             ui.btn_used |= 1u << b;
@@ -2422,6 +2427,10 @@ static void input(void)
                 rec_up();
                 continue;
             }
+#if BOARD_SMK37
+            if (i == B_LFO && !(ui.btn_used & m) && lsmk_nr_release(plat_ms() - ui.btn_t[i]))
+                continue;                           /* (NOTE REPEAT tapped: note repeat on / off; held: LFO, below) */
+#endif
             if (hold && !(ui.btn_used & m))
                 button_up((int)i);
         }
@@ -2546,6 +2555,10 @@ static void leds(void)
             }
         }
     }
+#if BOARD_SMK37
+    if (lsmk_nr_lit())
+        b |= 1u << B_LFO;                           /* (NOTE REPEAT on) */
+#endif
     loom_lights(b, k, proj.lights == 1, dim & ~k, rec);
 #if BOARD_SMK37
     lsmk_lights();

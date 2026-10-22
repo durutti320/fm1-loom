@@ -5,7 +5,7 @@
  * shoot out, then walks the capture spiral from the outside in (as orb weavers lay it), dew glinting on what it has
  * laid, and goes back to the hub; the name is woven in, row by row like a shuttle at the loom, and at the foot, small,
  * the repositories it is woven from. The pads light along (the line, a flash at each spoke, a light running round
- * with the spider, a red pulse, then the eight tracks' inks woven in: LOOM-8's eight threads), and a deep note,
+ * with the spider, a red pulse, then the UI's own pads woven in: the eight tracks' inks, LOOM-8's eight threads), and a deep note,
  * spidery, sounds under it (spd_snd_*: a cluster that skitters, glides into a wide D minor, the web ringing as it
  * is strung). A key, pad or button ends it (the sound fades out in 150 ms).
  * All of the picture procedural: every frame is drawn again from the time alone (the same seeds, nothing kept), in
@@ -571,8 +571,8 @@ static void spd_credits(uint32_t t)
 /* ---- the pads along (0..7 the top row, 8..15 the bottom, as plat_pad_rgb; 0xRRGGBB): the line coming down the
  * middle, a flash at each spoke's pad as it shoots (by its direction from the hub), a light running round the pads
  * with the spider as it weaves (round the two rows clockwise, as the spiral), a red pulse as it turns home, then the
- * eight tracks' inks woven in, left to right, at the levels the UI starts with (smk37.c lsmk_lights: the top row
- * 200 / 256 of each track's ink, the bottom row 44) */
+ * pads the UI starts with woven in, left to right (fin: smk37.c lsmk_pad_rest, the mutes in the eight tracks' inks
+ * and the drums in the kit's; none: the eight inks above, the drums in T1's, as a new project's) */
 #define SPD_SILK_PAD 0xDCD2FFu
 static void spd_add(float *c, uint32_t rgb, float a)
 {
@@ -590,7 +590,7 @@ static int spd_pad_at(float a)                  /* the pad in direction a from t
     int col = (int)(3.5f + spd_cos(a) * 4.2f + 0.5f);
     return (spd_sin(a) < 0.0f ? 0 : 8) + (col < 0 ? 0 : col > 7 ? 7 : col);
 }
-static void spd_pads(uint32_t t, uint32_t *out)
+static void spd_pads(uint32_t t, uint32_t *out, const uint32_t *fin)
 {
     float c[16][3] = {{0.0f}}, d, k;
     int p, j;
@@ -625,11 +625,14 @@ static void spd_pads(uint32_t t, uint32_t *out)
         for (p = 0; p < 16; p++)
             spd_add(c[p], spd_rgb565(SPD_BLOOD), 0.6f * k * k);
     }
-    for (p = 0; p < 16; p++) {                   /* the eight threads: each track's ink, woven in left to right */
+    for (p = 0; p < 16; p++) {                   /* the eight threads: the UI's pads, woven in left to right */
         float o[3] = {0.0f, 0.0f, 0.0f};
         int ch;
         k = spd_ease(spd_prog(t, 3150u + (uint32_t)(p & 7) * 45u, 220u));
-        spd_add(o, spd_rgb565(SPD_INK[p & 7]), p < 8 ? 200.0f / 256.0f : 44.0f / 256.0f);
+        if (fin)
+            spd_add(o, fin[p], 1.0f);
+        else
+            spd_add(o, spd_rgb565(SPD_INK[p < 8 ? p : 0]), p < 8 ? 200.0f / 256.0f : 44.0f / 256.0f);
         out[p] = 0;
         for (ch = 0; ch < 3; ch++) {
             float v = c[p][ch] * (1.0f - k) + o[ch] * k;
@@ -851,11 +854,12 @@ static void spd_frame(uint32_t t)
 /* at power-on (app_splash): the first still, the night sky, while the platform comes up */
 static void spd_splash(void) { spd_frame(0u); }
 
+static uint32_t spd_fin[16];                    /* the pads the UI starts with (smk37.c lsmk_pad_rest) */
 static void spd_lights(uint32_t t)
 {
     uint32_t c[16];
     int p;
-    spd_pads(t, c);
+    spd_pads(t, c, spd_fin);
     for (p = 0; p < 16; p++)
         plat_pad_rgb(p, c[p]);
     plat_pad_flush();                            /* (the main loop's job, which has not started) */
@@ -878,6 +882,7 @@ static void spd_splash_late(int show)
 {
     uint32_t t0, t = 0, n = 0, held[4] = {plat_keys(), plat_buttons(), plat_smk_buttons(), plat_pads_held()};
     int pad, vel, skip = 0;
+    lsmk_pad_rest(spd_fin);                      /* (the project is loaded: its mutes, its kit) */
     if (show) {
         spd_snd_start();
         t0 = fm1_micros();
