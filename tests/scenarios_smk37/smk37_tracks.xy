@@ -54,3 +54,13 @@ expect par5.level 80
 # the Mix page: five strips and the two returns
 tap GLO
 shot tracks_mix.png
+# the keybed plays on Steps (the pads are its cells there): a white key on a synth track sounds
+tap HOME
+turn ALGO 1
+wait 200
+wav keys_on_steps.wav
+key 7 down 100
+wait 300
+key 7 up
+wait 100
+wavstop
