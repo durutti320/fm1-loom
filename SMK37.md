@@ -13,7 +13,7 @@ boot. The FM-1 build is unchanged; everything for the SMK-37 is behind `BOARD_SM
   laid, and goes back to the hub. The name is woven in row by row, the shuttle crossing back and forth, and at the
   foot, small, the repositories SPIDER is woven from. The pads light along: the line down the middle, a flash at
   each spoke, a light running round with the spider, a red pulse, then the UI's own pad colours woven in (the
-  eight tracks' inks on the mutes, LOOM-8's eight threads; the drums in the kit's). Under it a deep note, spidery: a cluster that skitters, glides apart into a
+  eight inks on the mutes, LOOM-8's eight threads; the drums in the kit's). Under it a deep note, spidery: a cluster that skitters, glides apart into a
   wide D minor as it swells, the web ringing as it is strung (a pluck at each spoke), dying away under the UI; at
   the volume's middle (where the SMK starts) it peaks about -21 dBFS. A key, pad or button ends it at once. As
   Snoop37's boot: the first still at power-on, the rest once audio and input are up (fm1-base `APP_SPLASH_LATE`);
@@ -21,7 +21,7 @@ boot. The FM-1 build is unchanged; everything for the SMK-37 is behind `BOARD_SM
   `cc -O2 -Iapp/build/gen -o spider_preview tests/spider_preview.c -lm && ./spider_preview frames/ 40 4096` (PPM
   frames, 25 a second, with the pads under the screen, and `boot.wav` at the volume given).
 - **Colour:** the default theme is **web** (Setup: THEME; tape deck and blueprint are still there): near-black and
-  violet panels, bone text, blood red for recording, and the eight tracks in jewel tones (crimson, ember, amber,
+  violet panels, bone text, blood red for recording, and the five tracks and the throws and returns in jewel tones (crimson, ember, amber,
   absinthe, verdigris, cold blue, amethyst, orchid). Each page button has its own colour, shown on its page's tag
   and in the footer hints. Each knob has its own colour too: K5–K8's names and bars, SELECT / ALGO / PRESET in the
   footer, and the same knobs in DAW mode. The Mix page's track numbers take their track's colour.
@@ -51,7 +51,7 @@ The manual still applies: the FM-1's controls are where the SMK-37 prints the sa
 | Keys F3..G5 (the middle 27) | the FM-1's 27 keys, **with velocity** (the unit's own factory curves) |
 | Keys C3..E3, G#5..C6 (the outer 10) | more notes on the track the keys play, with velocity; on a kit, its keys |
 | 16 pads, on Steps and Bar (SEQ) | the bar's 16 cells, pads 1-8 the top row, 9-16 the bottom: everything the white keys do there (a tap, a hold, a later one for the length). Lit in the track's colour: a step with notes dim, the step playing bright, a step held white |
-| Pads 1-8 (top row), every other page | mute and unmute T1-T8. Lit in the track's ink while it plays, dark when muted |
+| Pads 1-8 (top row), every other page | the mutes: pads 1-5 T1-T5; pad 6 the throws (held, let go after ~0.4 s: the conductor); pad 7 FX I's return (the delay), pad 8 FX II's (the reverb), kept in the scene. Lit in the ink while it plays, dark when muted (pad 6 red while the conductor is muted) |
 | Pads 9-16 (bottom row), every other page | the drums: the kit's first eight sounds (in a new kit: kick, snare, hat, open hat, clap, low tom, high tom, conga), whatever track is selected, with velocity. The kit: the track selected if it is one, else the kit selected last, else the first kit. Recorded into the kit while recording (REC + PLAY, as the keys: quantised, overdub or replace). Dim in the kit's ink, bright while hit |
 | NOTE REPEAT tapped | note repeat on / off (lit): a drum pad held sounds again in time, on the grid while playing (the first repeat at the grid line after the hit), from the hit when stopped; recorded while recording, for fills |
 | NOTE REPEAT held + pads 1-8 | its rate: 1/4, 1/8, 1/8T, 1/16 (the default), 1/16T, 1/32, 1/32T, 1/64 (lit while held, the one in use bright); a pick turns repeat on |
@@ -59,7 +59,7 @@ The manual still applies: the FM-1's controls are where the SMK-37 prints the sa
 | > held, then the pads | the throws: pads 1-12 fire the 12 momentary effects (mute, stutter, repeat, echo, build, floor, jumble, warble, pan, octave, chop, ring) on the whole mix, while held, on every page (Steps too: no step is touched). Dim violet, bright while firing; > lights |
 | KNOB BANK | the pads' job. On Steps: live pads there too, mutes and drums (lit; REC + PLAY records the drums you play), again the cells. On any other page: opens Steps, with the pads as its cells |
 | < / > | the bar before / after (the bar Steps shows and the pads write), when let go; > not after it fired a throw. Both together: DAW mode (below) |
-| Faders 1..4 | the levels of T1-T4, or T5-T8 after FADER BANK (lit on T5-T8). A fader acts only once it moves |
+| Faders 1..4 | the levels of T1-T4; after FADER BANK (lit) T5, FX I's and FX II's returns, the master. A fader acts only once it moves |
 | Pitch wheel | bend of the track the keys play, +-2 semitones (as a MIDI pitch bend) |
 | Mod wheel | the filter of the track the keys play: its cutoff (a DYNAMIC filter: its hi cut). A pick-up: the wheel acts once it passes the value the track has, so nothing jumps; the screen says where to pick it up |
 | K1 | the volume (the FM-1's MASTER) |
@@ -76,13 +76,31 @@ No Bluetooth (LOOM-8 builds without it anyway).
 
 ## Sounds
 
-SPIDER is a poly, a mono and an acid box with drums and breaks, so its built-in samples are not quite the FM-1's:
+SPIDER is a poly, a mono and an acid box with drums and breaks. It has **five tracks** (the FM-1's LOOM-8 eight): a new
+project's T1 is the kit, T2 **poly**, T3 **mono**, T4 **acid**, T5 the samples (slice: a break; or the sample engine);
+then the conductor, the throws, FX I and FX II as on the FM-1. Any of T1-T5 can be any engine (ENGINE, SEL's list).
+SPIDER's projects are its own format: an FM-1 project does not load.
+
+- **Three engines in place of LOOM-8's six** (`app/dsp/synth_spider.c`, which `synth.c` takes on the SMK-37; knit, rayon,
+  jacquard, bellows, cane and voile, their tables and the Braids lines, stay out of SPIDER's image):
+  - **poly**, after the Juno-106: a voice's one oscillator, its mixer on the knobs: **saw**, **pulse**, **width** (50 %
+    .. 5 %: the LFO on it is PWM), **sub** (a square an octave down); the second page (Sub): **noise**, **hpf** (the
+    Juno's: boost, flat, 240 Hz, 720 Hz), **chorus** (off, I, II, I+II: after the filter, two taps a voice swinging
+    apart), **drift** (the pitch wandering a few cents). Then the Filter page's 24 dB filter, its envelopes, as LOOM-8.
+  - **mono**, after the SH-101: the same oscillator, one voice and a glide (mono / legato); the second page: **sub
+    type** (-1 oct, -2 oct, a 25 % pulse -2 oct), **noise**, **pw env** (the filter envelope narrowing the pulse),
+    **drift**.
+  - **acid**, after the TB-303: a saw or a square into its own filter, the 303's knobs on the first page: **cutoff**,
+    **reso**, **env mod**, **decay**; the second page: **accent**, **wave**. A note at velocity 110 or more is accented
+    (louder, brighter, a shorter sweep, and a charge that builds over accents in a row); a note played into a held one
+    **slides** (legato, at the Play page's glide) without a new sweep, any other note jumps. Its Filter page does nothing
+    (the filter is its own). On Steps: a step's velocity is its accent, a note longer than its step slides into the next.
+  - Factory presets: `tools/presets/poly.py`, `mono.py`, `acid.py` (12, 10 and 8; the FM-1's left out).
 
 - **Three kits.** A drum track takes one from SEL's list on its Engine page: **KIT**, the list's first action (ALGORITHM
   picks, SEL puts it on; the track takes the kit's name, its mix, sends and patterns stay). **ACOUSTIC**: SLOOP's
-  sampled studio kit, CC0 recordings from Versilian Studios' VCSL, cut as SLOOP cuts them and a little lighter
-  (`tools/prep_acoustic.py`: the metal at 24 kHz, the kick and the toms at 16 kHz, about 49 KB), levelled to LOOM-8's
-  kit. **909**: the factory 909 samples on kick, snare, hat and clap, LOOM-8's models on the rest. **SYNTH**: LOOM-8's
+  sampled studio kit, CC0 recordings from Versilian Studios' VCSL, cut as SLOOP cuts them (`tools/prep_acoustic.py`:
+  the metal at 32 kHz, the rest at 22.05 kHz, about 72 KB), levelled to LOOM-8's kit. **909**: the factory 909 samples on kick, snare, hat and clap, LOOM-8's models on the rest. **SYNTH**: LOOM-8's
   own kit. A new project starts on ACOUSTIC. The kits keep the keys' places (kick, snare, closed hat, open hat, clap,
   low tom, high tom), so a pattern plays its like on another kit; ACOUSTIC's eighth key, the drum pads' last, is its
   crash, then the ride, the rim and the tambourine. A sample key is named after its sample (the key grid, the

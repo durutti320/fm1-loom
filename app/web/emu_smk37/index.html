@@ -179,7 +179,8 @@ body.learn [data-learn] { cursor: crosshair; }
     <section>
       <h2>Playing it</h2>
       <ul>
-        <li><b>Pads 9–16</b> the kit's drums, whatever track is selected. <b>Pads 1–8</b> mute and unmute T1–T8. On <b>SEQ</b> they are the bar's steps; <b>KNOB BANK</b> flips them to live pads.</li>
+        <li><b>Five tracks:</b> T1 the kit, T2 <b>poly</b> (after the Juno-106), T3 <b>mono</b> (after the SH-101), T4 <b>acid</b> (after the TB-303: velocity 110+ accents, a note held into the next slides), T5 samples (a break).</li>
+        <li><b>Pads 9–16</b> the kit's drums, whatever track is selected. <b>Pads 1–8</b> the mutes: 1–5 the tracks, 6 the throws (held: the conductor), 7 the delay, 8 the reverb. On <b>SEQ</b> they are the bar's steps; <b>KNOB BANK</b> flips them to live pads.</li>
         <li><b>NOTE REPEAT</b> tapped: repeat on or off (lit). Held, then a top pad: its rate. Held alone and let go: the LFO page.</li>
         <li><b>Kits:</b> a new project starts on ACOUSTIC. With T1 (the kit) selected, <b>PARA</b> opens its Engine page; <b>SCALE</b> opens the list with <b>KIT</b> first: turn <b>K3</b> for ACOUSTIC, 909 or SYNTH, <b>SCALE</b> again puts it on.</li>
         <li><b>&gt;</b> held: the pads fire the throws. <b>&lt;</b> <b>&gt;</b> the bar. Both together: DAW mode.</li>
@@ -305,7 +306,7 @@ for (let f = 0; f < 4; f++) {
   fi.addEventListener("input", (e) => send({ type: "fader", f, v: +e.target.value }));
 }
 const fb = document.createElement("div"); fb.className = "bank"; faderBox.appendChild(fb);
-mkBtn(fb, "FADER BANK", "T1–4 / T5–8", SB.FADERBANK, true);
+mkBtn(fb, "FADER BANK", "T1–4 / T5 FX master", SB.FADERBANK, true);
 const bend = document.getElementById("bend");
 bend.dataset.learn = "bend"; bend.dataset.name = "the pitch wheel";
 Object.assign(document.getElementById("modw").dataset, { learn: "modw", name: "the mod wheel" });
@@ -321,7 +322,7 @@ for (let p = 0; p < 16; p++) {
   const d = document.createElement("div");
   d.className = "pad ctl"; d.tabIndex = -1; d.setAttribute("role", "button");
   d.dataset.learn = "pad:" + p; d.dataset.name = "pad " + (p + 1);
-  d.setAttribute("aria-label", p < 8 ? `Pad ${p + 1}: mute T${p + 1}` : `Pad ${p + 1}: drum ${p - 7}`);
+  d.setAttribute("aria-label", p < 8 ? `Pad ${p + 1}: mute ${["T1", "T2", "T3", "T4", "T5", "the throws", "the delay", "the reverb"][p]}` : `Pad ${p + 1}: drum ${p - 7}`);
   d.innerHTML = `<span>${p + 1}</span>`;
   padBox.appendChild(d); padEls.push(d);
   d.addEventListener("pointerdown", (e) => {

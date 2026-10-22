@@ -4,11 +4,10 @@
 """SPIDER's ACOUSTIC kit (the SMK-37 build): SLOOP's sampled studio kit, CC0 recordings from Versilian Studios' VCSL
 (github.com/sgossner/VCSL), cut as SLOOP cuts them: from just before the onset, at most KEEP seconds, the kick's and
 the toms' bodies shortened (a tuned-up, damped head: the level falls as exp(-t / tau) after a hold), the silent tail
-dropped, the end faded. Lighter than SLOOP's (73 KB there, about 50 KB here: room for a second kit beside it in
-SPIDER's app slot): the metal at 24 kHz (SLOOP: 32), the kick and the toms at 16 kHz, the rest at 22.05 kHz, the
-hats and the cymbals a little shorter. Into app/samples/ac_*.wav, mono, 16-bit, each at the rate the bank keeps it
-at. tools/gen_samples.py reads them for BOARD=smk37 only; the kit's levels are its keys' volumes (drumline.c DL_KITS),
-as SLOOP's GM_GAIN has them. Run once, by hand; the results are committed.
+dropped, the end faded; the metal at 32 kHz (its top kept), the rest at 22.05 kHz (about 72 KB). Into
+app/samples/ac_*.wav, mono, 16-bit, each at the rate the bank keeps it at. tools/gen_samples.py reads them for
+BOARD=smk37 only; the kit's levels are its keys' volumes (drumline.c DL_KITS), as SLOOP's GM_GAIN has them. Run once,
+by hand; the results are committed.
 
   git clone --depth 1 https://github.com/genkigenki/sloop-fm1
   tools/prep_acoustic.py sloop-fm1/assets/samples-cc0/KIT
@@ -24,17 +23,17 @@ import sampleio as sio  # noqa: E402
 DST = Path(__file__).resolve().parents[1] / "app" / "samples"
 # name (app/samples/ac_NAME.wav), SLOOP's file in assets/samples-cc0/KIT, rate, seconds kept, (hold, tau) or None,
 # the end's fade (s)
-PICK = [("kick", "10_kick_BDrumNew_hit_v5.wav", 16000, 0.45, (0.03, 0.13), 0.03),
-        ("snare", "11_snare_Snare2_HitSN_v7.wav", 22050, 0.40, None, 0.03),
-        ("hat", "14_hihat_HitC_v3.wav", 24000, 0.30, None, 0.03),
-        ("open", "15_ohat_HitO.wav", 24000, 0.45, None, 0.10),
-        ("rim", "12_rim_sidestick.wav", 22050, 0.20, None, 0.03),
-        ("ltom", "16_tomlo_TomL_HitS_v4.wav", 16000, 0.42, (0.04, 0.22), 0.03),
-        ("htom", "17_tomhi_TomH_HitS_v4.wav", 16000, 0.40, (0.04, 0.2), 0.03),
-        ("crash", "18_crash_susCymb2_hit_f1.wav", 24000, 0.55, None, 0.16),
-        ("ride", "19_ride_susCymb2_stick_mf1.wav", 24000, 0.50, None, 0.16),
-        ("clap", "13_clap_Clap_rr1.wav", 22050, 0.30, None, 0.03),
-        ("tamb", "00_Tamb1_Hit_v2_rr1_Mid.wav", 22050, 0.35, None, 0.06)]
+PICK = [("kick", "10_kick_BDrumNew_hit_v5.wav", 22050, 0.45, (0.03, 0.13), 0.03),
+        ("snare", "11_snare_Snare2_HitSN_v7.wav", 22050, 0.45, None, 0.03),
+        ("hat", "14_hihat_HitC_v3.wav", 32000, 0.45, None, 0.03),
+        ("open", "15_ohat_HitO.wav", 32000, 0.6, None, 0.03),
+        ("rim", "12_rim_sidestick.wav", 22050, 0.45, None, 0.03),
+        ("ltom", "16_tomlo_TomL_HitS_v4.wav", 22050, 0.45, (0.04, 0.22), 0.03),
+        ("htom", "17_tomhi_TomH_HitS_v4.wav", 22050, 0.45, (0.04, 0.2), 0.03),
+        ("crash", "18_crash_susCymb2_hit_f1.wav", 32000, 0.6, None, 0.16),
+        ("ride", "19_ride_susCymb2_stick_mf1.wav", 32000, 0.6, None, 0.16),
+        ("clap", "13_clap_Clap_rr1.wav", 22050, 0.45, None, 0.03),
+        ("tamb", "00_Tamb1_Hit_v2_rr1_Mid.wav", 22050, 0.45, None, 0.03)]
 
 
 def cut(x, sr, rate, keep, shape, fade):

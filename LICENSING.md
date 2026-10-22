@@ -12,6 +12,9 @@ Kuroshita (@kurogedelic, Hügelton Instruments), whose code is in them under MPL
 and `base/CREDITS.md`. MPL-2.0 files may be part of a GPL work, and stay MPL-2.0: changes to them are published
 under MPL-2.0. LOOM-8 keeps its own licence, GPL-3.0-only; moving onto fm1-base did not change it.
 
+SPIDER's engines are modelled on how the Roland Juno-106, SH-101 and TB-303 work (written from scratch: no code, sample or
+data of Roland's); SPIDER is not affiliated with or endorsed by Roland, and the names are only used descriptively.
+
 LOOM-8 is inspired by the teenage engineering OP-XY's way of working. It is not affiliated with,
 endorsed by or derived from teenage engineering; the name is only used descriptively.
 
@@ -23,6 +26,7 @@ under the same licence (a public fork of these repositories does). What it adds,
 | Files | Origin | Licence |
 | --- | --- | --- |
 | `app/smk37.c`, `app/spider_splash.c`, `tests/spider_preview.c`, `tests/scenarios_smk37/`, the `BOARD_SMK37` switches in `app/` | the SPIDER port (Cam Durnsford, with Claude) | GPL-3.0-only |
+| `app/dsp/synth_spider.c` (SPIDER's voices: poly, mono, acid), `tools/presets/poly.py`, `mono.py`, `acid.py` | the SPIDER port, from LOOM-8's `app/dsp/synth.c` (its voice, filters, character stage, LFO; LOOM-8's six engines left out) | GPL-3.0-only |
 | `app/samples/ac_*.wav` (SPIDER's ACOUSTIC kit), cut by `tools/prep_acoustic.py` | SLOOP's acoustic kit ([genkigenki/sloop-fm1](https://github.com/genkigenki/sloop-fm1), `assets/samples-cc0/KIT`): recordings from Versilian Studios' [VCSL](https://github.com/sgossner/VCSL); the cutting chain is SLOOP's (`tools/gen_samples.py` there) | the recordings CC0 1.0; the tool GPL-3.0-only |
 | `app/smk_daw.h`, `tests/smk_daw_test.c` | genkigenki's DAW mode, from Snoop37 ([genkigenki/sloop-fm1](https://github.com/genkigenki/sloop-fm1), branch `snoop37`), by way of a Loom FM-1 port | GPL-3.0-only |
 | `base/bsp/boards/smk37/`, `base/bsp/chip/fm1_flash_smk37.h`, `base/device/smk37_io.c` | genkigenki's SMK-37 layer for Felucca (Felucca branch `smk37`; [fm1-to-smk37](https://github.com/genkigenki/fm1-to-smk37)) | GPL-3.0-only, kept in files of their own (`base/LICENSING.md`, `base/bsp/LICENSING.md`) |

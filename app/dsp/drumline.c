@@ -115,7 +115,7 @@ const uint8_t DL_KITS[NDK][DL_NSOUND][DP_N] = {
         SK(SMPI_AC_LTOM, 44, 82, PM_ONESHOT, 0, 0),
         SK(SMPI_AC_HTOM, 84, 79, PM_ONESHOT, 0, 0),
         SK(SMPI_AC_CRASH, 88, 56, PM_ONESHOT, 0, 0),
-        SK(SMPI_AC_RIDE, 40, 54, PM_ONESHOT, 0, 0),
+        SK(SMPI_AC_RIDE, 40, 58, PM_ONESHOT, 0, 0),
         SK(SMPI_AC_RIM, 58, VOL0, PM_ONESHOT, 0, 0),
         SK(SMPI_AC_TAMB, 80, 61, PM_ONESHOT, 0, 0),
     },
