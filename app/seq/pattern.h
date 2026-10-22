@@ -11,8 +11,8 @@
 /* The code keeps its first names; the screen and the manual say: AUX_BRAIN the conductor (COND), AUX_PUNCH the
  * throws (THROW), components (SC_*) tricks, the drumline engine the kit, the maestro player strum. */
 #if BOARD_SMK37
-#define NTRK 5                        /* SPIDER (the SMK-37 build): the kit, poly, mono, acid, samples; the pads 1-8 those
-                                       * and the throws (held: the conductor), FX I, FX II (smk37.c) */
+#define NTRK 6                        /* SPIDER (the SMK-37 build): the kit, mono, poly, fm, acid, samples; the pads 1-6
+                                       * those, 7 the throws (held: the conductor), 8 both returns (smk37.c) */
 #else
 #define NTRK 8                        /* instrument tracks 1-8 */
 #endif

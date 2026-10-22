@@ -153,7 +153,8 @@ void loom_lights(uint32_t buttons, uint32_t keys, int glow, uint32_t dim_keys, i
                      (!APP_VERSION[3] || APP_VERSION[3] == 'T'))   /* DEV, or the load test's DEVTEST */
 #define PROJ_MAGIC 0x384D4F4Cu          /* "LOM8" (was "XXY1": XY-1's projects start fresh) */
 #if BOARD_SMK37
-#define PROJ_FORMAT 0x53500002u          /* SPIDER's own ("SP" 2: five tracks, its engines): another's does not load */
+#define PROJ_FORMAT 0x53500003u          /* SPIDER's own ("SP" 3: six tracks, fm among its engines): another's does
+                                          * not load */
 #else
 #define PROJ_FORMAT 10u                 /* (pre-release: an older project does not load, nothing is migrated)
                                          * 10: a kit key's own sends (DP_SEND1/2, the kit's track sends gone), a

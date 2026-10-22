@@ -6,8 +6,8 @@
  * FM-1's controls keep their jobs (fm1-base's panel map: K1 the volume, K2 SELECT, K3 ALGORITHM, K4 PRESETS, K5..K8
  * KNOB 1..4; the middle 27 keys, with velocity).
  *
- *   pads        pads 1-8 (the top row) mute and unmute T1-T8, lit in the track's ink while it plays, dark when
- *               muted; pads 9-16 (the bottom row) are the drums: the kit's first eight sounds (kick, snare, hat,
+ *   pads        pads 1-6 (the top row) mute and unmute T1-T6, lit in the track's ink while it plays, dark when
+ *               muted; pad 7 the throws (tapped; held, the conductor), pad 8 both effect returns, delay and reverb; pads 9-16 (the bottom row) are the drums: the kit's first eight sounds (kick, snare, hat,
  *               open hat, clap, low tom, high tom, conga in a new kit), whatever track is selected (the kit: the track
  *               selected if it is one, else the kit selected last, else the first), with velocity; recorded into the
  *               kit while recording (REC + PLAY, as the keys: quantised, overdub or replace). On Steps and Bar (SEQ)
@@ -23,7 +23,8 @@
  *   < >         the bar before / after (any page: the one Steps shows and the pads write), when let go (> not if
  *               it fired a throw)
  *   < + >       DAW mode (below)
- *   faders      the levels of T1-T4, or T5-T8 (FADER BANK, lit on T5-T8); a fader acts once it moves
+ *   faders      the levels of T1-T4, or T5, T6, the effects' returns and the master (FADER BANK, lit); a fader
+ *               acts once it moves
  *   outer keys  C3..E3 and G#5..C6 carry on the keys: more notes, with velocity; on a kit, its keys
  *   pitch wheel bend of the track the keys play (+-2 semitones, as a MIDI bend)
  *   mod wheel   the filter of the track the keys play (its cutoff; DYNAMIC: its hi cut), once the wheel passes the
@@ -49,7 +50,7 @@ static struct {
     uint8_t last_kit;                   /* the kit DAW mode's LOCAL pads play when a synth is selected (0xFF: none) */
     uint8_t pad_drums;                  /* KNOB BANK: the pads mutes and tracks on Steps too */
     uint8_t gt_used;                    /* > held fired a throw (its let-go steps no bar) */
-    uint8_t fbank;                      /* the faders: 0 T1-T4, 1 T5-T8 */
+    uint8_t fbank;                      /* the faders: 0 T1-T4, 1 T5, T6, the returns, the master */
     uint8_t flast[4];                   /* (soft takeover: 0xFF waits for the fader to move) */
     uint8_t out_trk[NOUTER], out_note[NOUTER];   /* an outer key's note playing: track and note (0 none) */
     uint8_t bend_trk;                   /* the track the pitch wheel bends (0xFF none) */
@@ -57,18 +58,27 @@ static struct {
     uint8_t mw_trk, mw_par, mw_last, mw_armed;   /* the mod wheel: its track and parameter, as last seen, picked up */
     uint8_t lr_both;                    /* < + > pressed together: neither steps a bar (until both are up) */
     uint32_t sbtn;                      /* the SMK buttons as last seen */
-    uint8_t p6_down;                    /* pad 6 pressed as the throws' mute: its let-go decides (a hold: the conductor) */
+    uint8_t p6_down;                    /* pad 7 pressed as the throws' mute: its let-go decides (a hold: the conductor) */
     uint32_t p6_ms;
 } lsmk = {.last_kit = 0xFF, .flast = {0xFF, 0xFF, 0xFF, 0xFF}, .bend_trk = 0xFF, .mw_trk = 0xFF, .nr_rate = SEQ_RP_16};
 static const char *const LSMK_RATE[NSEQ_RP] = {"1/4", "1/8", "1/8T", "1/16", "1/16T", "1/32", "1/32T", "1/64"};
 #define LSMK_NR_TAP_MS 400u                     /* NOTE REPEAT let go sooner: a tap (on / off); later: the LFO page */
-/* the top row's eight (away from Steps): T1-T5's mutes, then the throws' (pad 6; held, the conductor's), FX I's and FX
- * II's (their returns: engine.c) */
-static const uint8_t LSMK_TOP[8] = {0, 1, 2, 3, 4, AUX_PUNCH, AUX_FX1, AUX_FX2};
-/* the faders: T1-T4; FADER BANK: T5, FX I's and FX II's returns, the master (-1) */
-static const int8_t LSMK_FADER[2][4] = {{0, 1, 2, 3}, {4, AUX_FX1, AUX_FX2, -1}};
+/* the top row's eight (away from Steps): T1-T6's mutes, then the throws' (pad 7; held, the conductor's), and the
+ * effects' (pad 8: FX I's and FX II's returns together, the delay and the reverb: engine.c) */
+#define LSMK_PAD_THROW 6
+#define LSMK_PAD_FX 7
+static const uint8_t LSMK_TOP[8] = {0, 1, 2, 3, 4, 5, AUX_PUNCH, AUX_FX1};
+/* the faders: T1-T4; FADER BANK: T5, T6, both returns (-2), the master (-1) */
+static const int8_t LSMK_FADER[2][4] = {{0, 1, 2, 3}, {4, 5, -2, -1}};
 static void lsmk_mute(int t)
 {
+    if (t == AUX_FX1 || t == AUX_FX2) {        /* (pad 8: both returns as one) */
+        int m = !(seq.mute >> AUX_FX1 & 1u);
+        set_mute(AUX_FX1, m);
+        set_mute(AUX_FX2, m);
+        say(m ? "MUTED" : "UNMUTED", "FX");
+        return;
+    }
     set_mute(t, !(seq.mute >> t & 1u));
     say(seq.mute >> t & 1u ? "MUTED" : "UNMUTED", TRACK_NAME[t]);
 }
@@ -198,8 +208,8 @@ static void lsmk_pads(void)
                 lsmk.latch |= m;
                 continue;
             }
-            if (p < 8) {                           /* the top row: the mutes (LSMK_TOP); pad 6's on its let-go */
-                if (p == 5) {
+            if (p < 8) {                           /* the top row: the mutes (LSMK_TOP); pad 7's on its let-go */
+                if (p == LSMK_PAD_THROW) {
                     lsmk.p6_down = 1;
                     lsmk.p6_ms = plat_ms();
                 } else {
@@ -222,7 +232,7 @@ static void lsmk_pads(void)
                 }
             }
         } else {                                   /* let go: what it started ends, whatever the layer is now */
-            if (p == 5 && lsmk.p6_down) {          /* pad 6: tapped, the throws' mute; held, the conductor's */
+            if (p == LSMK_PAD_THROW && lsmk.p6_down) {   /* pad 7: tapped, the throws' mute; held, the conductor's */
                 lsmk.p6_down = 0;
                 lsmk_mute(plat_ms() - lsmk.p6_ms < LSMK_NR_TAP_MS ? AUX_PUNCH : AUX_BRAIN);
             }
@@ -329,7 +339,7 @@ static void lsmk_buttons(void)
         lsmk.fbank ^= 1u;
         for (f = 0; f < 4; f++)
             lsmk.flast[f] = 0xFF;                  /* (the other bank: each fader waits to move) */
-        say("FADERS", lsmk.fbank ? "T5, FX I, FX II, master" : "T1 to T4");
+        say("FADERS", lsmk.fbank ? "T5, T6, FX, master" : "T1 to T4");
     }
 }
 
@@ -346,6 +356,16 @@ static void lsmk_faders(void)
         if (v == lsmk.flast[f])
             continue;
         lsmk.flast[f] = (uint8_t)v;
+        if (t == -2) {                             /* both returns' levels together */
+            const tp_info_t *in = tp_info_par(TP_LEVEL, proj.trk[AUX_FX1].par);
+            int lv = in->lo + (int)((in->hi - in->lo) * v + 63u) / 127;
+            char s[16];
+            set_tp(AUX_FX1, TP_LEVEL, lv);
+            set_tp(AUX_FX2, TP_LEVEL, lv);
+            s_cat(num_s(v * 100u / 127u, s), "% level");
+            say("FX", s);
+            continue;
+        }
         if (t < 0) {                               /* the master's level */
             int lv = (int)((uint32_t)master_max(MS_LEVEL) * v + 63u) / 127;
             char s[16];
@@ -448,7 +468,7 @@ static void lsmk_pad_rest(uint32_t *col)
 {
     int c, kit = lsmk_kit();
     for (c = 0; c < 8; c++)                    /* (the conductor muted: pad 6 in the recording red) */
-        col[c] = lsmk_rgb(c == 5 && seq.mute >> AUX_BRAIN & 1u ? theme->rec : trk_ink(LSMK_TOP[c]),
+        col[c] = lsmk_rgb(c == LSMK_PAD_THROW && seq.mute >> AUX_BRAIN & 1u ? theme->rec : trk_ink(LSMK_TOP[c]),
                           seq.mute >> LSMK_TOP[c] & 1u ? 10u : 200u);
     for (c = 8; c < NPADS; c++)
         col[c] = kit < 0 ? 0u : lsmk_rgb(trk_ink(kit), 44u);

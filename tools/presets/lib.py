@@ -36,9 +36,9 @@ KNOBS = {"knit": ["wave", "detune", "voices", "width"], "rayon": ["bright", "rat
 import os  # noqa: E402
 SMK = os.environ.get("BOARD", "fm1").lower().replace("-", "") == "smk37"
 if SMK:
-    ENGINES = ["poly", "mono", "acid", "sample", "slice", "kit"]
+    ENGINES = ["poly", "mono", "acid", "fm", "sample", "slice", "kit"]
     KNOBS = {"poly": ["saw", "pulse", "width", "sub"], "mono": ["saw", "pulse", "width", "sub"],
-             "acid": ["cutoff", "reso", "env mod", "decay"],
+             "acid": ["cutoff", "reso", "env mod", "decay"], "fm": ["patch", "bright", "decay", "detune"],
              "sample": ["sample", "start", "length", "mode"], "slice": ["sample", "slices", "pitch", "gate"]}
 MODES = ["poly", "mono", "legato"]                    # VM_*
 FILTERS = ["lp24", "ladder", "lp12", "hp12", "dynamic", "bp12"]   # FT_*

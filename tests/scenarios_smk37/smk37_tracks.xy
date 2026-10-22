@@ -1,66 +1,79 @@
-# SPIDER's five tracks (pattern.h NTRK) and its engines (dsp/synth_spider.c): a new project is the kit, poly, mono,
-# acid and samples (slice). Away from Steps the top row mutes T1-T5, then pad 6 the throws (held, the conductor), pad
-# 7 FX I's return, pad 8 FX II's (seq.mute's bits: engine.c mutes the returns); FADER BANK: T5, FX I, FX II, the master
+# SPIDER's six tracks (pattern.h NTRK) and its engines (dsp/synth_spider.c): a new project is the kit, mono, poly, fm,
+# acid and samples (slice). Away from Steps the top row mutes T1-T6, then pad 7 the throws (held, the conductor), pad 8
+# both returns together (FX I and FX II: seq.mute's bits, engine.c mutes the returns); FADER BANK: T5, T6, both
+# returns, the master. seq.mute's bits: 0-5 the tracks, 6 the conductor, 7 the throws, 8 FX I, 9 FX II
 wait 300
-expect par1.0 5
-expect par2.0 0
-expect par3.0 1
-expect par4.0 2
-expect par5.0 4
-expect par3.vmode 1
-expect par4.vmode 2
+expect par1.0 6
+expect par2.0 1
+expect par3.0 0
+expect par4.0 3
+expect par5.0 2
+expect par6.0 5
+expect par2.vmode 1
+expect par5.vmode 2
 tap HOME
 expect page Arrange
 expect mute 0
-tappad 4
-expect mute 16
-tappad 4
-expect mute 0
-# pad 6: tapped, the throws; held, the conductor
 tappad 5
-expect mute 64
-tappad 5
-expect mute 0
-pad 5 100
-wait 600
-pad 5 0
-wait 40
 expect mute 32
-pad 5 100
-wait 600
-pad 5 0
-wait 40
+tappad 5
 expect mute 0
-# pads 7 and 8: the returns
+# pad 7: tapped, the throws; held, the conductor
 tappad 6
 expect mute 128
-tappad 7
-expect mute 384
-shot tracks_mutes.png
 tappad 6
+expect mute 0
+pad 6 100
+wait 600
+pad 6 0
+wait 40
+expect mute 64
+pad 6 100
+wait 600
+pad 6 0
+wait 40
+expect mute 0
+# pad 8: both returns
+tappad 7
+expect mute 768
+shot tracks_mutes.png
 tappad 7
 expect mute 0
 # the faders' second bank
 smktap FADERBANK
 fader 1 64
 fader 1 100
-expect par8.level 100
+expect par6.level 100
 fader 2 64
 fader 2 90
 expect par9.level 90
+expect par10.level 90
 fader 0 64
 fader 0 80
 expect par5.level 80
-# the Mix page: five strips and the two returns
+# the Mix page: six strips and the two returns
 tap GLO
 shot tracks_mix.png
 # the keybed plays on Steps (the pads are its cells there): a white key on a synth track sounds
 tap HOME
-turn ALGO 1
+turn ALGO 2
 wait 200
 wav keys_on_steps.wav
 key 7 down 100
 wait 300
 key 7 up
 wait 100
+wavstop
+# T4, fm: its Engine page (the patch's operators), a note
+turn ALGO 1
+wait 200
+tap EDIT
+wait 200
+expect page Engine
+shot tracks_fm.png
+wav fm_note.wav
+key 12 down 100
+wait 400
+key 12 up
+wait 300
 wavstop

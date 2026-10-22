@@ -3,7 +3,8 @@
  * voice (dsp/synth.c, whose structure and comments this keeps: the voices, their envelopes, filter, character
  * stage, LFO and sends, the chunks, the two cores' split) with SPIDER's engines in place of LOOM-8's six: poly after the
  * Juno-106 (its oscillator, high-pass and chorus), mono after the SH-101 (its oscillator and sub), acid after the TB-303
- * (its own filter, envelope, accent and slide); sample and slice as LOOM-8's.
+ * (its own filter, envelope, accent and slide), fm (six operators: dsp/fm_spider.c, on SLOOP's msfa port); sample
+ * and slice as LOOM-8's.
  *
  * Time runs in SY_CHUNK (64-sample) chunks: at a chunk boundary a voice reads its track's parameters
  * (the knob, or its lock, plus the LFO's offset on the destination) and turns them into the units the
@@ -33,8 +34,7 @@
  * continuous ones; a choice (a sample, where a note starts) jumps */
 static const uint8_t E_GLIDE[NENGINE] = {
     0xF, /* poly: saw, pulse, width, sub */ 0xF, /* mono: the same */ 0xF, /* acid: cutoff, reso, env mod, decay */
-    0x0, 0x0, 0x0};                                        /* sample, slice (where a note starts), the kit */
-                                       /* sample, slice (where a note starts), the kit */
+    0xA, /* fm: bright, detune */ 0x0, 0x0, 0x0};          /* sample, slice (where a note starts), the kit */
 static inline float glide_to(float from, float to)
 {
     float d = to - from;
@@ -53,12 +53,13 @@ static inline float glide_to(float from, float to)
 /* ------------------------------------------------------------------ names --- */
 const char *const RL_NAME[NRL] = {"bass", "lead", "pad", "keys", "pluck", "bell", "stab", "strings", "brass", "voice",
                                   "chord", "fx", "drum", "loop"};
-const char *const EG_NAME[NENGINE] = {"poly", "mono", "acid", "sample", "slice", "kit"};
+const char *const EG_NAME[NENGINE] = {"poly", "mono", "acid", "fm", "sample", "slice", "kit"};
 const char *const EG_KNOB[NENGINE][4] = {
     {"saw", "pulse", "width", "sub"}, {"saw", "pulse", "width", "sub"}, {"cutoff", "reso", "env mod", "decay"},
+    {"patch", "bright", "decay", "detune"},
     {"sample", "start", "length", "mode"}, {"sample", "slices", "pitch", "gate"}, {"-", "-", "-", "-"}};
 /* each engine's plain sound (INIT), 0..127: poly and mono a saw (mono with its sub), acid a squelch */
-static const uint8_t EG_DEF[NENGINE][4] = {{127, 0, 0, 0}, {127, 0, 0, 64}, {40, 90, 80, 50},
+static const uint8_t EG_DEF[NENGINE][4] = {{127, 0, 0, 0}, {127, 0, 0, 64}, {40, 90, 80, 50}, {0, 64, 64, 0},
                                            {SMP_KEYS_DEF, 0, 127, SM_ONESHOT}, {SMP_BREAK, 1, 64, 127}, {0, 0, 0, 0}};
 static const char *const VMODE_N[3] = {"poly", "mono", "legato"};
 static const char *const FTYPE_N[NFT] = {"lp24", "ladder", "lp12", "hp12", "dynamic", "bp12"};
@@ -68,7 +69,7 @@ static const char *const TSHAPE_N[5] = {"sine", "saw", "expo", "square", "blip"}
 static const char *const LDEST_N[NLD] = {"synth", "envelope", "filter", "voice", "synth free", "env free", "filter free",
                                          "voice free"};
 static const char *const DUCK_N[DUCK_METRO + 1] = {"track 1", "track 2", "track 3", "track 4", "track 5",
-                                                  "conductor", "throws", "metro"};
+                                                  "track 6", "conductor", "throws", "metro"};
 static const char *const PLAYER_N[NPL] = {"off", "arp", "strum", "hold"};
 static const char *const ARPSPD_N[9] = {"1/4", "1/4T", "1/8", "1/8T", "1/16", "1/16T", "1/32", "1/32T", "1/64"};
 static const char *const ARPPAT_N[6] = {"up", "down", "bounce", "bounce+", "played", "random"};
@@ -144,6 +145,7 @@ typedef struct {
     uint8_t fresh;                    /* configured mid-block: refresh the coefficients before the next sample;
                                        * bit 1: started since the last render, its first configuration due there */
     uint8_t vi;                       /* the voice's index (its sample cache, smp_vc) */
+    uint8_t cpu;                      /* the core rendering it (fm's buses: fm_spider.c) */
     float cost_m;                     /* its render's measured time, clock ticks a frame (a running mean; 0 none yet) */
     uint16_t cho_w;                   /* poly's chorus: its line's write position (cho_run) */
     float cho_ph;                     /* and its LFO's phase */
@@ -193,6 +195,7 @@ typedef struct {
     float loff[NCK], lpitch[NCK], lgain[NCK];   /* the chunk slots: offset (param units), cents, gain */
 } trk_t;
 
+#include "fm_spider.c"                 /* (part 1: its types) */
 struct synth {
     uint8_t (*par)[NTP];
     float bpm;
@@ -203,6 +206,8 @@ struct synth {
                                        * voices started since (find_voice); 0: not known (the host) */
     trk_t t[NTRK];
     voice_t v[NVOICE];
+    fm_trk_t fm_t[NTRK];              /* fm: each track's patch, the decay knob on it (fm_track) */
+    fm_voice_t fm_v[NVOICE];          /* and each voice's note */
 };
 uint32_t synth_load_steals;           /* new notes that took a sounding voice to stay inside LOAD_ADMIT (synth.h) */
 _Static_assert(sizeof(struct synth) <= SYNTH_BYTES, "synth_t outgrew SYNTH_BYTES");
@@ -835,23 +840,28 @@ static void slc_retrigger(voice_t *v)            /* a mono retrigger: the playin
         v->o[3] = v->o[4] = 0.0f;
 }
 
+#define FM_SPIDER_PART2
+#include "fm_spider.c"                           /* (part 2: the engine) */
+
 static void eng_chunk(voice_t *v)                /* every chunk: the engines' own slow movements */
 {
     if (v->engine == EG_POLY || v->engine == EG_MONO)
         vco_chunk(v);
 }
-static void eng_prep(voice_t *v, float bpm)
+static void eng_prep(synth_t *s, voice_t *v, float bpm)
 {
     switch (v->engine) {
+    case EG_FM: fm_prep(s, v); break;
     case EG_SAMPLE: smp_prep(v); break;
     case EG_SLICE: slc_prep(v, bpm); break;
     case EG_ACID: acid_prep(v); break;
     default: vco_prep(v); break;
     }
 }
-static void eng_run(voice_t *v, float *xl, float *xr, int m)
+static void eng_run(synth_t *s, voice_t *v, float *xl, float *xr, int m)
 {
     switch (v->engine) {
+    case EG_FM: fm_run(s, v, xl, xr, m); break;
     case EG_SAMPLE: smp_run(v, xl, xr, m); break;
     case EG_SLICE: slc_run(v, xl, xr, m); break;
     case EG_ACID: acid_run(v, xl, xr, m); break;
@@ -877,6 +887,8 @@ static void voice_start(synth_t *s, voice_t *v, int note, int vel, int glide_ms,
         eng_init(v);
         if (eng == EG_POLY)                      /* the chorus's line empty, its LFO the track's */
             cho_start(v, t->cho_ph);
+        if (eng == EG_FM)                        /* (fm: a note from silence) */
+            fm_init_voice(s, v);
     }
     v->note = (uint8_t)note;
     v->tag = tag;
@@ -893,6 +905,8 @@ static void voice_start(synth_t *s, voice_t *v, int note, int vel, int glide_ms,
     v->tsec = 0.0f;
     if (v->engine == EG_ACID)
         acid_strike(v);
+    if (v->engine == EG_FM)
+        fm_strike(s, v);
     if (v->engine == EG_SAMPLE || v->engine == EG_SLICE) {   /* from the region's (the slice's) start again */
         v->o[3] = v->o[4] = 0.0f;
         v->o[6] = v->o[7] = 0.0f;
@@ -1210,6 +1224,8 @@ int synth_voice_cost(const synth_t *s, int vi)
 #endif
     if (v->engine == EG_ACID)                    /* (its own four poles and two soft clips a sample) */
         return 5;
+    if (v->engine == EG_FM)                      /* (six operators a sample, in integers) */
+        return 9;
     if (v->engine == EG_POLY && v->c.cho)        /* (the chorus: a line and two taps a sample, a stereo output) */
         return 5;
     return 4;
@@ -1290,8 +1306,11 @@ void synth_prepare(synth_t *s, uint32_t n)
     for (; off < n && nck < NCK; off += SY_CHUNK)
         nck++;
     s->nck = (uint8_t)(nck ? nck : 1);
-    for (i = 0; i < NTRK; i++)
+    for (i = 0; i < NTRK; i++) {
         tpk[i] = 0.0f;
+        if (P(s, i, TP_ENGINE) == EG_FM)         /* fm: the track's patch, before its voices render */
+            fm_track(s, i);
+    }
     for (k = 0; k < NVOICE; k++) {               /* each track's loudest voice, the voices' peaks cleared: one pass */
         voice_t *v = &s->v[k];
         if (v->trk < NTRK) {
@@ -1707,7 +1726,7 @@ static void voice_pitch(synth_t *s, voice_t *v)
     v->c.freq = 440.0f * fm_exp2f((v->pitch_cur - 69.0f + v->c.pitch_off * 0.01f) * (1.0f / 12.0f));
     if (v->c.freq > 18000.0f)
         v->c.freq = 18000.0f;
-    eng_prep(v, s->bpm);
+    eng_prep(s, v, s->bpm);
 }
 
 /* a chunk boundary: the parameters into c */
@@ -1779,7 +1798,7 @@ static void voice_chunk(synth_t *s, voice_t *v)
     /* gains */
     vol = pf(s, trk, TP_VOLUME, dest, off) * (1.0f / 127.0f);
     lev = tp_level_gain(P(s, trk, TP_LEVEL)) * (100.0f / 127.0f);
-    vg = (v->engine == EG_ACID ? 0.7f : 0.25f + 0.75f * v->vel * v->vel) * vol * vol * lev * lg * (1.0f - 0.6f * res);
+    vg = (v->engine == EG_ACID ? 0.7f : v->engine == EG_FM ? 0.8f : 0.25f + 0.75f * v->vel * v->vel) * vol * vol * lev * lg * (1.0f - 0.6f * res);
     pan = fm_clampf((pf(s, trk, TP_PAN, dest, off) - 64.0f + (float)t->perf.pan) * (1.0f / 64.0f), -1.0f, 1.0f);
     if (pan != v->pan_in || v->fresh) {          /* the pan's cos / sin: only when it moved */
         v->pan_in = pan;
@@ -2129,7 +2148,7 @@ static void voice_samples(synth_t *s, voice_t *v, float *l, float *r, float *s1,
             k = m - i;
         if ((v->pos & (SUB - 1)) == 0 || v->fresh)
             voice_subblock(s, v, (v->pos & (SUB - 1)) == 0);
-        eng_run(v, xl, xr, k);
+        eng_run(s, v, xl, xr, k);
 #define SL(ft, ch) sample_loop(v, xl, xr, l + i, r + i, s1 + i, s2 + i, k, ft, 0, ch)
         if (v->c.cho) {                          /* poly's chorus: the filter, the character, the chorus (mono into
                                                   * stereo), the outputs */
@@ -2218,6 +2237,7 @@ void synth_render_on(synth_t *s, int core, int v0, int v1, float *l, float *r, f
     }
     for (oi = 0; oi < no; oi++) {
         voice_t *v = &s->v[vi = ord[oi]];
+        v->cpu = (uint8_t)(core != 0);
         uint32_t i = 0, t0 = 0, tc = 0, tk = 0;
         const int timed = clk && (v_sounding(v) || v->pos == 0);
         if (timed) {
@@ -2408,6 +2428,12 @@ static void eknob_init(void)
                 i->kind = k == 0 ? PK_SAMPLE : k == 3 ? PK_NAMES : PK_PCT;
                 i->hi = (uint8_t)(k == 0 ? smp_slots() - 1 : k == 3 ? NSM - 1 : 127);
                 i->names = k == 3 ? SMODE_N : 0;
+            }
+            if (e == EG_FM) {                  /* patch (its name), bright and decay about the middle, detune */
+                static const uint8_t KIND[4] = {PK_NAMES, PK_BIP, PK_BIP, PK_PCT};
+                i->kind = KIND[k];
+                i->hi = (uint8_t)(k == 0 ? FM_NPATCH - 1 : 127);
+                i->names = k == 0 ? FM_PATCH_NAME : 0;
             }
             if (e == EG_SLICE) {               /* sample, slices (4 8 16 32), pitch (+-24 st), gate */
                 static const uint8_t KIND[4] = {PK_SAMPLE, PK_NAMES, PK_BIPST, PK_PCT};

@@ -15,7 +15,7 @@
 
 #define SY_SR 44100.0f
 #if BOARD_SMK37
-#define NTRK 5                        /* (SPIDER: five, seq/pattern.h agrees) */
+#define NTRK 6                        /* (SPIDER: six, seq/pattern.h agrees) */
 #else
 #define NTRK 8                        /* instrument tracks (seq/pattern.h agrees) */
 #endif
@@ -34,9 +34,9 @@
 #if BOARD_SMK37
 /* SPIDER's engines (the SMK-37 build: dsp/synth_spider.c): poly (after the Juno-106: a DCO's saw, pulse, sub and noise,
  * its high-pass, its chorus), mono (after the SH-101: a VCO's mixer, its sub's three kinds, the pulse's width on the
- * envelope), acid (after the TB-303: its own filter and envelope, accent and slide); sample and slice as LOOM-8's;
- * the kit. LOOM-8's own six are the FM-1's only */
-enum { EG_POLY, EG_MONO, EG_ACID, EG_SAMPLE, EG_SLICE, EG_DRUMLINE, NENGINE };
+ * envelope), acid (after the TB-303: its own filter and envelope, accent and slide), fm (six operators, the classic
+ * FM keyboards' kind: dsp/fm_spider.c); sample and slice as LOOM-8's; the kit. LOOM-8's own six are the FM-1's only */
+enum { EG_POLY, EG_MONO, EG_ACID, EG_FM, EG_SAMPLE, EG_SLICE, EG_DRUMLINE, NENGINE };
 #else
 enum { EG_KNIT, EG_RAYON, EG_JACQUARD, EG_BELLOWS, EG_CANE, EG_VOILE, EG_SAMPLE, EG_SLICE, EG_DRUMLINE,
        NENGINE };                                    /* (saved by number: PROJ_FORMAT 10 renumbered them) */
@@ -49,6 +49,10 @@ enum { EG_KNIT, EG_RAYON, EG_JACQUARD, EG_BELLOWS, EG_CANE, EG_VOILE, EG_SAMPLE,
 #define CN_SLOTS 4
 #define CN_LEN 1536
 static inline int eg_synth(int e) { return e >= 0 && e < NENGINE && e != EG_DRUMLINE; }   /* a voice engine */
+#if BOARD_SMK37
+int synth_fm_shape(int patch, uint8_t *ol, uint8_t *alg);   /* fm's patch for a picture: the operators' levels, the
+                                                             * algorithm; its carriers (dsp/fm_spider.c) */
+#endif
 enum { SM_ONESHOT, SM_LOOP, SM_REVERSE, SM_PINGPONG, NSM };   /* the sample engine's modes (TP_E4) */
 #define SL_NCOUNT 4                                  /* the slice engine's counts: 4 << TP_E2 */
 static inline int sl_count(int v) { return 4 << (v < 0 ? 0 : v >= SL_NCOUNT ? SL_NCOUNT - 1 : v); }
@@ -230,7 +234,11 @@ typedef struct {
 } perf_t;
 
 typedef struct synth synth_t;         /* opaque: dsp/synth.c */
+#if BOARD_SMK37
+#define SYNTH_BYTES 20480             /* (SPIDER: with fm's notes, fm_spider.c) */
+#else
 #define SYNTH_BYTES 12288             /* room for the struct (checked at compile time in synth.c) */
+#endif
 
 void synth_init(synth_t *s, uint8_t (*par)[NTP]);   /* par: the tracks' parameter arrays (NTRK of them) */
 void synth_tempo(synth_t *s, float bpm);
@@ -245,7 +253,7 @@ perf_t *synth_perf(synth_t *s, int trk);            /* the track's performance s
 #endif
 void synth_lock(synth_t *s, int trk, int param, int val);   /* a parameter lock in effect (LOCK_NONE: the knob's) */
 #if BOARD_SMK37
-#define DUCK_METRO (NTRK + 2)         /* (SPIDER: 0..4 the tracks, 5 the conductor, 6 the throws, 7 the metronome) */
+#define DUCK_METRO (NTRK + 2)         /* (SPIDER: 0..5 the tracks, 6 the conductor, 7 the throws, 8 the metronome) */
 #else
 #define DUCK_METRO 10                 /* the pump's source numbers: 0..7 tracks, 8 brain, 9 punch, 10 the metronome */
 #endif

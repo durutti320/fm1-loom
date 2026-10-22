@@ -15,7 +15,7 @@ typedef struct {
     const char *name;
     uint16_t bg, panel, panel2, line, faint, dim, text, now_m, rec, aux;
 #if BOARD_SMK37
-    uint16_t ink[8];                                  /* (SPIDER: its five tracks', then the throws', FX I's, FX II's) */
+    uint16_t ink[8];                                  /* (SPIDER: its six tracks', then the throws', the effects') */
 #else
     uint16_t ink[NTRK];
 #endif
@@ -62,10 +62,11 @@ static const theme_t *theme = &THEMES[0];
 static uint16_t k_now, k_tint, k_mid;
 static const theme_t *k_th;                           /* the theme k_now .. were made in */
 #if BOARD_SMK37
-static uint16_t trk_ink(int t)                        /* (SPIDER: the pads' eight: the throws and the conductor share one) */
+static uint16_t trk_ink(int t)                        /* (SPIDER: the pads' eight: the throws and the conductor share one,
+                                                       * the returns one) */
 {
-    return t >= 0 && t < NTRK ? theme->ink[t] : t == AUX_PUNCH || t == AUX_BRAIN ? theme->ink[5]
-         : t == AUX_FX1 ? theme->ink[6] : t == AUX_FX2 ? theme->ink[7] : theme->aux;
+    return t >= 0 && t < NTRK ? theme->ink[t] : t == AUX_PUNCH || t == AUX_BRAIN ? theme->ink[6]
+         : t == AUX_FX1 || t == AUX_FX2 ? theme->ink[7] : theme->aux;
 }
 #else
 static uint16_t trk_ink(int t) { return t >= 0 && t < NTRK ? theme->ink[t] : theme->aux; }
@@ -111,7 +112,8 @@ static const char *const BTN_LABEL[NB] = {"FX", "SEL", "ENV", "LFO", "EDIT", "GL
 
 /* the tracks: 1-8, then the aux tracks (the tag's short names, the pages' long ones) */
 #if BOARD_SMK37
-static const char *const TRACK_NAME[NALLTRK] = {"T1", "T2", "T3", "T4", "T5", "COND", "THROW", "FX I", "FX II", "WEAVE"};
+static const char *const TRACK_NAME[NALLTRK] = {"T1", "T2", "T3", "T4", "T5", "T6", "COND", "THROW", "FX I", "FX II",
+                                                "WEAVE"};
 #else
 static const char *const TRACK_NAME[NALLTRK] = {"T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "COND", "THROW",
                                                 "FX I", "FX II", "WEAVE"};
@@ -2730,6 +2732,27 @@ static void pic_vco(int32_t x0, int32_t y0, int32_t w, int32_t h, const uint8_t 
         }
     }
 }
+/* fm: the patch's six operators as bars (their output levels), the carriers in the ink, the modulators faint and
+ * lit by bright; the algorithm's number */
+static void pic_fm(int32_t x0, int32_t y0, int32_t w, int32_t h, const uint8_t *p)
+{
+    uint8_t ol[6], alg;
+    int car = synth_fm_shape(p[TP_E1], ol, &alg), k;
+    int32_t bw = w / 6, bot = y0 + h - 10;
+    char t[16];
+    float br = 0.5f + (float)p[TP_E2] / 127.0f;
+    cv_rect(x0, bot, w, 1, K_LINE);
+    for (k = 0; k < 6; k++) {
+        int c = car >> k & 1;
+        float lv = (float)ol[k] / 99.0f * (c ? 1.0f : br);
+        int32_t bh = (int32_t)(fm_clampf(lv, 0.0f, 1.2f) * (float)(h - 24));
+        cv_rect(x0 + k * bw + 6, bot - bh, bw - 12, bh, c ? K_NOW : K_FAINT);
+        num_s((uint32_t)k + 1u, s_cat(t, "OP"));
+        text_c(x0 + k * bw + bw / 2, bot + 2, &FONT_XS, t, c ? K_TEXT : K_DIM);
+    }
+    num_s(alg, s_cat(t, "algorithm "));
+    text_r(x0 + w, y0, &FONT_XS, t, K_DIM);
+}
 static void pic_acid(int32_t x0, int32_t y0, int32_t w, int32_t h, const uint8_t *p, uint32_t f)
 {
     float base = (float)p[TP_E1] / 127.0f, res = (float)p[TP_E2] / 127.0f, mod = (float)p[TP_E3] / 127.0f;
@@ -3172,6 +3195,7 @@ static void draw_engine(void)
     case EG_POLY: pic_vco(20, 24, 200, 88, p, pic_f, 0); break;
     case EG_MONO: pic_vco(20, 24, 200, 88, p, pic_f, 1); break;
     case EG_ACID: pic_acid(20, 24, 200, 88, p, pic_f); break;
+    case EG_FM: pic_fm(20, 24, 200, 88, p); break;
     case EG_SAMPLE: pic_sample(20, 24, 200, 88, p); break;
     case EG_SLICE: pic_slice(20, 24, 200, 88, p, trk); break;
 #else
@@ -3996,8 +4020,8 @@ static void draw_mix(void)
     static float m_db[NALLTRK], m_hold[NALLTRK];
     static uint32_t m_hold_ms[NALLTRK], m_last;
 #if BOARD_SMK37
-    static const char *const SHORT_NM[NALLTRK] = {"1", "2", "3", "4", "5", "CO", "TH", "F1", "F2", "WV"};
-    static const int8_t COL[NALLTRK] = {0, 1, 2, 3, 4, -1, -1, 5, 6, -1};   /* (SPIDER: five tracks, the two returns) */
+    static const char *const SHORT_NM[NALLTRK] = {"1", "2", "3", "4", "5", "6", "CO", "TH", "F1", "F2", "WV"};
+    static const int8_t COL[NALLTRK] = {0, 1, 2, 3, 4, 5, -1, -1, 6, 7, -1};   /* (SPIDER: six tracks, the two returns) */
 #else
     static const char *const SHORT_NM[NALLTRK] = {"1", "2", "3", "4", "5", "6", "7", "8", "CO", "TH", "F1", "F2", "WV"};
     static const int8_t COL[NALLTRK] = {0, 1, 2, 3, 4, 5, 6, 7, -1, -1, 8, 9, -1};   /* the strips' places (the conductor and the
@@ -4033,7 +4057,7 @@ static void draw_mix(void)
         if (COL[t] < 0)
             continue;
 #if BOARD_SMK37
-        int32_t x = 4 + COL[t] * 26 + (COL[t] >= NTRK ? 20 : 0);   /* (wider apart: seven strips) */
+        int32_t x = 4 + COL[t] * 24 + (COL[t] >= NTRK ? 18 : 0);   /* (wider apart: eight strips) */
         int muted = (t < NSEQT || is_fx(t)) && (seq.mute >> t & 1u), sound = t < NTRK || is_fx(t);   /* (a return's
                                                                                                       * pad mutes it) */
 #else

@@ -135,7 +135,7 @@ void project_random_sounds(uint32_t seed)
     uint32_t r = seed ? seed : 0x9E3779B9u;
     for (int t = 1; t < NTRK; t++) {
         int eg = proj.trk[t].par[TP_ENGINE], n = 0, k, pick = -1;
-        if (eg != EG_POLY && eg != EG_MONO && eg != EG_ACID)
+        if (eg != EG_POLY && eg != EG_MONO && eg != EG_ACID && eg != EG_FM)
             continue;
         for (k = 0; k < NPRESETS; k++) {                 /* reservoir: one of the engine's presets, evenly */
             if (PRESETS[k].par[TP_ENGINE] != eg)
@@ -187,8 +187,8 @@ void project_random_sounds(uint32_t seed)
 void project_defaults(void)
 {
 #if BOARD_SMK37
-    static const uint8_t ORDER[NTRK] = {EG_DRUMLINE, EG_POLY, EG_MONO, EG_ACID, EG_SLICE};   /* SPIDER: the kit, poly,
-                                                                                             * mono, acid, samples */
+    static const uint8_t ORDER[NTRK] = {EG_DRUMLINE, EG_MONO, EG_POLY, EG_FM, EG_ACID, EG_SLICE};   /* SPIDER: the kit,
+                                                                                    * mono, poly, fm, acid, samples */
 #else
     static const uint8_t ORDER[NTRK] = {EG_DRUMLINE, EG_KNIT, EG_RAYON, EG_JACQUARD, EG_KNIT, EG_BELLOWS, EG_CANE,
                                         EG_VOILE};
