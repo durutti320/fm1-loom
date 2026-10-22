@@ -21,7 +21,7 @@ boot. The FM-1 build is unchanged; everything for the SMK-37 is behind `BOARD_SM
   `cc -O2 -Iapp/build/gen -o spider_preview tests/spider_preview.c -lm && ./spider_preview frames/ 40 4096` (PPM
   frames, 25 a second, with the pads under the screen, and `boot.wav` at the volume given).
 - **Colour:** the default theme is **web** (Setup: THEME; tape deck and blueprint are still there): near-black and
-  violet panels, bone text, blood red for recording, and the five tracks and the throws and returns in jewel tones (crimson, ember, amber,
+  violet panels, bone text, blood red for recording, and the six tracks and the throws and returns in jewel tones (crimson, ember, amber,
   absinthe, verdigris, cold blue, amethyst, orchid). Each page button has its own colour, shown on its page's tag
   and in the footer hints. Each knob has its own colour too: K5–K8's names and bars, SELECT / ALGO / PRESET in the
   footer, and the same knobs in DAW mode. The Mix page's track numbers take their track's colour.
@@ -50,8 +50,8 @@ The manual still applies: the FM-1's controls are where the SMK-37 prints the sa
 | --- | --- |
 | Keys F3..G5 (the middle 27) | the FM-1's 27 keys, **with velocity** (the unit's own factory curves) |
 | Keys C3..E3, G#5..C6 (the outer 10) | more notes on the track the keys play, with velocity; on a kit, its keys |
-| 16 pads, on Steps and Bar (SEQ) | the bar's 16 cells, pads 1-8 the top row, 9-16 the bottom: everything the white keys do there (a tap, a hold, a later one for the length). Lit in the track's colour: a step with notes dim, the step playing bright, a step held white |
-| Pads 1-8 (top row), every other page | the mutes: pads 1-5 T1-T5; pad 6 the throws (held, let go after ~0.4 s: the conductor); pad 7 FX I's return (the delay), pad 8 FX II's (the reverb), kept in the scene. Lit in the ink while it plays, dark when muted (pad 6 red while the conductor is muted) |
+| 16 pads, on Steps and Bar (SEQ) | the bar's 16 cells, pads 1-8 the top row, 9-16 the bottom: everything the white keys do there on the FM-1 (a tap, a hold, a later one for the length). Lit in the track's colour: a step with notes dim, the step playing bright, a step held white. The keybed plays there, as on every page |
+| Pads 1-8 (top row), every other page | the mutes: pads 1-6 T1-T6; pad 7 the throws (held, let go after ~0.4 s: the conductor); pad 8 the effects, FX I's and FX II's returns (the delay and the reverb) together, kept in the scene. Lit in the ink while it plays, dark when muted (pad 7 red while the conductor is muted) |
 | Pads 9-16 (bottom row), every other page | the drums: the kit's first eight sounds (in a new kit: kick, snare, hat, open hat, clap, low tom, high tom, conga), whatever track is selected, with velocity. The kit: the track selected if it is one, else the kit selected last, else the first kit. Recorded into the kit while recording (REC + PLAY, as the keys: quantised, overdub or replace). Dim in the kit's ink, bright while hit |
 | NOTE REPEAT tapped | note repeat on / off (lit): a drum pad held sounds again in time, on the grid while playing (the first repeat at the grid line after the hit), from the hit when stopped; recorded while recording, for fills |
 | NOTE REPEAT held + pads 1-8 | its rate: 1/4, 1/8, 1/8T, 1/16 (the default), 1/16T, 1/32, 1/32T, 1/64 (lit while held, the one in use bright); a pick turns repeat on |
@@ -76,12 +76,13 @@ No Bluetooth (LOOM-8 builds without it anyway).
 
 ## Sounds
 
-SPIDER is a poly, a mono and an acid box with drums and breaks. It has **five tracks** (the FM-1's LOOM-8 eight): a new
-project's T1 is the kit, T2 **poly**, T3 **mono**, T4 **acid**, T5 the samples (slice: a break; or the sample engine);
-then the conductor, the throws, FX I and FX II as on the FM-1. Any of T1-T5 can be any engine (ENGINE, SEL's list).
+SPIDER is a mono, a poly, an FM and an acid box with drums and breaks. It has **six tracks** (the FM-1's LOOM-8 eight):
+a new project's T1 is the kit, T2 **mono**, T3 **poly**, T4 **fm**, T5 **acid**, T6 the samples (slice: a break; or the
+sample engine); then the conductor, the throws, FX I and FX II as on the FM-1. Any of T1-T6 can be any engine (ENGINE,
+SEL's list). A sound's presets: PARA (its Engine page), then K4 (PRESETS) steps through them, each heard as it comes.
 SPIDER's projects are its own format: an FM-1 project does not load.
 
-- **Three engines in place of LOOM-8's six** (`app/dsp/synth_spider.c`, which `synth.c` takes on the SMK-37; knit, rayon,
+- **Four engines in place of LOOM-8's six** (`app/dsp/synth_spider.c`, which `synth.c` takes on the SMK-37; knit, rayon,
   jacquard, bellows, cane and voile, their tables and the Braids lines, stay out of SPIDER's image):
   - **poly**, after the Juno-106: a voice's one oscillator, its mixer on the knobs: **saw**, **pulse**, **width** (50 %
     .. 5 %: the LFO on it is PWM), **sub** (a square an octave down); the second page (Sub): **noise**, **hpf** (the
@@ -95,7 +96,15 @@ SPIDER's projects are its own format: an FM-1 project does not load.
     (louder, brighter, a shorter sweep, and a charge that builds over accents in a row); a note played into a held one
     **slides** (legato, at the Play page's glide) without a new sweep, any other note jumps. Its Filter page does nothing
     (the filter is its own). On Steps: a step's velocity is its accent, a note longer than its step slides into the next.
-  - Factory presets: `tools/presets/poly.py`, `mono.py`, `acid.py` (12, 10 and 8; the FM-1's left out).
+  - **fm**, six operators in the manner of the classic FM keyboards (`app/dsp/fm_spider.c`; the synthesis is msfa,
+    Dexed's core, as SLOOP ported it to integer C: `app/dsp/fm6_core.c`, Apache-2.0). Sixteen patches of SPIDER's own
+    (`tools/gen_fm.py`: an electric piano, a glassier one, two basses, brass, tubular bells, a marimba, a harpsichord, a
+    clavinet, an organ, strings, a flute, a saw lead, a kalimba, a pad, a dub stab; written for SPIDER, no
+    instrument's factory data). The knobs, the simple way in: **patch**, **bright** (the modulators' level, +-36 dB
+    about the middle), **decay** (every operator's decay and release, longer or shorter about the middle), **detune**
+    (the carriers spread apart). The operators' envelopes shape and end the note; the Filter page, the LFO and the
+    sends work on it as on the others. Its Engine page draws the patch's six operators, the carriers in the ink.
+  - Factory presets: `tools/presets/poly.py`, `mono.py`, `acid.py`, `fm.py` (12, 10, 10 and 16; the FM-1's left out).
 
 - **Three kits.** A drum track takes one from SEL's list on its Engine page: **KIT**, the list's first action (ALGORITHM
   picks, SEL puts it on; the track takes the kit's name, its mix, sends and patterns stay). **ACOUSTIC**: SLOOP's

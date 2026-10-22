@@ -4,8 +4,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
-/* layout: one SMK-37 as a dark instrument: wheels, screen, eight knobs and four faders across the top; the buttons and
-   the 2 x 8 pads in the middle; the 37 keys below; under it the MIDI it sends and how to play it */
+/* layout: the SMK-37 Pro as it is laid out, in SPIDER's colours: on the left the wheels and the screen with its six
+   buttons under it; in the middle K1..K8 in a row over the 2 x 8 pads; on the right the four faders over the 2 x 6
+   buttons; the 37 keys below; under it the MIDI it sends and how to play it. Narrower than the panel: it scrolls
+   sideways inside its frame (the page itself does not) */
 :root {
   --night: #0d0a13; --body: #1b1624; --tray: #120e19; --rule: #2e2639; --bone: #ece4d6; --muted: #a497b6;
   --blood: #c11a36; --violet: #9a7bdc; --silk: #dcd2ff; --amber: #e4b652; --keyw: #e7e2ea; --keyb: #231d2c;
@@ -18,7 +20,7 @@
 html, body { background: var(--night); color: var(--bone); }
 body { margin: 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
        padding-block: 20px 40px; font: 400 15px/1.5 var(--text); }
-main { max-width: 1120px; margin: 0 auto; display: grid; gap: 18px; }
+main { max-width: 1340px; margin: 0 auto; display: grid; gap: 18px; }
 header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; }
 h1 { font: 400 2.6rem/1 var(--display); letter-spacing: .02em; margin: 0; color: var(--bone); text-shadow: 2px 2px 0 var(--blood); }
 header p { margin: 0; color: var(--muted); font: 500 1rem var(--ui); }
@@ -34,27 +36,35 @@ button:disabled { opacity: .55; cursor: progress; }
 /* the instrument */
 .device { position: relative; background: var(--body); border: 1px solid var(--rule); border-radius: 22px; padding: 18px;
           display: grid; gap: 16px; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
-.top { display: grid; grid-template-columns: auto auto 1fr auto; gap: 18px; align-items: start; }
-.mid { display: grid; grid-template-columns: auto 1fr; gap: 18px; align-items: start; }
-@media (max-width: 900px) { .top, .mid { grid-template-columns: 1fr 1fr; } }
+.frame { overflow-x: auto; overscroll-behavior-x: contain; border-radius: 22px; }
+.device { width: max-content; min-width: 100%; box-sizing: border-box; }
+.top { display: grid; grid-template-columns: auto auto auto; gap: 16px; align-items: stretch; justify-content: space-between; }
+.left { display: grid; grid-template-columns: auto auto; gap: 14px; align-items: start; }
+.scrcol { display: grid; gap: 10px; justify-items: stretch; }
+.nav { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.nav .btn { min-height: 36px; }
+.middle { display: grid; gap: 14px; align-content: start; }
+.right { display: grid; gap: 12px; align-content: start; }
+.grid6 { display: grid; grid-template-columns: repeat(6, 56px); gap: 6px; }
+.grid6 .btn { font-size: .68rem; }
+.grid6 .btn { min-height: 40px; }
 .tray { background: var(--tray); border-radius: 14px; padding: 12px; }
 .label { font: 600 .72rem var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); text-align: center; }
-.wheels { display: flex; gap: 14px; height: 100%; }
+.wheels { display: flex; gap: 12px; }
 .wheel { display: grid; justify-items: center; gap: 6px; }
 input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 34px; height: 170px; accent-color: var(--violet); cursor: ns-resize; }
 .screen { width: 240px; max-width: 100%; aspect-ratio: 1; image-rendering: pixelated; background: #000; border-radius: 4px; display: block;
           border: 6px solid #07050a; }
-.knobs { display: grid; grid-template-columns: repeat(4, minmax(60px, 1fr)); gap: 12px 10px; }
+.knobs { display: grid; grid-template-columns: repeat(8, 52px); gap: 8px; }
 .knob { display: grid; justify-items: center; gap: 4px; }
-.knob .dial { width: 50px; height: 50px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #3a3146, #17121e 70%);
+.knob .dial { width: 46px; height: 46px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #3a3146, #17121e 70%);
               border: 2px solid #3d3449; position: relative; cursor: ns-resize; touch-action: none; }
 .knob .dial::after { content: ""; position: absolute; left: 50%; top: 5px; width: 3px; height: 13px; margin-left: -1.5px; border-radius: 2px;
                      background: var(--knob-ink, var(--bone)); transform-origin: 50% 20px; transform: rotate(var(--a, 0deg)); }
 .knob .name { font: 600 .75rem var(--ui); letter-spacing: .06em; color: var(--bone); }
 .knob .job { font: 500 .7rem var(--ui); color: var(--muted); }
-.faders { display: grid; grid-template-columns: repeat(4, auto); gap: 8px; justify-items: center; }
-.faders .bank { grid-column: 1 / -1; }
-.btns { display: grid; grid-template-columns: repeat(6, minmax(58px, 1fr)); gap: 8px; }
+.faders { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; justify-items: center; }
+.faders input[type=range].v { height: 120px; }
 .btn { font: 600 .74rem/1.15 var(--ui); letter-spacing: .05em; text-transform: uppercase; color: var(--bone); background: #2a2333;
        border: 1px solid #3b3247; border-radius: 9px; min-height: 44px; padding: 4px; display: grid; place-items: center; text-align: center;
        cursor: pointer; touch-action: none; }
@@ -63,12 +73,7 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 34px; he
 .btn.lit small { color: #3b2a0c; }
 .btn.held { outline: 2px solid var(--silk); outline-offset: -2px; }
 .btn.latched { box-shadow: 0 0 0 2px var(--violet) inset; }
-.oct { display: flex; gap: 8px; margin-top: 8px; }
-.oct .btn { flex: 1; }
-.padbox { display: grid; gap: 10px; }
-.padrow { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
-.padrow .btn { min-width: 74px; }
-.pads { display: grid; grid-template-columns: repeat(8, minmax(30px, 1fr)); gap: 8px; }
+.pads { display: grid; grid-template-columns: repeat(8, 52px); gap: 8px; }
 .pad { aspect-ratio: 1; border-radius: 9px; background: var(--pad, #241e2c); border: 1px solid #3a3146; cursor: pointer; touch-action: none;
        box-shadow: 0 0 var(--glow, 0px) var(--pad, transparent); position: relative; }
 .pad span { position: absolute; left: 6px; top: 4px; font: 600 .66rem var(--ui); color: rgba(255, 255, 255, .55); mix-blend-mode: difference; }
@@ -86,6 +91,8 @@ input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 34px; he
 .start div { display: grid; gap: 10px; justify-items: center; text-align: center; padding: 16px; max-width: 34ch; }
 .start p { margin: 0; color: var(--muted); }
 [hidden] { display: none !important; }
+.swipe { display: none; margin: -8px 0 0; color: var(--muted); font: 500 .85rem var(--ui); }
+@media (max-width: 1360px) { .swipe { display: block; } }
 
 /* under it */
 .below { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
@@ -109,16 +116,9 @@ select { font: 500 .95rem var(--ui); color: var(--bone); background: var(--body)
 body.learn [data-learn] { cursor: crosshair; }
 /* phone width: last, so it wins over the rules above */
 @media (max-width: 560px) {
-  .top, .mid { grid-template-columns: minmax(0, 1fr); }
   .device { padding: 12px; gap: 12px; }
   .tray { padding: 10px; }
-  .btns { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .knobs { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 6px; }
-  .pads { gap: 5px; }
-  .padrow .btn { min-width: 0; flex: 1; }
-  .screen { width: 100%; }
 }
-.top > *, .mid > * { min-width: 0; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 
@@ -133,30 +133,32 @@ body.learn [data-learn] { cursor: crosshair; }
   </header>
   <div class="status" id="status"><span id="state">Off. Sound starts when you switch it on.</span><span id="vol"></span><span id="cpu"></span></div>
 
-  <div class="device" id="device">
+  <div class="frame"><div class="device" id="device">
     <div class="top">
-      <div class="tray wheels" aria-label="Wheels">
-        <div class="wheel"><input class="v" type="range" id="bend" min="-8192" max="8191" value="0" aria-label="Pitch wheel"><span class="label">Pitch</span></div>
-        <div class="wheel"><input class="v" type="range" id="modw" min="0" max="127" value="0" aria-label="Mod wheel: the filter"><span class="label">Mod</span></div>
+      <div class="tray left">
+        <div class="wheels" aria-label="Wheels">
+          <div class="wheel"><input class="v" type="range" id="bend" min="-8192" max="8191" value="0" aria-label="Pitch wheel"><span class="label">Pitch</span></div>
+          <div class="wheel"><input class="v" type="range" id="modw" min="0" max="127" value="0" aria-label="Mod wheel: the filter"><span class="label">Mod</span></div>
+        </div>
+        <div class="scrcol">
+          <canvas class="screen" id="screen" width="240" height="240" aria-label="The screen"></canvas>
+          <div class="nav" id="nav" aria-label="The buttons under the screen"></div>
+        </div>
       </div>
-      <canvas class="screen" id="screen" width="240" height="240" aria-label="The screen"></canvas>
-      <div class="tray knobs" id="knobs" aria-label="Knobs K1 to K8"></div>
-      <div class="tray faders" id="faders" aria-label="Faders"></div>
-    </div>
-    <div class="mid">
-      <div class="tray">
-        <div class="btns" id="btns" aria-label="Buttons"></div>
-        <div class="oct" id="oct"></div>
-      </div>
-      <div class="tray padbox">
-        <div class="padrow" id="smkbtns"></div>
+      <div class="tray middle">
+        <div class="knobs" id="knobs" aria-label="Knobs K1 to K8"></div>
         <div class="pads" id="pads" aria-label="Pads 1 to 16"></div>
+      </div>
+      <div class="tray right">
+        <div class="faders" id="faders" aria-label="Faders"></div>
+        <div class="grid6" id="grid6" aria-label="Buttons"></div>
       </div>
     </div>
     <div class="keys-wrap"><div class="keys" id="keys" aria-label="37 keys, C3 to C6"></div></div>
     <div class="start" id="start"><div><button class="primary" id="go" type="button">Switch on</button>
       <p>It boots as the keyboard does: the spider, its sound, the pads. Any key, pad or button skips it.</p></div></div>
-  </div>
+  </div></div>
+  <p class="swipe">The panel is as wide as the keyboard's: swipe it sideways.</p>
 
   <div class="below">
     <section id="midiin">
@@ -181,8 +183,11 @@ body.learn [data-learn] { cursor: crosshair; }
     <section>
       <h2>Playing it</h2>
       <ul>
-        <li><b>Five tracks:</b> T1 the kit, T2 <b>poly</b> (after the Juno-106), T3 <b>mono</b> (after the SH-101), T4 <b>acid</b> (after the TB-303: velocity 110+ accents, a note held into the next slides), T5 samples (a break).</li>
-        <li><b>Pads 9–16</b> the kit's drums, whatever track is selected. <b>Pads 1–8</b> the mutes: 1–5 the tracks, 6 the throws (held: the conductor), 7 the delay, 8 the reverb. On <b>SEQ</b> they are the bar's steps; <b>KNOB BANK</b> flips them to live pads.</li>
+        <li><b>Six tracks:</b> T1 the kit, T2 <b>mono</b> (after the SH-101), T3 <b>poly</b> (after the Juno-106), T4 <b>fm</b> (six operators, sixteen patches: electric pianos, basses, brass, bells, organ...), T5 <b>acid</b> (after the TB-303: velocity 110+ accents, a note held into the next slides), T6 samples (a break). <b>ALGORITHM</b> (K3) picks the track.</li>
+        <li><b>Sounds:</b> <b>PARA</b> opens the track's sound; <b>K4</b> (PRESETS) steps through its presets, auditioned as you go. On fm, K5 picks the patch, K6 makes it brighter or duller, K7 its decay longer or shorter, K8 spreads it (detune).</li>
+        <li><b>The keys</b> play the selected track on every page, Steps too (the pads are the steps there).</li>
+        <li><b>Pads 9–16</b> the kit's drums, whatever track is selected. <b>Pads 1–6</b> the tracks' mutes, <b>7</b> the throws (held: the conductor), <b>8</b> the effects, delay and reverb together. On <b>SEQ</b> they are the bar's steps; <b>KNOB BANK</b> flips them to live pads.</li>
+        <li><b>Faders</b> T1–T4; <b>FADER BANK</b>: T5, T6, the effects, the master.</li>
         <li><b>NOTE REPEAT</b> tapped: repeat on or off (lit). Held, then a top pad: its rate. Held alone and let go: the LFO page.</li>
         <li><b>Kits:</b> a new project starts on ACOUSTIC. With T1 (the kit) selected, <b>PARA</b> opens its Engine page; <b>SCALE</b> opens the list with <b>KIT</b> first: turn <b>K3</b> for ACOUSTIC, 909 or SYNTH, <b>SCALE</b> again puts it on.</li>
         <li><b>&gt;</b> held: the pads fire the throws. <b>&lt;</b> <b>&gt;</b> the bar. Both together: DAW mode.</li>
@@ -232,16 +237,21 @@ function mkBtn(parent, printed, job, bit, smk) {
 }
 const smkEls = {};
 function toggleLatch(smk, bit) { if (smk) smkLatched ^= 1 << bit; else latched ^= 1 << bit; sync(); }
-const ROW1 = [["FX", "FX", "FX"], ["SCALE", "SEL", "SEL"], ["CHORD", "ENV", "ENV"], ["NOTE REPEAT", "repeat / LFO", "LFO"], ["PARA", "EDIT", "EDIT"], ["GLOBE", "GLO", "GLO"]];
-const ROW2 = [["PATCH", "home", "HOME"], ["BT", "save", "SAVE"], ["ARP", "ARP", "ARP"], ["SEQ", "steps", "SEQ"], ["SEQ PLAY", "play", "PLAY"], ["SEQ REC", "rec", "REC"]];
-const btns = document.getElementById("btns");
-for (const [p, j, n] of [...ROW1, ...ROW2]) mkBtn(btns, p, j === p ? "" : j, BTN[n]);
-mkBtn(document.getElementById("oct"), "OCTAVE −", "", BTN["OCT-"]);
-mkBtn(document.getElementById("oct"), "OCTAVE +", "", BTN["OCT+"]);
-const smkRow = document.getElementById("smkbtns");
-mkBtn(smkRow, "KNOB BANK", "pads", SB.KNOBBANK, true);
-mkBtn(smkRow, "<", "bar", SB.LEFT, true);
-mkBtn(smkRow, ">", "bar · throws", SB.RIGHT, true);
+// the 2 x 6 under the faders, as printed on the SMK (its name, then what it does in SPIDER)
+const ROW1 = [["ARP", "", "ARP"], ["NOTE REPEAT", "repeat / LFO", "LFO"], ["SCALE", "select", "SEL"], ["CHORD", "envelopes", "ENV"],
+              ["GLOBE", "global", "GLO"], ["BT", "save", "SAVE"]];
+const ROW2 = [["PATCH", "home · shift", "HOME"], ["PARA", "sound", "EDIT"], ["FX", "", "FX"], ["SEQ", "steps", "SEQ"],
+              ["SEQ PLAY", "play", "PLAY"], ["SEQ REC", "rec", "REC"]];
+const grid6 = document.getElementById("grid6");
+for (const [p, j, n] of [...ROW1, ...ROW2]) mkBtn(grid6, p, j, BTN[n]);
+// the six under the screen, two a row
+const nav = document.getElementById("nav");
+mkBtn(nav, "KNOB BANK", "pads", SB.KNOBBANK, true);
+mkBtn(nav, "FADER BANK", "T5 T6 FX master", SB.FADERBANK, true);
+mkBtn(nav, "<", "bar", SB.LEFT, true);
+mkBtn(nav, ">", "bar · throws", SB.RIGHT, true);
+mkBtn(nav, "OCTAVE −", "", BTN["OCT-"]);
+mkBtn(nav, "OCTAVE +", "", BTN["OCT+"]);
 
 function sync() {
   let m = latched, s = smkLatched;
@@ -307,8 +317,6 @@ for (let f = 0; f < 4; f++) {
   fi.dataset.learn = "fader:" + f; fi.dataset.name = "fader " + (f + 1);
   fi.addEventListener("input", (e) => send({ type: "fader", f, v: +e.target.value }));
 }
-const fb = document.createElement("div"); fb.className = "bank"; faderBox.appendChild(fb);
-mkBtn(fb, "FADER BANK", "T1–4 / T5 FX master", SB.FADERBANK, true);
 const bend = document.getElementById("bend");
 bend.dataset.learn = "bend"; bend.dataset.name = "the pitch wheel";
 Object.assign(document.getElementById("modw").dataset, { learn: "modw", name: "the mod wheel" });
@@ -324,7 +332,7 @@ for (let p = 0; p < 16; p++) {
   const d = document.createElement("div");
   d.className = "pad ctl"; d.tabIndex = -1; d.setAttribute("role", "button");
   d.dataset.learn = "pad:" + p; d.dataset.name = "pad " + (p + 1);
-  d.setAttribute("aria-label", p < 8 ? `Pad ${p + 1}: mute ${["T1", "T2", "T3", "T4", "T5", "the throws", "the delay", "the reverb"][p]}` : `Pad ${p + 1}: drum ${p - 7}`);
+  d.setAttribute("aria-label", p < 8 ? `Pad ${p + 1}: mute ${["T1", "T2", "T3", "T4", "T5", "T6", "the throws", "the effects"][p]}` : `Pad ${p + 1}: drum ${p - 7}`);
   d.innerHTML = `<span>${p + 1}</span>`;
   padBox.appendChild(d); padEls.push(d);
   d.addEventListener("pointerdown", (e) => {
