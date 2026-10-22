@@ -91,6 +91,11 @@ jobs:
           build/spider/
         EOF
         cat /tmp/spider-build.log
+        # the sizes as a note on the run's page (the image against the SMK-37's app slot, 619,520 B; the factory
+        # samples), readable where the full log isn't
+        grep -E "image [0-9]+ B; RAM|^samples: " /tmp/spider-build.log | while read -r l; do
+          echo "::notice title=SPIDER size::$l"
+        done || true
         if [ "$rc" != 0 ]; then
           echo "::error title=SPIDER build failed::$(tail -n 60 /tmp/spider-build.log | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"
           exit "$rc"
