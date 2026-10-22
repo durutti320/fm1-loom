@@ -1,0 +1,484 @@
+<title>SPIDER Browser Emulator</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* layout: one SMK-37 as a dark instrument: wheels, screen, eight knobs and four faders across the top; the buttons and
+   the 2 x 8 pads in the middle; the 37 keys below; under it the MIDI it sends and how to play it */
+:root {
+  --night: #0d0a13; --body: #1b1624; --tray: #120e19; --rule: #2e2639; --bone: #ece4d6; --muted: #a497b6;
+  --blood: #c11a36; --violet: #9a7bdc; --silk: #dcd2ff; --amber: #e4b652; --keyw: #e7e2ea; --keyb: #231d2c;
+  --display: "Pirata One", "UnifrakturCook", Georgia, serif;
+  --ui: "Barlow Semi Condensed", "Arial Narrow", Arial, sans-serif;
+  --text: "Barlow", "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+html, body { background: var(--night); color: var(--bone); }
+body { margin: 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+       padding-block: 20px 40px; font: 400 15px/1.5 var(--text); }
+main { max-width: 1120px; margin: 0 auto; display: grid; gap: 18px; }
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; }
+h1 { font: 400 2.6rem/1 var(--display); letter-spacing: .02em; margin: 0; color: var(--bone); text-shadow: 2px 2px 0 var(--blood); }
+header p { margin: 0; color: var(--muted); font: 500 1rem var(--ui); }
+.hdr-actions { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; }
+button { font: 600 .95rem var(--ui); letter-spacing: .04em; color: var(--bone); background: var(--body); border: 1px solid var(--rule);
+         border-radius: 8px; padding: .4em .9em; cursor: pointer; }
+button:focus-visible, .ctl:focus-visible, input:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+button.primary { background: var(--blood); border-color: var(--blood); color: #fff; }
+button:disabled { opacity: .55; cursor: progress; }
+.status { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--muted); font: 500 .95rem var(--ui); font-variant-numeric: tabular-nums; }
+.status b { color: var(--bone); font-weight: 600; }
+
+/* the instrument */
+.device { position: relative; background: var(--body); border: 1px solid var(--rule); border-radius: 22px; padding: 18px;
+          display: grid; gap: 16px; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+.top { display: grid; grid-template-columns: auto auto 1fr auto; gap: 18px; align-items: start; }
+.mid { display: grid; grid-template-columns: auto 1fr; gap: 18px; align-items: start; }
+@media (max-width: 900px) { .top, .mid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .top, .mid { grid-template-columns: 1fr; } }
+.tray { background: var(--tray); border-radius: 14px; padding: 12px; }
+.label { font: 600 .72rem var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); text-align: center; }
+.wheels { display: flex; gap: 14px; height: 100%; }
+.wheel { display: grid; justify-items: center; gap: 6px; }
+input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 34px; height: 170px; accent-color: var(--violet); cursor: ns-resize; }
+.screen { width: 240px; max-width: 100%; aspect-ratio: 1; image-rendering: pixelated; background: #000; border-radius: 4px; display: block;
+          border: 6px solid #07050a; }
+.knobs { display: grid; grid-template-columns: repeat(4, minmax(60px, 1fr)); gap: 12px 10px; }
+.knob { display: grid; justify-items: center; gap: 4px; }
+.knob .dial { width: 50px; height: 50px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #3a3146, #17121e 70%);
+              border: 2px solid #3d3449; position: relative; cursor: ns-resize; touch-action: none; }
+.knob .dial::after { content: ""; position: absolute; left: 50%; top: 5px; width: 3px; height: 13px; margin-left: -1.5px; border-radius: 2px;
+                     background: var(--knob-ink, var(--bone)); transform-origin: 50% 20px; transform: rotate(var(--a, 0deg)); }
+.knob .name { font: 600 .75rem var(--ui); letter-spacing: .06em; color: var(--bone); }
+.knob .job { font: 500 .7rem var(--ui); color: var(--muted); }
+.faders { display: grid; grid-template-columns: repeat(4, auto); gap: 8px; justify-items: center; }
+.faders .bank { grid-column: 1 / -1; }
+.btns { display: grid; grid-template-columns: repeat(6, minmax(58px, 1fr)); gap: 8px; }
+.btn { font: 600 .74rem/1.15 var(--ui); letter-spacing: .05em; text-transform: uppercase; color: var(--bone); background: #2a2333;
+       border: 1px solid #3b3247; border-radius: 9px; min-height: 44px; padding: 4px; display: grid; place-items: center; text-align: center;
+       cursor: pointer; touch-action: none; }
+.btn small { display: block; font: 500 .66rem var(--ui); text-transform: none; letter-spacing: .02em; color: var(--muted); }
+.btn.lit { background: var(--amber); color: #1a1208; border-color: var(--amber); }
+.btn.lit small { color: #3b2a0c; }
+.btn.held { outline: 2px solid var(--silk); outline-offset: -2px; }
+.btn.latched { box-shadow: 0 0 0 2px var(--violet) inset; }
+.oct { display: flex; gap: 8px; margin-top: 8px; }
+.oct .btn { flex: 1; }
+.padbox { display: grid; gap: 10px; }
+.padrow { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.padrow .btn { min-width: 74px; }
+.pads { display: grid; grid-template-columns: repeat(8, minmax(30px, 1fr)); gap: 8px; }
+.pad { aspect-ratio: 1; border-radius: 9px; background: var(--pad, #241e2c); border: 1px solid #3a3146; cursor: pointer; touch-action: none;
+       box-shadow: 0 0 var(--glow, 0px) var(--pad, transparent); position: relative; }
+.pad span { position: absolute; left: 6px; top: 4px; font: 600 .66rem var(--ui); color: rgba(255, 255, 255, .55); mix-blend-mode: difference; }
+.pad.held { outline: 2px solid var(--silk); outline-offset: 1px; }
+.keys-wrap { overflow-x: auto; border-radius: 14px; background: var(--tray); padding: 12px; }
+.keys { position: relative; height: 150px; min-width: 860px; }
+.key { position: absolute; top: 0; border-radius: 0 0 7px 7px; cursor: pointer; touch-action: none; }
+.key.w { height: 150px; background: var(--keyw); border: 1px solid #b9b2c2; z-index: 1; }
+.key.b { height: 92px; background: var(--keyb); border: 1px solid #000; z-index: 2; }
+.key.outer.w { background: #cfc8d6; }
+.key.held.w { background: var(--silk); box-shadow: inset 0 -6px 0 var(--violet); }
+.key.held.b { background: var(--violet); }
+.key i { position: absolute; bottom: 6px; left: 0; right: 0; text-align: center; font: 600 .62rem var(--ui); color: #6d6478; font-style: normal; }
+.start { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(13, 10, 19, .78); border-radius: 22px; z-index: 5; }
+.start div { display: grid; gap: 10px; justify-items: center; text-align: center; padding: 16px; max-width: 34ch; }
+.start p { margin: 0; color: var(--muted); }
+
+/* under it */
+.below { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+@media (max-width: 800px) { .below { grid-template-columns: minmax(0, 1fr); } }
+section h2 { font: 700 1.05rem var(--ui); letter-spacing: .06em; text-transform: uppercase; margin: 0 0 6px; color: var(--bone); }
+section p, section li { color: var(--muted); max-width: 64ch; }
+section ul { margin: 0; padding-left: 1.1rem; display: grid; gap: 4px; }
+section b { color: var(--bone); font-weight: 600; }
+kbd { font: 600 .82em var(--mono); background: var(--body); border: 1px solid var(--rule); border-radius: 4px; padding: 0 .3em; color: var(--bone); }
+.midi { font: 400 .82rem/1.55 var(--mono); background: var(--tray); border: 1px solid var(--rule); border-radius: 12px; padding: 10px 12px;
+        min-height: 12.5em; max-height: 18em; overflow: auto; font-variant-numeric: tabular-nums; }
+.midi div { white-space: nowrap; color: var(--bone); }
+.midi div span { color: var(--muted); }
+.midi .empty { color: var(--muted); white-space: normal; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<main>
+  <header>
+    <h1>SPIDER</h1>
+    <p>the firmware for the M-VAVE SMK-37, running in your browser: the same code the keyboard runs</p>
+    <div class="hdr-actions">
+      <button id="boot" type="button" disabled title="Play the boot animation and its sound again">Boot again</button>
+      <button id="reset" type="button" title="Forget the projects saved in this browser and start from the factory settings">Factory reset</button>
+    </div>
+  </header>
+  <div class="status" id="status"><span id="state">Off. Sound starts when you switch it on.</span><span id="vol"></span><span id="cpu"></span></div>
+
+  <div class="device" id="device">
+    <div class="top">
+      <div class="tray wheels" aria-label="Wheels">
+        <div class="wheel"><input class="v" type="range" id="bend" min="-8192" max="8191" value="0" aria-label="Pitch wheel"><span class="label">Pitch</span></div>
+        <div class="wheel"><input class="v" type="range" id="modw" min="0" max="127" value="0" aria-label="Mod wheel: the filter"><span class="label">Mod</span></div>
+      </div>
+      <canvas class="screen" id="screen" width="240" height="240" aria-label="The screen"></canvas>
+      <div class="tray knobs" id="knobs" aria-label="Knobs K1 to K8"></div>
+      <div class="tray faders" id="faders" aria-label="Faders"></div>
+    </div>
+    <div class="mid">
+      <div class="tray">
+        <div class="btns" id="btns" aria-label="Buttons"></div>
+        <div class="oct" id="oct"></div>
+      </div>
+      <div class="tray padbox">
+        <div class="padrow" id="smkbtns"></div>
+        <div class="pads" id="pads" aria-label="Pads 1 to 16"></div>
+      </div>
+    </div>
+    <div class="keys-wrap"><div class="keys" id="keys" aria-label="37 keys, C3 to C6"></div></div>
+    <div class="start" id="start"><div><button class="primary" id="go" type="button">Switch on</button>
+      <p>It boots as the keyboard does: the spider, its sound, the pads. Any key, pad or button skips it.</p></div></div>
+  </div>
+
+  <div class="below">
+    <section>
+      <h2>MIDI out</h2>
+      <div class="midi" id="midi" aria-live="polite"><div class="empty">What SPIDER sends shows here (the clock left out). Press &lt; and &gt; together for DAW mode: the pads, knobs, faders, buttons and keys then send their notes and CCs.</div></div>
+    </section>
+    <section>
+      <h2>Playing it</h2>
+      <ul>
+        <li><b>Pads 9–16</b> the kit's drums, whatever track is selected. <b>Pads 1–8</b> mute and unmute T1–T8. On <b>SEQ</b> they are the bar's steps; <b>KNOB BANK</b> flips them to live pads.</li>
+        <li><b>NOTE REPEAT</b> tapped: repeat on or off (lit). Held, then a top pad: its rate. Held alone and let go: the LFO page.</li>
+        <li><b>&gt;</b> held: the pads fire the throws. <b>&lt;</b> <b>&gt;</b> the bar. Both together: DAW mode.</li>
+        <li><b>SEQ PLAY</b> plays, <b>SEQ REC</b> held with it records. <b>PATCH</b> is home, held the shift. <b>BT</b> saves.</li>
+        <li>Higher on a key or pad plays softer, lower plays harder. Drag knobs up and down, or scroll over them. <kbd>Shift</kbd>-click a button to hold it.</li>
+        <li>Computer keys: pads 1–8 <kbd>1</kbd>–<kbd>8</kbd>, drums <kbd>Z</kbd> <kbd>X</kbd> <kbd>C</kbd> <kbd>V</kbd> <kbd>B</kbd> <kbd>N</kbd> <kbd>M</kbd> <kbd>,</kbd>; notes <kbd>A</kbd>–<kbd>;</kbd> with <kbd>W</kbd> <kbd>E</kbd> <kbd>T</kbd> <kbd>Y</kbd> <kbd>U</kbd> <kbd>O</kbd> <kbd>P</kbd>; <kbd>Space</kbd> play, <kbd>Enter</kbd> rec, <kbd>Q</kbd> note repeat, <kbd>Shift</kbd> patch, <kbd>←</kbd> <kbd>→</kbd> &lt; &gt;, <kbd>↑</kbd> <kbd>↓</kbd> select, <kbd>-</kbd> <kbd>=</kbd> octave.</li>
+      </ul>
+      <p>Projects you save stay in this browser. It runs at the browser's frame rate, so the boot looks smoother here than on the keyboard.</p>
+    </section>
+  </div>
+</main>
+
+<script>
+"use strict";
+const BTN = { FX: 0, SEL: 1, ENV: 2, LFO: 3, EDIT: 4, GLO: 5, HOME: 6, SAVE: 7, ARP: 8, SEQ: 9, PLAY: 10, REC: 11, "OCT-": 12, "OCT+": 13 };
+const SB = { KNOBBANK: 0, FADERBANK: 1, LEFT: 2, RIGHT: 3 };
+const ENC = { SELECT: 0, ALGORITHM: 1, PRESETS: 2, KNOB1: 3, KNOB2: 4, KNOB3: 5, KNOB4: 6 };
+const STORE_KEY = "spider-emu-store";
+const INK = ["#d62c40", "#e87034", "#e4b652", "#8eca5c", "#48b6a2", "#688ee8", "#a468e8", "#de70c0"];
+let node = null, btnMask = 0, latched = 0, smkMask = 0, smkLatched = 0;
+const btnHeld = new Map(), smkHeld = new Map();
+function send(m) { if (node) node.port.postMessage(m); }
+
+// ---------------------------------------------------------------- the buttons (printed name -> the FM-1's)
+const btnEls = {};
+function mkBtn(parent, printed, job, bit, smk) {
+  const b = document.createElement("div");
+  b.className = "btn ctl"; b.tabIndex = 0; b.setAttribute("role", "button");
+  const esc = (t) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  b.innerHTML = `${esc(printed)}${job ? `<small>${esc(job)}</small>` : ""}`;
+  b.setAttribute("aria-label", printed + (job ? ": " + job : ""));
+  parent.appendChild(b);
+  (smk ? smkEls : btnEls)[bit] = b;
+  b.addEventListener("contextmenu", (e) => e.preventDefault());
+  b.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    if (e.shiftKey || e.button === 2) { toggleLatch(smk, bit); return; }
+    if ((smk ? smkLatched : latched) & (1 << bit)) { toggleLatch(smk, bit); return; }
+    b.setPointerCapture(e.pointerId);
+    (smk ? smkHeld : btnHeld).set("p" + e.pointerId, bit);
+    sync();
+  });
+  b.addEventListener("keydown", (e) => { if ((e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); e.stopPropagation(); (smk ? smkHeld : btnHeld).set("f" + bit, bit); sync(); } });
+  b.addEventListener("keyup", (e) => { if (e.key === " " || e.key === "Enter") { e.stopPropagation(); (smk ? smkHeld : btnHeld).delete("f" + bit); sync(); } });
+  return b;
+}
+const smkEls = {};
+function toggleLatch(smk, bit) { if (smk) smkLatched ^= 1 << bit; else latched ^= 1 << bit; sync(); }
+const ROW1 = [["FX", "FX", "FX"], ["SCALE", "SEL", "SEL"], ["CHORD", "ENV", "ENV"], ["NOTE REPEAT", "repeat / LFO", "LFO"], ["PARA", "EDIT", "EDIT"], ["GLOBE", "GLO", "GLO"]];
+const ROW2 = [["PATCH", "home", "HOME"], ["BT", "save", "SAVE"], ["ARP", "ARP", "ARP"], ["SEQ", "steps", "SEQ"], ["SEQ PLAY", "play", "PLAY"], ["SEQ REC", "rec", "REC"]];
+const btns = document.getElementById("btns");
+for (const [p, j, n] of [...ROW1, ...ROW2]) mkBtn(btns, p, j === p ? "" : j, BTN[n]);
+mkBtn(document.getElementById("oct"), "OCTAVE −", "", BTN["OCT-"]);
+mkBtn(document.getElementById("oct"), "OCTAVE +", "", BTN["OCT+"]);
+const smkRow = document.getElementById("smkbtns");
+mkBtn(smkRow, "KNOB BANK", "pads", SB.KNOBBANK, true);
+mkBtn(smkRow, "<", "bar", SB.LEFT, true);
+mkBtn(smkRow, ">", "bar · throws", SB.RIGHT, true);
+
+function sync() {
+  let m = latched, s = smkLatched;
+  for (const b of btnHeld.values()) m |= 1 << b;
+  for (const b of smkHeld.values()) s |= 1 << b;
+  if (m !== btnMask) { btnMask = m; send({ type: "buttons", mask: m }); }
+  if (s !== smkMask) { smkMask = s; send({ type: "smk", mask: s }); }
+  for (const [bit, el] of Object.entries(btnEls)) { el.classList.toggle("held", !!(m & (1 << bit))); el.classList.toggle("latched", !!(latched & (1 << bit))); }
+  for (const [bit, el] of Object.entries(smkEls)) { el.classList.toggle("held", !!(s & (1 << bit))); el.classList.toggle("latched", !!(smkLatched & (1 << bit))); }
+}
+
+// ---------------------------------------------------------------- knobs: K1 the volume (a knob of SPIDER's own in DAW mode)
+const KNOBS = [["K1", "volume", "k1"], ["K2", "select", ENC.SELECT], ["K3", "algorithm", ENC.ALGORITHM], ["K4", "presets", ENC.PRESETS],
+               ["K5", "knob 1", ENC.KNOB1], ["K6", "knob 2", ENC.KNOB2], ["K7", "knob 3", ENC.KNOB3], ["K8", "knob 4", ENC.KNOB4]];
+const knobs = {};
+const knobBox = document.getElementById("knobs");
+KNOBS.forEach(([name, job, role], i) => {
+  const w = document.createElement("div");
+  w.className = "knob";
+  w.innerHTML = `<div class="dial ctl" tabindex="0" role="slider" aria-label="${name}: ${job}" aria-valuetext="turn with the arrow keys"></div><span class="name">${name}</span><span class="job">${job}</span>`;
+  knobBox.appendChild(w);
+  const d = w.querySelector(".dial");
+  if (i >= 4) d.style.setProperty("--knob-ink", INK[[2, 3, 5, 6][i - 4]]);
+  const k = knobs[name] = { d, role, a: 0 };
+  let drag = null, wheel = 0;
+  d.addEventListener("pointerdown", (e) => { e.preventDefault(); d.setPointerCapture(e.pointerId); drag = { y: e.clientY, acc: 0 }; });
+  d.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    drag.acc += drag.y - e.clientY; drag.y = e.clientY;
+    const n = Math.trunc(drag.acc / 7);
+    if (n) { drag.acc -= n * 7; turn(k, n); }
+  });
+  const end = () => { drag = null; };
+  d.addEventListener("pointerup", end); d.addEventListener("pointercancel", end);
+  d.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const dy = e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY;
+    if (Math.abs(dy) >= 50) { turn(k, dy < 0 ? 1 : -1); wheel = 0; return; }
+    wheel -= dy; const n = Math.trunc(wheel / 25);
+    if (n) { wheel -= n * 25; turn(k, n); }
+  }, { passive: false });
+  d.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowUp" || e.key === "ArrowRight") { turn(k, 1); e.preventDefault(); e.stopPropagation(); }
+    if (e.key === "ArrowDown" || e.key === "ArrowLeft") { turn(k, -1); e.preventDefault(); e.stopPropagation(); }
+  });
+});
+function turn(k, n) {
+  if (!n) return;
+  k.a = (k.a + n * 18) % 360;
+  k.d.style.setProperty("--a", k.a + "deg");
+  if (k.role === "k1") send({ type: "k1", n }); else send({ type: "enc", role: k.role, n });
+}
+
+// ---------------------------------------------------------------- faders and wheels
+const faderBox = document.getElementById("faders");
+for (let f = 0; f < 4; f++) {
+  const w = document.createElement("div");
+  w.className = "wheel";
+  w.innerHTML = `<input class="v" type="range" id="fader${f}" min="0" max="127" value="0" aria-label="Fader ${f + 1}"><span class="label">${f + 1}</span>`;
+  faderBox.appendChild(w);
+  w.querySelector("input").addEventListener("input", (e) => send({ type: "fader", f, v: +e.target.value }));
+}
+const fb = document.createElement("div"); fb.className = "bank"; faderBox.appendChild(fb);
+mkBtn(fb, "FADER BANK", "T1–4 / T5–8", SB.FADERBANK, true);
+const bend = document.getElementById("bend");
+bend.addEventListener("input", () => send({ type: "bend", v: +bend.value }));
+const springBack = () => { bend.value = 0; send({ type: "bend", v: 0 }); };
+bend.addEventListener("pointerup", springBack); bend.addEventListener("change", springBack); bend.addEventListener("blur", springBack);
+document.getElementById("modw").addEventListener("input", (e) => send({ type: "modw", v: +e.target.value }));
+
+// ---------------------------------------------------------------- pads (0..7 the top row)
+const padEls = [], padHeld = new Map();
+const padBox = document.getElementById("pads");
+for (let p = 0; p < 16; p++) {
+  const d = document.createElement("div");
+  d.className = "pad ctl"; d.tabIndex = -1; d.setAttribute("role", "button");
+  d.setAttribute("aria-label", p < 8 ? `Pad ${p + 1}: mute T${p + 1}` : `Pad ${p + 1}: drum ${p - 7}`);
+  d.innerHTML = `<span>${p + 1}</span>`;
+  padBox.appendChild(d); padEls.push(d);
+  d.addEventListener("pointerdown", (e) => {
+    e.preventDefault(); d.setPointerCapture(e.pointerId);
+    const r = d.getBoundingClientRect(), vel = Math.max(1, Math.min(127, Math.round(35 + 92 * (e.clientY - r.top) / r.height)));
+    padDown("p" + e.pointerId, p, vel);
+  });
+}
+function padDown(id, p, vel) { if (padHeld.has(id)) return; padHeld.set(id, p); padEls[p].classList.add("held"); send({ type: "pad", p, vel }); }
+function padUp(id) {
+  if (!padHeld.has(id)) return;
+  const p = padHeld.get(id); padHeld.delete(id);
+  if (![...padHeld.values()].includes(p)) { padEls[p].classList.remove("held"); send({ type: "pad", p, vel: 0 }); }
+}
+function lift(v) { return Math.round(255 * Math.pow(v / 255, 0.55)); }   // (an LED's low levels, made visible on a screen)
+function drawPads(rgb) {
+  for (let p = 0; p < 16; p++) {
+    const c = rgb[p] >>> 0, r = c >> 16 & 255, g = c >> 8 & 255, b = c & 255, m = Math.max(r, g, b);
+    padEls[p].style.setProperty("--pad", m ? `rgb(${lift(r)} ${lift(g)} ${lift(b)})` : "#241e2c");
+    padEls[p].style.setProperty("--glow", m > 120 ? "14px" : m ? "5px" : "0px");
+  }
+}
+
+// ---------------------------------------------------------------- 37 keys, C3 (48) to C6 (84): F3..G5 the FM-1's 27, the rest the outer ten
+const keyBox = document.getElementById("keys"), keyEls = {}, keyHeld = new Map();
+const BLACK = new Set([1, 3, 6, 8, 10]), NAMES = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"];
+(function layout() {
+  const whites = [];
+  for (let n = 48; n <= 84; n++) if (!BLACK.has(n % 12)) whites.push(n);
+  const W = 100 / whites.length;
+  let wi = 0;
+  for (let n = 48; n <= 84; n++) {
+    const d = document.createElement("div"), black = BLACK.has(n % 12);
+    d.className = "key ctl " + (black ? "b" : "w") + (n < 53 || n > 79 ? " outer" : "");
+    d.setAttribute("aria-label", `${NAMES[n % 12]}${Math.floor(n / 12) - 1}`);
+    if (black) Object.assign(d.style, { left: `calc(${wi * W}% - ${W * 0.3}%)`, width: `${W * 0.6}%` });
+    else { Object.assign(d.style, { left: `${wi * W}%`, width: `${W}%` }); if (n % 12 === 0) d.innerHTML = `<i>C${Math.floor(n / 12) - 1}</i>`; wi++; }
+    keyBox.appendChild(d); keyEls[n] = d;
+    d.addEventListener("pointerdown", (e) => {
+      e.preventDefault(); d.setPointerCapture(e.pointerId);
+      const r = d.getBoundingClientRect(), vel = Math.max(1, Math.min(127, Math.round(30 + 97 * (e.clientY - r.top) / r.height)));
+      noteDown("p" + e.pointerId, n, vel);
+    });
+  }
+})();
+function noteSend(n, vel) {
+  if (n >= 53 && n <= 79) send({ type: "key", k: n - 53, vel });
+  else send({ type: "outer", k: n < 53 ? n - 48 : 5 + n - 80, vel });
+}
+function noteDown(id, n, vel) { if (keyHeld.has(id)) return; keyHeld.set(id, n); keyEls[n].classList.add("held"); noteSend(n, vel); }
+function noteUp(id) {
+  if (!keyHeld.has(id)) return;
+  const n = keyHeld.get(id); keyHeld.delete(id);
+  if (![...keyHeld.values()].includes(n)) { keyEls[n].classList.remove("held"); noteSend(n, 0); }
+}
+function pointerUp(e) {
+  const id = "p" + e.pointerId;
+  if (btnHeld.delete(id) | smkHeld.delete(id)) sync();
+  padUp(id); noteUp(id);
+}
+const device = document.getElementById("device");
+device.addEventListener("pointerup", pointerUp);
+device.addEventListener("pointercancel", pointerUp);
+device.addEventListener("lostpointercapture", pointerUp);
+
+// ---------------------------------------------------------------- the computer's keys
+const NOTEKEYS = { KeyA: 60, KeyW: 61, KeyS: 62, KeyE: 63, KeyD: 64, KeyF: 65, KeyT: 66, KeyG: 67, KeyY: 68, KeyH: 69, KeyU: 70, KeyJ: 71,
+                   KeyK: 72, KeyO: 73, KeyL: 74, KeyP: 75, Semicolon: 76 };
+const PADKEYS = { Digit1: 0, Digit2: 1, Digit3: 2, Digit4: 3, Digit5: 4, Digit6: 5, Digit7: 6, Digit8: 7,
+                  KeyZ: 8, KeyX: 9, KeyC: 10, KeyV: 11, KeyB: 12, KeyN: 13, KeyM: 14, Comma: 15 };
+const BTNKEYS = { Space: BTN.PLAY, Enter: BTN.REC, KeyQ: BTN.LFO, ShiftLeft: BTN.HOME, ShiftRight: BTN.HOME, Minus: BTN["OCT-"], Equal: BTN["OCT+"] };
+const SMKKEYS = { ArrowLeft: SB.LEFT, ArrowRight: SB.RIGHT };
+addEventListener("keydown", (e) => {
+  if (!node || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.target.closest && e.target.closest("input, button")) return;   // (a slider's arrows, a button's Enter)
+  const c = e.code;
+  if (c === "ArrowUp" || c === "ArrowDown") { turn(knobs.K2, c === "ArrowUp" ? 1 : -1); e.preventDefault(); return; }
+  if (!(c in NOTEKEYS || c in PADKEYS || c in BTNKEYS || c in SMKKEYS)) return;
+  e.preventDefault();
+  if (e.repeat) return;
+  if (c in NOTEKEYS) noteDown("k" + c, NOTEKEYS[c], 100);
+  else if (c in PADKEYS) padDown("k" + c, PADKEYS[c], 100);
+  else if (c in BTNKEYS) { btnHeld.set("k" + c, BTNKEYS[c]); sync(); }
+  else { smkHeld.set("k" + c, SMKKEYS[c]); sync(); }
+});
+addEventListener("keyup", (e) => {
+  const id = "k" + e.code;
+  noteUp(id); padUp(id);
+  if (btnHeld.delete(id) | smkHeld.delete(id)) sync();
+});
+addEventListener("blur", () => {
+  for (const id of [...keyHeld.keys()]) if (id[0] === "k") noteUp(id);
+  for (const id of [...padHeld.keys()]) if (id[0] === "k") padUp(id);
+  for (const m of [btnHeld, smkHeld]) for (const id of [...m.keys()]) if (id[0] === "k") m.delete(id);
+  sync();
+});
+
+// ---------------------------------------------------------------- the screen, the lights, the MIDI it sends
+const ctx = document.getElementById("screen").getContext("2d"), img = ctx.createImageData(240, 240);
+function drawScreen(fbuf) {
+  const d = img.data;
+  for (let i = 0; i < 240 * 240; i++) {
+    const v = fbuf[i], p = ((v >> 8) | (v << 8)) & 0xFFFF;
+    d[i * 4] = ((p >> 11) & 31) * 255 / 31; d[i * 4 + 1] = ((p >> 5) & 63) * 255 / 63; d[i * 4 + 2] = (p & 31) * 255 / 31; d[i * 4 + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+}
+function drawLights(b, s) {
+  for (const [bit, el] of Object.entries(btnEls)) el.classList.toggle("lit", !!(b & (1 << bit)));
+  for (const [bit, el] of Object.entries(smkEls)) el.classList.toggle("lit", !!(s & (1 << bit)));
+}
+const midiBox = document.getElementById("midi"), midiLines = [];
+const NOTE = (n) => `${NAMES[n % 12]}${Math.floor(n / 12) - 1}`;
+function midiText(pkt) {
+  const st = pkt >>> 8 & 255, d1 = pkt >>> 16 & 127, d2 = pkt >>> 24 & 127, ch = (st & 15) + 1, ty = st & 0xF0;
+  const raw = `<span>${[st, d1, d2].map((x) => x.toString(16).toUpperCase().padStart(2, "0")).join(" ")}</span>`;
+  if (st === 0xF8 || st === 0xFE) return null;
+  if (st === 0xFA) return `${raw}  start`;
+  if (st === 0xFB) return `${raw}  continue`;
+  if (st === 0xFC) return `${raw}  stop`;
+  if (ty === 0x90 && d2) return `${raw}  ch ${String(ch).padStart(2)}  note on   ${String(d1).padStart(3)} ${NOTE(d1).padEnd(4)} vel ${d2}`;
+  if (ty === 0x80 || ty === 0x90) return `${raw}  ch ${String(ch).padStart(2)}  note off  ${String(d1).padStart(3)} ${NOTE(d1)}`;
+  if (ty === 0xB0) return `${raw}  ch ${String(ch).padStart(2)}  CC ${String(d1).padStart(3)} = ${d2}`;
+  if (ty === 0xE0) return `${raw}  ch ${String(ch).padStart(2)}  pitch bend ${((d2 << 7) | d1) - 8192}`;
+  if (ty === 0xC0) return `${raw}  ch ${String(ch).padStart(2)}  program ${d1}`;
+  return raw;
+}
+function logMidi(pkts) {
+  let added = false;
+  for (const p of pkts) { const t = midiText(p); if (t) { midiLines.unshift(t); added = true; } }
+  if (!added) return;
+  midiLines.length = Math.min(midiLines.length, 40);
+  midiBox.innerHTML = midiLines.map((l) => `<div>${l}</div>`).join("");
+}
+
+// ---------------------------------------------------------------- storage
+function loadStore() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORE_KEY) || "{}"), out = {};
+    for (const [o, b64] of Object.entries(raw)) out[o] = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)).buffer;
+    return out;
+  } catch { return {}; }
+}
+function saveStore(store) {
+  try {
+    const raw = {};
+    for (const [o, u8] of Object.entries(store)) { let s = ""; for (const c of u8) s += String.fromCharCode(c); raw[o] = btoa(s); }
+    localStorage.setItem(STORE_KEY, JSON.stringify(raw));
+  } catch { /* storage unavailable: this visit only */ }
+}
+
+// ---------------------------------------------------------------- switching on
+const state = document.getElementById("state"), cpu = document.getElementById("cpu"), vol = document.getElementById("vol");
+async function switchOn() {
+  const go = document.getElementById("go");
+  go.disabled = true; go.textContent = "Starting…";
+  try {
+    const ac = new AudioContext({ sampleRate: 44100, latencyHint: "interactive" });
+    const [wasm] = await Promise.all([
+      fetch("app.wasm").then((r) => { if (!r.ok) throw new Error(`the firmware (app.wasm) did not load: ${r.status}`); return r.arrayBuffer(); }),
+      ac.audioWorklet.addModule("worklet.js")]);
+    node = new AudioWorkletNode(ac, "spider", { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2] });
+    node.connect(ac.destination);
+    await new Promise((res, rej) => {
+      node.port.onmessage = (e) => {
+        const m = e.data;
+        if (m.type === "ready") res();
+        else if (m.type === "error") rej(new Error(m.message));
+        else if (m.type === "frame") {
+          if (m.fb) drawScreen(m.fb);
+          drawLights(m.buttons, m.smk);
+          drawPads(m.pads);
+          if (m.midi) logMidi(m.midi);
+          vol.textContent = `Volume ${Math.round(100 * m.volume / 4096)}%`;
+          if (m.load !== undefined) cpu.textContent = `SPIDER uses ${m.load}% of this computer's time`;
+          if (m.store) saveStore(m.store);
+          window.spiderLast = m;
+        }
+      };
+      node.port.postMessage({ type: "load", wasm, store: loadStore() }, [wasm]);
+    });
+    await ac.resume();
+    document.getElementById("start").hidden = true;
+    document.getElementById("boot").disabled = false;
+    state.textContent = ac.sampleRate === 44100 ? "On." : `On (the browser runs audio at ${ac.sampleRate} Hz).`;
+    sync();
+  } catch (err) {
+    node = null;
+    go.disabled = false; go.textContent = "Switch on";
+    state.textContent = "Could not start: " + (err && err.message || err) + ". A current Chrome, Edge, Firefox or Safari should work.";
+  }
+}
+document.getElementById("go").addEventListener("click", switchOn);
+document.getElementById("boot").addEventListener("click", () => send({ type: "boot" }));
+const reset = document.getElementById("reset");
+reset.addEventListener("click", () => {
+  if (reset.dataset.armed) { try { localStorage.removeItem(STORE_KEY); } catch {} location.reload(); }
+  else { reset.dataset.armed = "1"; reset.textContent = "Click again to forget your projects"; }
+});
+</script>

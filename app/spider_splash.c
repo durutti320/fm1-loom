@@ -571,8 +571,9 @@ static void spd_credits(uint32_t t)
 /* ---- the pads along (0..7 the top row, 8..15 the bottom, as plat_pad_rgb; 0xRRGGBB): the line coming down the
  * middle, a flash at each spoke's pad as it shoots (by its direction from the hub), a light running round the pads
  * with the spider as it weaves (round the two rows clockwise, as the spiral), a red pulse as it turns home, then the
- * pads the UI starts with woven in, left to right (fin: smk37.c lsmk_pad_rest, the mutes in the eight tracks' inks
- * and the drums in the kit's; none: the eight inks above, the drums in T1's, as a new project's) */
+ * eight threads woven in, left to right (thr: smk37.c lsmk_pad_rest, the mutes in the eight tracks' inks and the
+ * drums in the kit's; none: the eight inks above, the drums in T1's, as a new project's), settling at the end into
+ * the pads the UI opens with (fin: lsmk_pad_boot, the Steps page's cells; none: thr), so it takes over without a jump */
 #define SPD_SILK_PAD 0xDCD2FFu
 static void spd_add(float *c, uint32_t rgb, float a)
 {
@@ -590,7 +591,7 @@ static int spd_pad_at(float a)                  /* the pad in direction a from t
     int col = (int)(3.5f + spd_cos(a) * 4.2f + 0.5f);
     return (spd_sin(a) < 0.0f ? 0 : 8) + (col < 0 ? 0 : col > 7 ? 7 : col);
 }
-static void spd_pads(uint32_t t, uint32_t *out, const uint32_t *fin)
+static void spd_pads(uint32_t t, uint32_t *out, const uint32_t *thr, const uint32_t *fin)
 {
     float c[16][3] = {{0.0f}}, d, k;
     int p, j;
@@ -625,17 +626,22 @@ static void spd_pads(uint32_t t, uint32_t *out, const uint32_t *fin)
         for (p = 0; p < 16; p++)
             spd_add(c[p], spd_rgb565(SPD_BLOOD), 0.6f * k * k);
     }
-    for (p = 0; p < 16; p++) {                   /* the eight threads: the UI's pads, woven in left to right */
-        float o[3] = {0.0f, 0.0f, 0.0f};
+    for (p = 0; p < 16; p++) {                   /* the eight threads woven in left to right, then the UI's pads */
+        float o[3] = {0.0f, 0.0f, 0.0f}, f[3] = {0.0f, 0.0f, 0.0f}, k2 = spd_ease(spd_prog(t, 3430u, 170u));
         int ch;
-        k = spd_ease(spd_prog(t, 3150u + (uint32_t)(p & 7) * 45u, 220u));
-        if (fin)
-            spd_add(o, fin[p], 1.0f);
+        k = spd_ease(spd_prog(t, 3150u + (uint32_t)(p & 7) * 35u, 200u));
+        if (thr)
+            spd_add(o, thr[p], 1.0f);
         else
             spd_add(o, spd_rgb565(SPD_INK[p < 8 ? p : 0]), p < 8 ? 200.0f / 256.0f : 44.0f / 256.0f);
+        if (fin)
+            spd_add(f, fin[p], 1.0f);
+        else
+            for (ch = 0; ch < 3; ch++)
+                f[ch] = o[ch];
         out[p] = 0;
         for (ch = 0; ch < 3; ch++) {
-            float v = c[p][ch] * (1.0f - k) + o[ch] * k;
+            float v = (c[p][ch] * (1.0f - k) + o[ch] * k) * (1.0f - k2) + f[ch] * k2;
             out[p] |= (uint32_t)(v > 255.0f ? 255.0f : v < 0.0f ? 0.0f : v) << (16 - 8 * ch);
         }
     }
@@ -850,16 +856,13 @@ static void spd_frame(uint32_t t)
     }
 }
 
-#if !defined(PLAT_HOST) && !defined(SPD_PREVIEW)
-/* at power-on (app_splash): the first still, the night sky, while the platform comes up */
-static void spd_splash(void) { spd_frame(0u); }
-
-static uint32_t spd_fin[16];                    /* the pads the UI starts with (smk37.c lsmk_pad_rest) */
+#if !defined(SPD_PREVIEW) && (!defined(PLAT_HOST) || defined(PLAT_WEB))
+static uint32_t spd_thr[16], spd_fin[16];       /* the threads, the pads the UI opens with (smk37.c) */
 static void spd_lights(uint32_t t)
 {
     uint32_t c[16];
     int p;
-    spd_pads(t, c, spd_fin);
+    spd_pads(t, c, spd_thr, spd_fin);
     for (p = 0; p < 16; p++)
         plat_pad_rgb(p, c[p]);
     plat_pad_flush();                            /* (the main loop's job, which has not started) */
@@ -874,6 +877,20 @@ static int spd_pressed(uint32_t *was)            /* a key, a button or a pad pre
     }
     return hit;
 }
+static int spd_any_held(void) { return (plat_keys() | plat_buttons() | plat_smk_buttons() | plat_pads_held()) != 0u; }
+static void spd_drain(void)                      /* what was hit meanwhile is not the UI's */
+{
+    int pad, vel;
+    while (plat_pad(&pad, &vel))
+        ;
+    while (plat_outer(&pad, &vel))
+        ;
+}
+#endif
+
+#if !defined(PLAT_HOST) && !defined(SPD_PREVIEW)
+/* at power-on (app_splash): the first still, the night sky, while the platform comes up */
+static void spd_splash(void) { spd_frame(0u); }
 
 /* the platform up (app_splash_late, before the UI): the animation, the pads and the sound, from the chip's timer,
  * the watchdog fed; a press ends it (the sound fades, and the UI waits for the hand to let go so the press plays
@@ -881,8 +898,9 @@ static int spd_pressed(uint32_t *was)            /* a key, a button or a pad pre
 static void spd_splash_late(int show)
 {
     uint32_t t0, t = 0, n = 0, held[4] = {plat_keys(), plat_buttons(), plat_smk_buttons(), plat_pads_held()};
-    int pad, vel, skip = 0;
-    lsmk_pad_rest(spd_fin);                      /* (the project is loaded: its mutes, its kit) */
+    int skip = 0;
+    lsmk_pad_rest(spd_thr);                      /* (the project is loaded: its mutes, its kit, its steps) */
+    lsmk_pad_boot(spd_fin);
     if (show) {
         spd_snd_start();
         t0 = fm1_micros();
@@ -901,15 +919,57 @@ static void spd_splash_late(int show)
         spd_frame(SPD_MS);
         spd_lights(SPD_MS);
         t0 = fm1_micros();
-        while ((plat_keys() | plat_buttons() | plat_smk_buttons() | plat_pads_held()) &&
-               fm1_micros() - t0 < 1500000u)
+        while (spd_any_held() && fm1_micros() - t0 < 1500000u)
             fm1_wdt_feed();
     }
-    while (plat_pad(&pad, &vel))                 /* what was hit meanwhile is not the UI's */
-        ;
-    while (plat_outer(&pad, &vel))
-        ;
+    spd_drain();
 }
 #else
 static void spd_splash(void) { spd_frame(SPD_MS); }
+#endif
+
+#if defined(PLAT_WEB) && !defined(SPD_PREVIEW)
+/* in the browser (fm1-base web/emu: the page asks for it as it switches on, app/web.c web_spider_boot): the same
+ * boot, a frame at a time from app_frame, the UI held off until it is over (and, after a press, let go) */
+static uint32_t spd_web_t0, spd_web_held[4];
+static uint8_t spd_web_on, spd_web_skip;
+static void spd_web_start(void)
+{
+    int i;
+    lsmk_pad_rest(spd_thr);
+    lsmk_pad_boot(spd_fin);
+    for (i = 0; i < 4; i++)
+        spd_web_held[i] = 0;
+    spd_pressed(spd_web_held);
+    spd_snd_start();
+    spd_web_t0 = plat_ms();
+    spd_web_skip = 0;
+    spd_web_on = 1;
+}
+static int spd_web_busy(void) { return spd_web_on; }
+static int spd_web_frame(void)                   /* 1: the boot drew this frame (the UI waits) */
+{
+    uint32_t t;
+    if (!spd_web_on)
+        return 0;
+    t = plat_ms() - spd_web_t0;
+    if (!spd_web_skip && spd_pressed(spd_web_held)) {
+        spd_web_skip = 1;
+        spd_snd_stop();
+    }
+    if (spd_web_skip) {
+        spd_frame(SPD_MS);
+        spd_lights(SPD_MS);
+        if (spd_any_held())
+            return 1;
+    } else if (t < SPD_MS) {
+        spd_frame(t);
+        spd_lights(t);
+        return 1;
+    }
+    spd_web_on = 0;
+    spd_drain();
+    ui_redraw();
+    return 0;
+}
 #endif

@@ -79,7 +79,7 @@ int main(int argc, char **argv)
         uint32_t pads[16];
         FILE *f;
         spd_frame(t > SPD_MS ? SPD_MS : t);
-        spd_pads(t > SPD_MS ? SPD_MS : t, pads, 0);
+        spd_pads(t > SPD_MS ? SPD_MS : t, pads, 0, 0);
         snprintf(p, sizeof p, "%s/f%04u.ppm", dir, n);
         f = fopen(p, "wb");
         if (!f)

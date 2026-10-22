@@ -14,6 +14,53 @@ on:
 permissions: {}
 
 jobs:
+  # SPIDER in the browser: fm1-base's emulator (web/emu, the simulated SMK-37) built with Emscripten for BOARD=smk37,
+  # with its own page (app/web/emu_smk37), onto the branch smk37-emu (app.wasm, index.html, worklet.js), where it can
+  # be served as it is. Pushes to smk37 and manual runs (not tags)
+  emu:
+    if: startsWith(github.ref, 'refs/heads/')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Emscripten (emsdk 3.1.74) and Python (numpy, Pillow with raqm)
+        run: |
+          set -euo pipefail
+          git clone -q --depth 1 https://github.com/emscripten-core/emsdk.git "$RUNNER_TEMP/emsdk"
+          "$RUNNER_TEMP/emsdk/emsdk" install 3.1.74 > /dev/null
+          "$RUNNER_TEMP/emsdk/emsdk" activate 3.1.74 > /dev/null
+          sudo apt-get install -y -qq libfribidi0
+          python3 -m venv "$RUNNER_TEMP/py"
+          "$RUNNER_TEMP/py/bin/pip" install -q numpy Pillow
+      - name: Build
+        run: |
+          set -euo pipefail
+          source "$RUNNER_TEMP/emsdk/emsdk_env.sh" > /dev/null
+          rc=0
+          PYTHON="$RUNNER_TEMP/py/bin/python3" BOARD=smk37 ./build.sh --web > /tmp/emu.log 2>&1 || rc=$?
+          cat /tmp/emu.log
+          if [ "$rc" != 0 ]; then
+            echo "::error title=SPIDER emulator build failed::$(tail -n 60 /tmp/emu.log | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"
+            exit "$rc"
+          fi
+      - name: Onto smk37-emu
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/emu"
+          mkdir -p "$out"
+          cp app/build/emu/app.wasm app/web/emu_smk37/index.html app/web/emu_smk37/worklet.js "$out"/
+          cd "$out"
+          git init -q -b smk37-emu
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "SPIDER in the browser, from $GITHUB_SHA"
+          git push -q -f "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" smk37-emu
+
   build:
     permissions:
       contents: write

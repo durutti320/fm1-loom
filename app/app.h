@@ -97,6 +97,7 @@ void app_splash(void);
 #if BOARD_SMK37
 #define APP_SPLASH_LATE                 /* SPIDER's boot, its sound and its pads, the platform up (spider_splash.c) */
 void app_splash_late(int show);
+#define APP_WEB                         /* the browser build's own exports (web.c: SPIDER's boot) */
 #endif
 #define APP_REDRAW                      /* the screen mirror lost a part (or a viewer came): every band again */
 void app_redraw(void);

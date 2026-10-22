@@ -126,12 +126,27 @@ void app_panic(void)
     engine_panic();
 }
 void app_ui_init(void) { ui_init(); }               /* boot; again after an update that did not happen, a restore */
+#if BOARD_SMK37 && defined(PLAT_WEB)
+static int spd_web_frame(void);                     /* SPIDER's boot in the browser (spider_splash.c) */
+static int spd_web_busy(void);
+#endif
 void app_frame(void)
 {
+#if BOARD_SMK37 && defined(PLAT_WEB)
+    if (spd_web_frame())
+        return;
+#endif
     plat_usb_audio_full(proj.usb_full);             /* Setup's USB AUDIO: follows the knob, or full */
     ui_frame();
 }
-void app_input_only(void) { ui_input_only(); }
+void app_input_only(void)
+{
+#if BOARD_SMK37 && defined(PLAT_WEB)
+    if (spd_web_busy())
+        return;
+#endif
+    ui_input_only();
+}
 void app_say(const char *a, const char *b) { ui_say(a, b); }
 void app_redraw(void) { ui_redraw(); }
 int app_sysex(const uint8_t *p, uint32_t n) { return smp_frame(p, n); }

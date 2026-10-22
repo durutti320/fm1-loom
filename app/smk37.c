@@ -392,6 +392,20 @@ static void lsmk_pad_rest(uint32_t *col)
     for (c = 8; c < NPADS; c++)
         col[c] = kit < 0 ? 0u : lsmk_rgb(trk_ink(kit), 44u);
 }
+/* the pads as the UI opens (ui_init: the Steps page, bar 1, the track selected; stopped, nothing held): the boot's
+ * last picture (spider_splash.c). A track without steps: the pads at rest */
+static void lsmk_pad_boot(uint32_t *col)
+{
+    int t = sel_trk(), c;
+    const tpat_t *tp;
+    if (!is_seqt(t)) {
+        lsmk_pad_rest(col);
+        return;
+    }
+    tp = tpat(t);
+    for (c = 0; c < NPADS; c++)
+        col[c] = c < tp->len && t != AUX_WEAVE && step_on(&tp->st[c], t) ? lsmk_rgb(trk_ink(t), 56u) : 0u;
+}
 static void lsmk_lights(void)
 {
     int c, t = sel_trk();
