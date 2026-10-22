@@ -35,7 +35,10 @@ delivery:
   identity: "SMK-37 Pro_1000 (dev), SMK-37 Pro_10XXYYZZ (release); Elite releases drop the patch digits (20 chars)"
 
 look:
-  boot: "app/spider_splash.c: a spider drops, spins its orb web, the name woven in, LOOM-8's eight threads under it (3.6 s, procedural)"
+  boot: "app/spider_splash.c: a spider drops, spins its orb web, the name woven in, the repositories credited at the
+         foot (3.6 s, procedural); the pads lit along (ending on LOOM-8's eight threads, the tracks' inks); a deep
+         note, spidery, mixed into the render; a press ends it. Run as Snoop37's: a still at power-on, the rest with
+         the platform up (fm1-base APP_SPLASH_LATE, plat_pad_flush); not after a failed boot"
   theme: "web (default on the SMK): near-black and violet, bone, blood; the tracks in jewel tones"
   accents: "each page button and each knob its own colour (tags, footer, knob bars, DAW mode)"
 

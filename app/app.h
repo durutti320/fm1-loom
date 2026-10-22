@@ -94,6 +94,10 @@ void app_input_only(void);
 void app_say(const char *a, const char *b);
 #define APP_SPLASH                      /* the name over the eight tracks' inks woven as threads */
 void app_splash(void);
+#if BOARD_SMK37
+#define APP_SPLASH_LATE                 /* SPIDER's boot, its sound and its pads, the platform up (spider_splash.c) */
+void app_splash_late(int show);
+#endif
 #define APP_REDRAW                      /* the screen mirror lost a part (or a viewer came): every band again */
 void app_redraw(void);
 #define APP_SYSEX                       /* the user sample bank over USB-MIDI (samples.c: F0 7D 46 4C) */

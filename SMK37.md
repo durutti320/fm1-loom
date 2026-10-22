@@ -7,13 +7,19 @@ boot. The FM-1 build is unchanged; everything for the SMK-37 is behind `BOARD_SM
 
 ## The look
 
-- **Boot:** about 3.6 s, drawn as the unit starts (`app/spider_splash.c`, all procedural). A night: a moon behind
-  dead branches, fog drifting. A spider drops on its line to the middle; the moorings, the frame and the spokes shoot
-  out; then it walks the capture spiral from the outside in, as orb weavers do, dew glinting on what it has laid, and
-  returns to the hub. The name is woven in row by row, the shuttle crossing back and forth, and under it LOOM-8's own
-  splash in little: eight threads in the tracks' inks, over and under. To watch it without a keyboard, after a build:
-  `cc -O2 -Iapp/build/gen -o spider_preview tests/spider_preview.c -lm && ./spider_preview frames/` (PPM frames,
-  25 a second).
+- **Boot:** about 3.6 s (`app/spider_splash.c`, all procedural). A night: a moon behind dead branches, fog
+  drifting. A spider drops on its line to the middle, turns and walks out as the moorings, the frame and the spokes
+  shoot out; then it walks the capture spiral from the outside in, as orb weavers do, dew glinting on what it has
+  laid, and goes back to the hub. The name is woven in row by row, the shuttle crossing back and forth, and at the
+  foot, small, the repositories SPIDER is woven from. The pads light along: the line down the middle, a flash at
+  each spoke, a light running round with the spider, a red pulse, then the eight tracks' inks woven in (LOOM-8's
+  eight threads), as the UI starts them. Under it a deep note, spidery: a cluster that skitters, glides apart into a
+  wide D minor as it swells, the web ringing as it is strung (a pluck at each spoke), dying away under the UI; at
+  the volume's middle (where the SMK starts) it peaks about -21 dBFS. A key, pad or button ends it at once. As
+  Snoop37's boot: the first still at power-on, the rest once audio and input are up (fm1-base `APP_SPLASH_LATE`);
+  after a failed boot, the last picture only, no sound. To watch and hear it without a keyboard, after a build:
+  `cc -O2 -Iapp/build/gen -o spider_preview tests/spider_preview.c -lm && ./spider_preview frames/ 40 4096` (PPM
+  frames, 25 a second, with the pads under the screen, and `boot.wav` at the volume given).
 - **Colour:** the default theme is **web** (Setup: THEME; tape deck and blueprint are still there): near-black and
   violet panels, bone text, blood red for recording, and the eight tracks in jewel tones (crimson, ember, amber,
   absinthe, verdigris, cold blue, amethyst, orchid). Each page button has its own colour, shown on its page's tag
