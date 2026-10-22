@@ -1,0 +1,56 @@
+# SPIDER's five tracks (pattern.h NTRK) and its engines (dsp/synth_spider.c): a new project is the kit, poly, mono,
+# acid and samples (slice). Away from Steps the top row mutes T1-T5, then pad 6 the throws (held, the conductor), pad
+# 7 FX I's return, pad 8 FX II's (seq.mute's bits: engine.c mutes the returns); FADER BANK: T5, FX I, FX II, the master
+wait 300
+expect par1.0 5
+expect par2.0 0
+expect par3.0 1
+expect par4.0 2
+expect par5.0 4
+expect par3.vmode 1
+expect par4.vmode 2
+tap HOME
+expect page Arrange
+expect mute 0
+tappad 4
+expect mute 16
+tappad 4
+expect mute 0
+# pad 6: tapped, the throws; held, the conductor
+tappad 5
+expect mute 64
+tappad 5
+expect mute 0
+pad 5 100
+wait 600
+pad 5 0
+wait 40
+expect mute 32
+pad 5 100
+wait 600
+pad 5 0
+wait 40
+expect mute 0
+# pads 7 and 8: the returns
+tappad 6
+expect mute 128
+tappad 7
+expect mute 384
+shot tracks_mutes.png
+tappad 6
+tappad 7
+expect mute 0
+# the faders' second bank
+smktap FADERBANK
+fader 1 64
+fader 1 100
+expect par8.level 100
+fader 2 64
+fader 2 90
+expect par9.level 90
+fader 0 64
+fader 0 80
+expect par5.level 80
+# the Mix page: five strips and the two returns
+tap GLO
+shot tracks_mix.png

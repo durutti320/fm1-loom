@@ -1043,6 +1043,10 @@ static void render_sub(uint32_t n, uint32_t at)
         for (k = 0; k < 2; k++) {                         /* (timed apart: FX I, FX II) */
             PROF_T(pf);                         /* FX I, then FX II (which hears FX I's return) */
             float g = HOST_ON(8 + k) ? tp_level_gain(epar[AUX_FX1 + k][TP_LEVEL]) : 0.0f;
+#if BOARD_SMK37
+            if (seq.mute >> (AUX_FX1 + k) & 1u)          /* (SPIDER: its pads 7 and 8 mute the returns) */
+                g = 0.0f;
+#endif
             float *rl = tl, *rr = tr;
             if (fx_lag_on[k]) {                           /* run a block behind (fx_job): its return for this stretch */
                 rl = fx_ret[k][0] + at;

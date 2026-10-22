@@ -14,7 +14,11 @@
 typedef struct {
     const char *name;
     uint16_t bg, panel, panel2, line, faint, dim, text, now_m, rec, aux;
+#if BOARD_SMK37
+    uint16_t ink[8];                                  /* (SPIDER: its five tracks', then the throws', FX I's, FX II's) */
+#else
     uint16_t ink[NTRK];
+#endif
     uint8_t tint, mid;                                /* the ink's share over the background, of 16 */
 } theme_t;
 /* the themes (Setup: THEME; the project keeps it in rsv[1]); the first is the default */
@@ -57,7 +61,15 @@ static const theme_t *theme = &THEMES[0];
 #define K_NOW_T k_mid                                 /* the playhead on an empty step: the ink half thinned */
 static uint16_t k_now, k_tint, k_mid;
 static const theme_t *k_th;                           /* the theme k_now .. were made in */
+#if BOARD_SMK37
+static uint16_t trk_ink(int t)                        /* (SPIDER: the pads' eight: the throws and the conductor share one) */
+{
+    return t >= 0 && t < NTRK ? theme->ink[t] : t == AUX_PUNCH || t == AUX_BRAIN ? theme->ink[5]
+         : t == AUX_FX1 ? theme->ink[6] : t == AUX_FX2 ? theme->ink[7] : theme->aux;
+}
+#else
 static uint16_t trk_ink(int t) { return t >= 0 && t < NTRK ? theme->ink[t] : theme->aux; }
+#endif
 static uint16_t ink_mix(uint16_t ink, uint32_t a)    /* the ink at a/16 over the background */
 {
     uint32_t pr = K_BG >> 11, pg = K_BG >> 5 & 63u, pb = K_BG & 31u;
@@ -98,8 +110,12 @@ static const char *const BTN_LABEL[NB] = {"FX", "SEL", "ENV", "LFO", "EDIT", "GL
                                           "PLAY", "REC", "OCT-", "OCT+"};
 
 /* the tracks: 1-8, then the aux tracks (the tag's short names, the pages' long ones) */
+#if BOARD_SMK37
+static const char *const TRACK_NAME[NALLTRK] = {"T1", "T2", "T3", "T4", "T5", "COND", "THROW", "FX I", "FX II", "WEAVE"};
+#else
 static const char *const TRACK_NAME[NALLTRK] = {"T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "COND", "THROW",
                                                 "FX I", "FX II", "WEAVE"};
+#endif
 static const char *const NOTE_NAME[12] = {"C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"};
 /* the step components (SC_*: the OP-XY's 14, on the white keys with HOME and a step held), their letter on
  * the grid and their name */
@@ -1111,7 +1127,11 @@ static void page_knobs(knob_t *k)
         return;
     }
     if (trk == AUX_BRAIN && p == P_SUB) {            /* the Follow page: the track whose notes set the chords */
+#if BOARD_SMK37
+        kname(&k[0], "FOLLOW", LINK_NAME, proj.trk[AUX_BRAIN].par[TP_E1] % (NTRK + 1u), NTRK + 1);
+#else
         kname(&k[0], "FOLLOW", LINK_NAME, proj.trk[AUX_BRAIN].par[TP_E1] % 9u, 9);
+#endif
         return;
     }
     switch (p) {
@@ -3975,9 +3995,14 @@ static void draw_mix(void)
 {
     static float m_db[NALLTRK], m_hold[NALLTRK];
     static uint32_t m_hold_ms[NALLTRK], m_last;
+#if BOARD_SMK37
+    static const char *const SHORT_NM[NALLTRK] = {"1", "2", "3", "4", "5", "CO", "TH", "F1", "F2", "WV"};
+    static const int8_t COL[NALLTRK] = {0, 1, 2, 3, 4, -1, -1, 5, 6, -1};   /* (SPIDER: five tracks, the two returns) */
+#else
     static const char *const SHORT_NM[NALLTRK] = {"1", "2", "3", "4", "5", "6", "7", "8", "CO", "TH", "F1", "F2", "WV"};
     static const int8_t COL[NALLTRK] = {0, 1, 2, 3, 4, 5, 6, 7, -1, -1, 8, 9, -1};   /* the strips' places (the conductor and the
                                                                               * throws make no sound: none) */
+#endif
     uint32_t now = plat_ms(), dt = now - m_last;
     int sel = sel_trk();
     uint32_t h = hash_u(hash_u(2166136261u, 0x3Cu), (uint32_t)sel | (uint32_t)seq.mute << 4 | (uint32_t)ui.solo << 20);
@@ -4007,8 +4032,14 @@ static void draw_mix(void)
     for (int t = 0; t < NALLTRK; t++) {
         if (COL[t] < 0)
             continue;
+#if BOARD_SMK37
+        int32_t x = 4 + COL[t] * 26 + (COL[t] >= NTRK ? 20 : 0);   /* (wider apart: seven strips) */
+        int muted = (t < NSEQT || is_fx(t)) && (seq.mute >> t & 1u), sound = t < NTRK || is_fx(t);   /* (a return's
+                                                                                                      * pad mutes it) */
+#else
         int32_t x = 4 + COL[t] * 18 + (COL[t] >= 8 ? 14 : 0);
         int muted = t < NSEQT && (seq.mute >> t & 1u), sound = t < NTRK || is_fx(t);
+#endif
         uint16_t ink = muted ? K_LINE : trk_ink(t);
 #if BOARD_SMK37
         text_c(x + 7, 94, &FONT_XS, SHORT_NM[t], t == sel ? K_TEXT : muted || !sound ? K_FAINT : ink);   /* (SPIDER: inked) */

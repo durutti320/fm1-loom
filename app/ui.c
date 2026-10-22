@@ -1542,7 +1542,11 @@ static void aux_knob(int trk, int k, int32_t e)
     if (p < 0)
         return;
     if (trk == AUX_BRAIN)
+#if BOARD_SMK37
+        hi = p == TP_E2 ? 11 : p == TP_E3 ? NBS - 1 : NTRK;   /* (SPIDER: off, T1-T5) */
+#else
         hi = p == TP_E2 ? 11 : p == TP_E3 ? NBS - 1 : 8;   /* key, scale; link and FOLLOW: off, T1-T8 */
+#endif
     else if (trk == AUX_PUNCH || trk == AUX_WEAVE)
         hi = 1;
     set_tp(trk, p, clampi(par[p] + e, 0, hi));

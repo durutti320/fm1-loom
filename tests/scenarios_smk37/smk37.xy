@@ -1,5 +1,5 @@
 # LOOM-8 on the M-VAVE SMK-37 (BOARD=smk37, app/smk37.c): the pads on Steps are the bar's cells (pads 1-8 the top
-# row), every other page mutes and drum pads; the faders the levels of T1-T4 / T5-T8 (FADER BANK); the outer keys more notes
+# row), every other page mutes and drum pads; the faders the levels of T1-T4 / T5, FX I, FX II and the master (FADER BANK); the outer keys more notes
 wait 300
 expect trk 1
 tap SEQ
@@ -17,7 +17,7 @@ expect note 1 1 32 1
 tap OCT-
 wait 40
 shot smk_steps.png
-# away from Steps: pads 1-8 mute T1-T8, pads 9-16 the kit's sounds 1-8 (T1 is the kit: pad 9 its kick)
+# away from Steps: pads 1-5 mute T1-T5 (6-8: the throws, FX I, FX II: smk37_tracks.xy), pads 9-16 the kit's sounds 1-8 (T1 is the kit: pad 9 its kick)
 tap HOME
 expect mute 0
 tappad 1
@@ -45,7 +45,7 @@ wait 40
 expect bar 1
 spin ALGO 1
 expect trk 2
-# faders: T1-T4, then FADER BANK: T5-T8; a fader acts once it moves
+# faders: T1-T4, then FADER BANK: T5, FX I, FX II, the master; a fader acts once it moves
 fader 0 127
 expect par1.level 127
 fader 0 0

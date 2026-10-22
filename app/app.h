@@ -152,6 +152,9 @@ void loom_lights(uint32_t buttons, uint32_t keys, int glow, uint32_t dim_keys, i
 #define DEBUG_BUILD (APP_VERSION[0] == 'D' && APP_VERSION[1] == 'E' && APP_VERSION[2] == 'V' && \
                      (!APP_VERSION[3] || APP_VERSION[3] == 'T'))   /* DEV, or the load test's DEVTEST */
 #define PROJ_MAGIC 0x384D4F4Cu          /* "LOM8" (was "XXY1": XY-1's projects start fresh) */
+#if BOARD_SMK37
+#define PROJ_FORMAT 0x53500002u          /* SPIDER's own ("SP" 2: five tracks, its engines): another's does not load */
+#else
 #define PROJ_FORMAT 10u                 /* (pre-release: an older project does not load, nothing is migrated)
                                          * 10: a kit key's own sends (DP_SEND1/2, the kit's track sends gone), a
                                          *     parameter's index past a byte (a lane's 16 bits, LANE_TUNE moved);
@@ -163,6 +166,7 @@ void loom_lights(uint32_t buttons, uint32_t keys, int glow, uint32_t dim_keys, i
                                          * bytes, out of rsv[]); 4: no tape (its track and send), the reverb's modes, the master's tape,
                                          * and each drum key its envelope and filter (DP_N 9 -> 18); 2: the character
                                          * stage moved TP_PLAYER on (and every index after it) */
+#endif
 #define NUSER_PRESETS 16
 #define NAME_LEN 12
 

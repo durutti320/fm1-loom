@@ -14,7 +14,11 @@
 #include <stdint.h>
 
 #define SY_SR 44100.0f
+#if BOARD_SMK37
+#define NTRK 5                        /* (SPIDER: five, seq/pattern.h agrees) */
+#else
 #define NTRK 8                        /* instrument tracks (seq/pattern.h agrees) */
+#endif
 #define SY_CHUNK 64                   /* control rate: envelopes, LFO, glides, locks */
 #define NVOICE 16                     /* synth voices, all tracks */
 #define NVOICE_TRK 6                  /* the most one track takes */
@@ -240,7 +244,11 @@ perf_t *synth_perf(synth_t *s, int trk);            /* the track's performance s
 #define LOCK_NONE 0xFFu               /* seq/pattern.h's: no lock */
 #endif
 void synth_lock(synth_t *s, int trk, int param, int val);   /* a parameter lock in effect (LOCK_NONE: the knob's) */
+#if BOARD_SMK37
+#define DUCK_METRO (NTRK + 2)         /* (SPIDER: 0..4 the tracks, 5 the conductor, 6 the throws, 7 the metronome) */
+#else
 #define DUCK_METRO 10                 /* the pump's source numbers: 0..7 tracks, 8 brain, 9 punch, 10 the metronome */
+#endif
 void synth_duck_trigger(synth_t *s, int src);      /* a hit on a duck source (0..7 tracks, 8..9 brain / punch,
                                                     * DUCK_METRO the metronome): duck LFOs listening to it drop */
 /* a block: synth_prepare(n) once (the tracks' LFO, tremolo and duck values for every chunk boundary inside

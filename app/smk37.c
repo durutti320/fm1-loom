@@ -57,9 +57,21 @@ static struct {
     uint8_t mw_trk, mw_par, mw_last, mw_armed;   /* the mod wheel: its track and parameter, as last seen, picked up */
     uint8_t lr_both;                    /* < + > pressed together: neither steps a bar (until both are up) */
     uint32_t sbtn;                      /* the SMK buttons as last seen */
+    uint8_t p6_down;                    /* pad 6 pressed as the throws' mute: its let-go decides (a hold: the conductor) */
+    uint32_t p6_ms;
 } lsmk = {.last_kit = 0xFF, .flast = {0xFF, 0xFF, 0xFF, 0xFF}, .bend_trk = 0xFF, .mw_trk = 0xFF, .nr_rate = SEQ_RP_16};
 static const char *const LSMK_RATE[NSEQ_RP] = {"1/4", "1/8", "1/8T", "1/16", "1/16T", "1/32", "1/32T", "1/64"};
 #define LSMK_NR_TAP_MS 400u                     /* NOTE REPEAT let go sooner: a tap (on / off); later: the LFO page */
+/* the top row's eight (away from Steps): T1-T5's mutes, then the throws' (pad 6; held, the conductor's), FX I's and FX
+ * II's (their returns: engine.c) */
+static const uint8_t LSMK_TOP[8] = {0, 1, 2, 3, 4, AUX_PUNCH, AUX_FX1, AUX_FX2};
+/* the faders: T1-T4; FADER BANK: T5, FX I's and FX II's returns, the master (-1) */
+static const int8_t LSMK_FADER[2][4] = {{0, 1, 2, 3}, {4, AUX_FX1, AUX_FX2, -1}};
+static void lsmk_mute(int t)
+{
+    set_mute(t, !(seq.mute >> t & 1u));
+    say(seq.mute >> t & 1u ? "MUTED" : "UNMUTED", TRACK_NAME[t]);
+}
 
 static void lsmk_daw_set(int on);
 
@@ -186,10 +198,12 @@ static void lsmk_pads(void)
                 lsmk.latch |= m;
                 continue;
             }
-            if (p < 8) {                           /* the top row: T1-T8's mutes */
-                if (p < NSEQT) {
-                    set_mute(p, !(seq.mute >> p & 1u));
-                    say(seq.mute >> p & 1u ? "MUTED" : "UNMUTED", TRACK_NAME[p]);
+            if (p < 8) {                           /* the top row: the mutes (LSMK_TOP); pad 6's on its let-go */
+                if (p == 5) {
+                    lsmk.p6_down = 1;
+                    lsmk.p6_ms = plat_ms();
+                } else {
+                    lsmk_mute(LSMK_TOP[p]);
                 }
             } else {                               /* the bottom row: the kit's sounds 1-8 (its keys), a pad each */
                 int kit = lsmk_kit(), key = p - 7;
@@ -208,6 +222,10 @@ static void lsmk_pads(void)
                 }
             }
         } else {                                   /* let go: what it started ends, whatever the layer is now */
+            if (p == 5 && lsmk.p6_down) {          /* pad 6: tapped, the throws' mute; held, the conductor's */
+                lsmk.p6_down = 0;
+                lsmk_mute(plat_ms() - lsmk.p6_ms < LSMK_NR_TAP_MS ? AUX_PUNCH : AUX_BRAIN);
+            }
             lsmk.nr_pads &= ~m;
             if (lsmk.pad_fx[p]) {
                 engine_punch(lsmk.pad_fx[p] - 1, 0, -1);
@@ -311,7 +329,7 @@ static void lsmk_buttons(void)
         lsmk.fbank ^= 1u;
         for (f = 0; f < 4; f++)
             lsmk.flast[f] = 0xFF;                  /* (the other bank: each fader waits to move) */
-        say("FADERS", lsmk.fbank ? "T5 to T8" : "T1 to T4");
+        say("FADERS", lsmk.fbank ? "T5, FX I, FX II, master" : "T1 to T4");
     }
 }
 
@@ -320,7 +338,7 @@ static void lsmk_faders(void)
     int f;
     for (f = 0; f < 4; f++) {
         uint32_t v = plat_fader(f);
-        int t = lsmk.fbank * 4 + f;
+        int t = LSMK_FADER[lsmk.fbank & 1u][f];
         if (lsmk.flast[f] == 0xFF) {
             lsmk.flast[f] = (uint8_t)v;
             continue;
@@ -328,6 +346,16 @@ static void lsmk_faders(void)
         if (v == lsmk.flast[f])
             continue;
         lsmk.flast[f] = (uint8_t)v;
+        if (t < 0) {                               /* the master's level */
+            int lv = (int)((uint32_t)master_max(MS_LEVEL) * v + 63u) / 127;
+            char s[16];
+            proj.master[MS_LEVEL] = (uint8_t)lv;
+            engine_master(MS_LEVEL, lv);
+            mark_dirty();
+            s_cat(num_s(v * 100u / 127u, s), "% level");
+            say("MASTER", s);
+            continue;
+        }
         {
             const tp_info_t *in = tp_info_par(TP_LEVEL, proj.trk[t].par);
             char s[16];
@@ -419,8 +447,9 @@ static uint32_t lsmk_rgb(uint16_t c, uint32_t lv)  /* an RGB565 ink at lv / 256 
 static void lsmk_pad_rest(uint32_t *col)
 {
     int c, kit = lsmk_kit();
-    for (c = 0; c < 8; c++)
-        col[c] = lsmk_rgb(trk_ink(c), seq.mute >> c & 1u ? 10u : 200u);
+    for (c = 0; c < 8; c++)                    /* (the conductor muted: pad 6 in the recording red) */
+        col[c] = lsmk_rgb(c == 5 && seq.mute >> AUX_BRAIN & 1u ? theme->rec : trk_ink(LSMK_TOP[c]),
+                          seq.mute >> LSMK_TOP[c] & 1u ? 10u : 200u);
     for (c = 8; c < NPADS; c++)
         col[c] = kit < 0 ? 0u : lsmk_rgb(trk_ink(kit), 44u);
 }

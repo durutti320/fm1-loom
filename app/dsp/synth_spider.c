@@ -67,8 +67,8 @@ static const char *const VSHAPE_N[4] = {"square", "sine", "ramp", "saw"};
 static const char *const TSHAPE_N[5] = {"sine", "saw", "expo", "square", "blip"};
 static const char *const LDEST_N[NLD] = {"synth", "envelope", "filter", "voice", "synth free", "env free", "filter free",
                                          "voice free"};
-static const char *const DUCK_N[11] = {"track 1", "track 2", "track 3", "track 4", "track 5", "track 6", "track 7",
-                                       "track 8", "conductor", "throws", "metro"};
+static const char *const DUCK_N[DUCK_METRO + 1] = {"track 1", "track 2", "track 3", "track 4", "track 5",
+                                                  "conductor", "throws", "metro"};
 static const char *const PLAYER_N[NPL] = {"off", "arp", "strum", "hold"};
 static const char *const ARPSPD_N[9] = {"1/4", "1/4T", "1/8", "1/8T", "1/16", "1/16T", "1/32", "1/32T", "1/64"};
 static const char *const ARPPAT_N[6] = {"up", "down", "bounce", "bounce+", "played", "random"};
@@ -146,7 +146,7 @@ typedef struct {
     uint8_t vi;                       /* the voice's index (its sample cache, smp_vc) */
     float cost_m;                     /* its render's measured time, clock ticks a frame (a running mean; 0 none yet) */
     uint16_t cho_w;                   /* poly's chorus: its line's write position (cho_run) */
-    float cho_ph, cho_z[2];           /* and its LFO's phase, its taps' low-passes */
+    float cho_ph;                     /* and its LFO's phase */
     float amp_cur, amp_step;          /* the amp level, ramped inside the sub-block */
     float steal_gain, sg_step;
     float glc, grc, gl_step, gr_step; /* the dry gains, ramped */
@@ -453,10 +453,10 @@ static void vco_run(voice_t *v, float *xl, float *xr, int m)
 }
 
 /* poly's chorus (the Juno's BBD, after the filter: voice_samples): the voice into a short line, read back at two taps
- * whose delays swing in opposite directions on a triangle, I 0.51 Hz and II 0.86 Hz across 1.66 .. 5.35 ms, I+II
- * 9.75 Hz across 3.28 .. 3.51 ms; each tap softened (a BBD's ~9 kHz) and added to the dry on its side. The lines are
- * the voices' (a chord through one chorus is the same sum: the taps are linear); a voice takes its track's LFO phase
- * at its note, so they swing together */
+ * whose delays swing on a triangle in opposite directions, I 0.51 Hz and II 0.86 Hz across 1.66 .. 5.35 ms, I+II
+ * 9.75 Hz across 3.28 .. 3.51 ms, each added to the dry on its side (the filter before it has taken the line's top:
+ * no low-pass of its own). The lines are the voices' (a chord through one chorus is the same sum: it is linear); a
+ * voice takes its track's LFO phase at its note, so they swing together */
 #define CHO_N 256
 static int16_t cho_line[NVOICE][CHO_N];
 static const float CHO_HZ[4] = {0.0f, 0.513f, 0.863f, 9.75f};
@@ -465,33 +465,28 @@ static const float CHO_HI[4] = {0.0f, 5.35e-3f * SY_SR, 5.35e-3f * SY_SR, 3.51e-
 static inline float cho_tap(const int16_t *ln, uint32_t w, float d)
 {
     int di = (int)d;
-    float fr = d - (float)di;
-    float a = (float)ln[(w - (uint32_t)di) & (CHO_N - 1)], b = (float)ln[(w - (uint32_t)di - 1u) & (CHO_N - 1)];
-    return (a + (b - a) * fr) * (1.0f / 8192.0f);
+    float fr = d - (float)di, a = (float)ln[(w - (uint32_t)di) & (CHO_N - 1)];
+    return a + ((float)ln[(w - (uint32_t)di - 1u) & (CHO_N - 1)] - a) * fr;
 }
 static void cho_run(voice_t *v, int mode, float *xl, float *xr, int k)
 {
     int16_t *ln = cho_line[v->vi % NVOICE];
-    const float dph = CHO_HZ[mode & 3] * INV_SR, lo = CHO_LO[mode & 3], sw = CHO_HI[mode & 3] - lo, a = 0.72f;
-    float ph = v->cho_ph, zl = v->cho_z[0], zr = v->cho_z[1];
+    const float dph = CHO_HZ[mode & 3] * INV_SR, lo = CHO_LO[mode & 3], sw = CHO_HI[mode & 3] - lo;
+    const float gw = 0.6f / 8192.0f;
+    float ph = v->cho_ph;
     uint32_t w = v->cho_w;
     int j;
     for (j = 0; j < k; j++) {
-        float x = xl[j], tri, u;
-        u = x * 8192.0f;
+        float x = xl[j], u = x * 8192.0f, tri;
         ln[w & (CHO_N - 1)] = (int16_t)(u > 32767.0f ? 32767.0f : u < -32767.0f ? -32767.0f : u);
         ph += dph;
         ph = ph >= 1.0f ? ph - 1.0f : ph;
         tri = ph < 0.5f ? 2.0f * ph : 2.0f - 2.0f * ph;   /* 0 .. 1 .. 0 */
-        zl += a * (cho_tap(ln, w, lo + sw * tri) - zl);
-        zr += a * (cho_tap(ln, w, lo + sw * (1.0f - tri)) - zr);
-        xl[j] = (x + zl) * 0.6f;
-        xr[j] = (x + zr) * 0.6f;
+        xl[j] = x * 0.6f + cho_tap(ln, w, lo + sw * tri) * gw;
+        xr[j] = x * 0.6f + cho_tap(ln, w, lo + sw - sw * tri) * gw;
         w++;
     }
     v->cho_ph = ph;
-    v->cho_z[0] = fm_flush(zl);
-    v->cho_z[1] = fm_flush(zr);
     v->cho_w = (uint16_t)w;
 }
 static void cho_start(voice_t *v, float ph)      /* a note on a fresh (or another engine's) voice: an empty line */
@@ -501,7 +496,6 @@ static void cho_start(voice_t *v, float ph)      /* a note on a fresh (or anothe
     for (i = 0; i < CHO_N; i++)
         ln[i] = 0;
     v->cho_w = 0;
-    v->cho_z[0] = v->cho_z[1] = 0.0f;
     v->cho_ph = ph;
 }
 
