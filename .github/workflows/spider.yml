@@ -53,7 +53,14 @@ jobs:
           set -euo pipefail
           out="$RUNNER_TEMP/emu"
           mkdir -p "$out"
-          cp app/build/emu/app.wasm app/web/emu_smk37/index.html app/web/emu_smk37/worklet.js "$out"/
+          cp app/build/emu/app.wasm app/web/emu_smk37/worklet.js "$out"/
+          # the page as a document of its own (it is written for a host that wraps it: claude.ai's artifacts), so the
+          # branch can be a website as it is (GitHub Pages: Settings, Pages, branch smk37-emu), where Web MIDI works
+          { printf '<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'
+            printf '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"></head><body>\n'
+            cat app/web/emu_smk37/index.html
+            printf '</body></html>\n'; } > "$out/index.html"
+          touch "$out/.nojekyll"
           cd "$out"
           git init -q -b smk37-emu
           git add -A
