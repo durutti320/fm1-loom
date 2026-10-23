@@ -438,6 +438,18 @@ addEventListener("blur", () => {
 const MAP_KEY = "spider-emu-midimap";
 let midiMap = {};
 try { midiMap = JSON.parse(localStorage.getItem(MAP_KEY) || "{}") || {}; } catch { midiMap = {}; }
+// (an older page let the mod wheel's restless CC 1 be learned onto whatever was clicked, and had no built-in map: once,
+// the CC 1 ones go, and so do those on the CCs the built-in map (below) already knows)
+const MAP_V = "spider-emu-midimap-v2";
+try {
+  if (!localStorage.getItem(MAP_V)) {
+    const builtin = new Set([1, ...Array.from({ length: 8 }, (_, i) => 70 + i), ...Array.from({ length: 8 }, (_, i) => 102 + i),
+      ...Array.from({ length: 8 }, (_, i) => 20 + i), 110, 111, 112, 113, 114, 115, 117, 118, 119, 85, 86, 87, 88]);
+    for (const k of Object.keys(midiMap)) { const m = /^c\d+:(\d+)$/.exec(k); if (m && builtin.has(+m[1])) delete midiMap[k]; }
+    localStorage.setItem(MAP_KEY, JSON.stringify(midiMap));
+    localStorage.setItem(MAP_V, "1");
+  }
+} catch { /* this visit only */ }
 let midiAccess = null, learnEl = null;
 const ccLast = {}, ccMode = {};
 const midiGo = document.getElementById("midiGo"), midiPort = document.getElementById("midiPort");
@@ -475,19 +487,35 @@ document.addEventListener("pointerdown", (e) => {               // learning: a c
   learnEl = el; el.classList.add("learning");
   midiState.textContent = `Now move or press the control on your keyboard for ${el.dataset.name}.`;
 }, true);
-function learnTake(key, isNote) {                                // the message that came in, for the control picked
+const learnSeen = {};
+function learnTake(key, isNote, v) {                             // the message that came in, for the control picked
   const t = learnEl.dataset.learn;
+  if (!isNote) {                                                 // a CC: only once it has moved 4 or more since it was
+    if (/^c\d+:1$/.test(key) && t !== "modw") return false;      // first heard while learning (the mod wheel's CC 1 never,
+    if (!(key in learnSeen)) { learnSeen[key] = v; if (v !== 127 && v !== 0) return false; }   // but for the wheel)
+    else if (Math.abs(v - learnSeen[key]) < 4 && v !== 127 && v !== 0) return false;
+  }
   if (isNote && !/^(pad|btn|smk):/.test(t)) return false;        // (a knob, fader or wheel waits for a CC)
   if (t === "bend") return false;                                // (the pitch wheel is pitch bend: nothing to learn)
   for (const k of Object.keys(midiMap)) if (midiMap[k] === t) delete midiMap[k];
   midiMap[key] = t; saveMap();
   const [kind, ch, num] = /^(n|c)(\d+):(\d+)$/.exec(key).slice(1);
   learnStop(`${learnEl.dataset.name} ← ${kind === "n" ? "note" : "CC"} ${num}, channel ${+ch + 1}. Learn another, or play.`);
+  for (const k of Object.keys(learnSeen)) delete learnSeen[k];
   return true;
 }
 // An SMK on Snoop37 (or SPIDER) in DAW mode, its DEFAULT map: knobs CC 70-77 (bank B 102-109), faders CC 20-23
 // (24-27), buttons CC 127 held / 0 let go, on any channel; pads notes 36-67 on channel 10 (the lot below). A control
 // learned here comes first
+const ccDir = {};
+function jitter(key, v) {                                        // a wheel or fader resting between two values: 24 25 24 ..
+  const last = ccLast[key], d = last === undefined ? 0 : v - last;
+  if (!d && last !== undefined) return true;
+  if (Math.abs(d) === 1 && ccDir[key] && Math.sign(d) !== ccDir[key]) return true;
+  if (d) ccDir[key] = Math.sign(d);
+  ccLast[key] = v;
+  return false;
+}
 const DAW_CC = {};
 for (let i = 0; i < 8; i++) DAW_CC[70 + i] = DAW_CC[102 + i] = "knob:" + KNOBS[i][0];
 for (let f = 0; f < 4; f++) DAW_CC[20 + f] = DAW_CC[24 + f] = "fader:" + f;
@@ -519,6 +547,10 @@ function logIn(t) {                                              // the last 40 
   else { inLast = t; inRep = 0; inLines.unshift(t); inLines.length = Math.min(inLines.length, 40); }
   heard.textContent = "in:\n" + inLines.join("\n");
 }
+function kind0(t) { return t.split(":")[0]; }
+function inTo(name) {                                            // the newest line: the control it reached
+  if (!inRep && inLines.length) { inLines[0] += `  → ${name}`; heard.textContent = "in:\n" + inLines.join("\n"); }
+}
 function letGo() {                                               // every note, pad and button the keyboard holds, let go
   for (const id of [...keyHeld.keys()]) if (id[0] === "m") noteUp(id);
   for (const id of [...padHeld.keys()]) if (id[0] === "m") padUp(id);
@@ -536,8 +568,8 @@ function onMidi(data) {
   if (ty === 0xB0 && (d1 === 120 || d1 === 123)) return letGo();  // (all sound off, all notes off)
   if (ty === 0x90 || ty === 0x80) {
     const on = ty === 0x90 && d2 > 0, key = `n${ch}:${d1}`, id = "m" + key;
-    if (on && learnEl) learnTake(key, true);
-    if (midiMap[key]) return midiControl(midiMap[key], id, on, d2);
+    if (on && learnEl && learnTake(key, true, d2)) return;
+    if (midiMap[key]) { inTo(targetName(midiMap[key]) + " (learned)"); return midiControl(midiMap[key], id, on, d2); }
     if (ch === 9 && d1 >= 36 && d1 <= 67) {                     // pads: 36-43 / 52-59 the bottom row, 44-51 / 60-67 the top
       const r = (d1 - 36) % 16;
       return midiControl("pad:" + (r < 8 ? r + 8 : r - 8), id, on, d2);
@@ -548,17 +580,22 @@ function onMidi(data) {
     if (on) noteDown(id, n, d2); else noteUp(id);
   } else if (ty === 0xB0) {
     const key = `c${ch}:${d1}`;
-    if (learnEl) learnTake(key, false);
+    if (learnEl && learnTake(key, false, d2)) return;
     const t = midiMap[key] || (d1 === 1 ? "modw" : DAW_CC[d1] || null);
-    if (!t) return;
+    if (!t) return inTo("nothing");
+    if (kind0(t) !== "fader" && kind0(t) !== "modw") inTo(targetName(t) + (midiMap[key] ? " (learned)" : ""));
     const [kind, arg] = t.split(":");
     if (kind === "knob") {
       const n = ccTurns(key, d2);
       if (n) turn(knobs[arg], n);
     } else if (kind === "fader") {
+      if (jitter(key, d2)) return inTo("(jitter, ignored)");
+      inTo(targetName(t) + (midiMap[key] ? " (learned)" : ""));
       const el = document.getElementById("fader" + arg);
       el.value = d2; send({ type: "fader", f: +arg, v: d2 });
     } else if (kind === "modw") {
+      if (jitter(key, d2)) return inTo("(jitter, ignored)");
+      inTo(targetName(t) + (midiMap[key] ? " (learned)" : ""));
       const el = document.getElementById("modw");
       el.value = d2; send({ type: "modw", v: d2 });
     } else midiControl(t, "m" + key, d2 >= 64, d2 >= 64 ? 100 : 0);
@@ -582,7 +619,10 @@ function midiPorts() {
   if (!ins.length) midiState.textContent = "No MIDI keyboard found: plug it in by USB (it shows up here when it is).";
   else if (!document.body.classList.contains("learn") && !learnEl)
     midiState.textContent = (node ? "Listening. " : "Listening: switch SPIDER on to hear it. ") +
-      "Its keys play the keys, the wheels the wheels. For knobs, faders, pads and buttons: Learn a control.";
+      "An SMK in Snoop37's or SPIDER's DAW mode plays it as it is: keys, wheels, knobs, faders, pads and its 13 buttons. " +
+      "PATCH, KNOB BANK, FADER BANK and OCTAVE send nothing in DAW mode: click those here (Shift is PATCH)." +
+      (Object.keys(midiMap).length ? ` ${Object.keys(midiMap).length} learned control(s) override that: ` +
+        "if anything acts oddly, Forget learned controls." : "");
 }
 function midiListen() {
   for (const i of midiAccess.inputs.values()) i.onmidimessage = midiPort.value === "*" || midiPort.value === i.id ? (e) => onMidi(e.data) : null;
