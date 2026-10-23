@@ -50,13 +50,41 @@ smktap FADERBANK
 fader 1 64
 fader 1 100
 expect par6.level 100
-fader 2 64
-fader 2 90
-expect par9.level 90
-expect par10.level 90
 fader 0 64
 fader 0 80
 expect par5.level 80
+# faders 3 and 4: the cutoff and resonance of the track the keys play, picked up (a sweep past the value, then set);
+# on acid its own cutoff and reso knobs; nothing on the kit
+fader 2 0
+fader 2 127
+fader 2 90
+expect par1.level 100
+turn ALGO 1
+wait 100
+expect trk 2
+fader 2 0
+fader 2 127
+fader 2 90
+expect par2.cut 90
+fader 3 0
+fader 3 127
+fader 3 20
+expect par2.res 20
+turn ALGO 3
+wait 100
+expect trk 5
+fader 2 0
+fader 2 127
+fader 2 33
+expect par5.e1 33
+fader 3 0
+fader 3 127
+fader 3 77
+expect par5.e2 77
+smktap FADERBANK
+turn ALGO -4
+wait 100
+expect trk 1
 # the Mix page: six strips and the two returns
 tap GLO
 shot tracks_mix.png

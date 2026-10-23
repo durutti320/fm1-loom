@@ -25,11 +25,11 @@
  *   < >         the bar before / after (any page: the one Steps shows and the pads write), when let go (> not if
  *               it fired a throw)
  *   < + >       DAW mode (below)
- *   faders      the levels of T1-T4, or T5, T6, the effects' returns and the master (FADER BANK, lit); a fader
- *               acts once it moves
+ *   faders      the levels of T1-T4, or (FADER BANK, lit) T5, T6, then the cutoff and resonance of the track the
+ *               keys play (acid: its own cutoff and reso), picked up as the mod wheel is; a fader acts once it moves
  *   outer keys  C3..E3 and G#5..C6 carry on the keys: more notes, with velocity; on a kit, its keys
  *   pitch wheel bend of the track the keys play (+-2 semitones, as a MIDI bend)
- *   mod wheel   the filter of the track the keys play (its cutoff; DYNAMIC: its hi cut), once the wheel passes the
+ *   mod wheel   the filter of the track the keys play (its cutoff; DYNAMIC: its hi cut; acid: its cutoff knob), once the wheel passes the
  *               value it has (a pick-up: nothing jumps)
  *
  * DAW mode (< + > together; ported from Snoop37 by way of the Loom FM-1 port; smk_daw.h has the map): the SMK is a
@@ -58,12 +58,13 @@ static struct {
     uint8_t bend_trk;                   /* the track the pitch wheel bends (0xFF none) */
     int32_t bend;
     uint8_t mw_trk, mw_par, mw_last, mw_armed;   /* the mod wheel: its track and parameter, as last seen, picked up */
+    uint8_t fp_trk[2], fp_par[2], fp_armed[2];   /* FADER BANK's faders 3 and 4 (cutoff, resonance): the same */
     uint8_t lr_both;                    /* < + > pressed together: neither steps a bar (until both are up) */
     uint32_t sbtn;                      /* the SMK buttons as last seen */
     uint8_t p6_down;                    /* pad 7 pressed as the throws' mute: its let-go decides (a hold: the conductor) */
     uint8_t fx_back;                    /* pad 8: the page it opened the delay from (0xFF none) */
     uint32_t p6_ms;
-} lsmk = {.last_kit = 0xFF, .flast = {0xFF, 0xFF, 0xFF, 0xFF}, .bend_trk = 0xFF, .mw_trk = 0xFF, .nr_rate = SEQ_RP_16, .fx_back = 0xFF};
+} lsmk = {.last_kit = 0xFF, .flast = {0xFF, 0xFF, 0xFF, 0xFF}, .bend_trk = 0xFF, .mw_trk = 0xFF, .nr_rate = SEQ_RP_16, .fx_back = 0xFF, .fp_trk = {0xFF, 0xFF}};
 static const char *const LSMK_RATE[NSEQ_RP] = {"1/4", "1/8", "1/8T", "1/16", "1/16T", "1/32", "1/32T", "1/64"};
 #define LSMK_NR_TAP_MS 400u                     /* NOTE REPEAT let go sooner: a tap (on / off); later: the LFO page */
 /* the top row's eight (away from Steps): T1-T6's mutes, then the throws' (pad 7; held, the conductor's); pad 8 the
@@ -71,8 +72,43 @@ static const char *const LSMK_RATE[NSEQ_RP] = {"1/4", "1/8", "1/8T", "1/16", "1/
 #define LSMK_PAD_THROW 6
 #define LSMK_PAD_FX 7
 static const uint8_t LSMK_TOP[8] = {0, 1, 2, 3, 4, 5, AUX_PUNCH, AUX_FX1};
-/* the faders: T1-T4; FADER BANK: T5, T6, both returns (-2), the master (-1) */
-static const int8_t LSMK_FADER[2][4] = {{0, 1, 2, 3}, {4, 5, -2, -1}};
+/* the faders: T1-T4; FADER BANK: T5, T6, then the filter of the track the keys play: its cutoff (-3), its resonance
+ * (-4), picked up (lsmk_pickup). The master is K1; the returns' levels, the Mix page */
+static const int8_t LSMK_FADER[2][4] = {{0, 1, 2, 3}, {4, 5, -3, -4}};
+static int lsmk_play_trk(void);
+/* the filter's parameter a control moves on track t: acid's own (its cutoff and reso knobs: its Filter page is a
+ * bypass), else the Filter page's cutoff (DYNAMIC: its hi cut) and resonance */
+static int lsmk_filter_par(int t, int res)
+{
+    if (proj.trk[t].par[TP_ENGINE] == EG_ACID)
+        return res ? TP_E2 : TP_E1;
+    if (res)
+        return TP_RES;
+    return proj.trk[t].par[TP_FTYPE] % NFT == FT_DYNAMIC ? TP_KTRK : TP_CUT;
+}
+/* a control taking over parameter p of track t from value m (0..127), its last last: once it passes the value the track
+ * has (a pick-up: nothing jumps). *armed kept by the caller; 1 if it set the value */
+static int lsmk_pickup(int t, int p, uint32_t m, uint32_t last, uint8_t *armed, const char *what)
+{
+    const tp_info_t *in = tp_info_par(p, proj.trk[t].par);
+    int span = in->hi - in->lo;
+    uint32_t cur;
+    char s[24];
+    if (span <= 0)
+        return 0;
+    cur = (uint32_t)(clampi(proj.trk[t].par[p], in->lo, in->hi) - in->lo) * 127u / (uint32_t)span;
+    if (!*armed && ((last <= cur && m >= cur) || (last >= cur && m <= cur)))
+        *armed = 1;
+    if (!*armed) {
+        s_cat(num_s(cur * 100u / 127u, s_cat(s, "pick up at ")), "%");
+        say(what, s);
+        return 0;
+    }
+    set_tp(t, p, in->lo + (int)((uint32_t)span * m + 63u) / 127);
+    s_cat(num_s(m * 100u / 127u, s_cat(s_cat(s, what), " ")), "%");
+    say(TRACK_NAME[t], s);
+    return 1;
+}
 /* pad 8: the delay's page (FX I), then the reverb's (FX II), then back to the page it was on */
 static void lsmk_fx_pages(void)
 {
@@ -380,7 +416,7 @@ static void lsmk_buttons(void)
         lsmk.fbank ^= 1u;
         for (f = 0; f < 4; f++)
             lsmk.flast[f] = 0xFF;                  /* (the other bank: each fader waits to move) */
-        say("FADERS", lsmk.fbank ? "T5, T6, FX, master" : "T1 to T4");
+        say("FADERS", lsmk.fbank ? "T5, T6, cutoff, reso" : "T1 to T4");
     }
 }
 
@@ -396,6 +432,21 @@ static void lsmk_faders(void)
         }
         if (v == lsmk.flast[f])
             continue;
+        if (t == -3 || t == -4) {                  /* the filter of the track the keys play, picked up */
+            int k = t == -4, pt = lsmk_play_trk(), pp;
+            uint32_t last = lsmk.flast[f];
+            lsmk.flast[f] = (uint8_t)v;
+            if (pt < 0 || pt >= NTRK || is_drum(pt))
+                continue;
+            pp = lsmk_filter_par(pt, k);
+            if (pt != lsmk.fp_trk[k] || pp != lsmk.fp_par[k]) {
+                lsmk.fp_trk[k] = (uint8_t)pt;
+                lsmk.fp_par[k] = (uint8_t)pp;
+                lsmk.fp_armed[k] = 0;
+            }
+            lsmk_pickup(pt, pp, v, last, &lsmk.fp_armed[k], k ? "reso" : "cutoff");
+            continue;
+        }
         lsmk.flast[f] = (uint8_t)v;
         if (t == -2) {                             /* both returns' levels together */
             const tp_info_t *in = tp_info_par(TP_LEVEL, proj.trk[AUX_FX1].par);
@@ -455,7 +506,7 @@ static void lsmk_modw(void)
     char s[24];
     if (t < 0 || t >= NTRK)
         return;
-    p = proj.trk[t].par[TP_FTYPE] % NFT == FT_DYNAMIC ? TP_KTRK : TP_CUT;
+    p = lsmk_filter_par(t, 0);
     if (t != lsmk.mw_trk || p != lsmk.mw_par) {
         lsmk.mw_trk = (uint8_t)t;
         lsmk.mw_par = (uint8_t)p;

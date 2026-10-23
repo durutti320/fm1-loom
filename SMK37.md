@@ -59,11 +59,11 @@ The manual still applies: the FM-1's controls are where the SMK-37 prints the sa
 | > held, then the pads | the throws: pads 1-12 fire the 12 momentary effects (mute, stutter, repeat, echo, build, floor, jumble, warble, pan, octave, chop, ring) on the whole mix, while held, on every page (Steps too: no step is touched). Dim violet, bright while firing; > lights |
 | KNOB BANK | the pads' job. On Steps: live pads there too, mutes and drums (lit; REC + PLAY records the drums you play), again the cells. On any other page: opens Steps, with the pads as its cells |
 | < / > | the bar before / after (the bar Steps shows and the pads write), when let go; > not after it fired a throw. Both together: DAW mode (below) |
-| Faders 1..4 | the levels of T1-T4; after FADER BANK (lit) T5, FX I's and FX II's returns, the master. A fader acts only once it moves |
+| Faders 1..4 | the levels of T1-T4; after FADER BANK (lit) T5's and T6's, then the **cutoff** and **resonance** of the track the keys play (acid: its own cutoff and reso), picked up as the mod wheel is. A fader acts only once it moves. The master is K1, the returns' levels the Mix page |
 | Pitch wheel | bend of the track the keys play, +-2 semitones (as a MIDI pitch bend) |
-| Mod wheel | the filter of the track the keys play: its cutoff (a DYNAMIC filter: its hi cut). A pick-up: the wheel acts once it passes the value the track has, so nothing jumps; the screen says where to pick it up |
+| Mod wheel | the filter of the track the keys play: its cutoff (a DYNAMIC filter: its hi cut; acid: its cutoff knob). A pick-up: the wheel acts once it passes the value the track has, so nothing jumps; the screen says where to pick it up |
 | K1 | the volume (the FM-1's MASTER) |
-| K2 / K3 / K4 | SELECT / ALGORITHM / PRESETS |
+| K2 / K3 / K4 | SELECT / ALGORITHM / PRESETS (the screen's hints name the SMK's controls: K2, K3, K4, K5-8, SCALE, PATCH, PARA, CHORD, REPEAT, GLOBE, BT) |
 | ARP | tapped: the selected track's arpeggiator on / off (lit while on); held: the Players page, its settings |
 | K5..K8 | KNOB 1..4 (the help cards say K5..K8) |
 | FX, SCALE, CHORD, PARA, GLOBE | FX, SEL, ENV, EDIT, GLO (NOTE REPEAT: above) |

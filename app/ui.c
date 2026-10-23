@@ -1317,7 +1317,11 @@ static void button_up(int b)
         break;
     case B_SAVE:
         if (proj_slot >= NPROJ)
+#if BOARD_SMK37
+            say_no("NO SLOT YET", "PATCH, SCALE: SAVE TO");
+#else
             say_no("NO SLOT YET", "HOME, SEL: SAVE TO");
+#endif
         else if (save_project(proj_slot) == 0)
             say("SAVED", 0);
         break;

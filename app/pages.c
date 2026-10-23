@@ -323,6 +323,21 @@ static uint16_t ctl_ink(const char *b)          /* a control named in the footer
     return K_TEXT;
 }
 #endif
+#if BOARD_SMK37
+/* a control's name as the SMK-37 prints it: the footer, the page's tag and the help cards keep the FM-1's names in their
+ * text (the code's), and show these */
+static const char *smk_name(const char *b)
+{
+    static const char *const FM1[] = {"SELECT", "ALGO", "PRESET", "KNOBS", "SEL", "HOME", "EDIT", "ENV", "LFO", "GLO", "SAVE"};
+    static const char *const SMK[] = {"K2", "K3", "K4", "K5-8", "SCALE", "PATCH", "PARA", "CHORD", "REPEAT", "GLOBE", "BT"};
+    for (uint32_t i = 0; i < sizeof FM1 / sizeof FM1[0]; i++)
+        if (s_eq(b, FM1[i]))
+            return SMK[i];
+    return b;
+}
+#else
+#define smk_name(b) (b)
+#endif
 static char *upcase(char *s)
 {
     for (char *c = s; *c; c++)
@@ -811,7 +826,7 @@ static void draw_header(void)
         }
     } else {
         int32_t r = 232, x = 8;
-        const char *bn = BTN_LABEL[PAGE_BTN[page_group(ui.page)].btn];
+        const char *bn = smk_name(BTN_LABEL[PAGE_BTN[page_group(ui.page)].btn]);
         const char *pn = page_name_of(ui.page, sel_trk());
         int32_t w = text_w(&FONT_XS, bn) + 6;
         if (((ui.page >= P_STEPS && ui.page <= P_PLAYERS3) || ui.page == P_WEAVE) && ui.page != P_THROWS) {   /* a track's page */
@@ -1513,7 +1528,11 @@ static void page_footer(char *t)
         return;
     }
     if (!ui.any_btn && ui.page == P_STEPS) {
+#if BOARD_SMK37
+        s_cat(t, "PADS steps|PLAY play|hold a button: help");   /* (SPIDER: the pads are the steps, the keys play) */
+#else
         s_cat(t, "WHITE steps|PLAY play|hold a button: help");
+#endif
         return;
     }
     if (home_held()) {
@@ -1551,10 +1570,15 @@ static void page_footer(char *t)
             s_cat(t, "KEYS record|REC off");
         else if (ui.btn >> B_SEQ & 1u)
             s_cat(t, is_drum(trk) ? "KEYS pick a sound" : "KEYS the notes a step writes");
+#if BOARD_SMK37
+        else                                         /* (SPIDER: the pads the steps, the keys play) */
+            s_cat(t, "PADS steps|KEYS play|PLAY play");
+#else
         else if (is_drum(trk))
             s_cat(t, "WHITE steps|BLACK sound|SEQ held: pick a sound");
         else
             s_cat(t, ui.page == P_BAR ? "WHITE steps|BLACK scale|SEQ held: notes" : "WHITE steps|SEQ held: play notes");
+#endif
         break;
     case P_MIX:
         s_cat(t, "BLACK mute|hold: solo|WHITE play");
@@ -1651,7 +1675,11 @@ static void enc_line(char *t)
 #define BOT_W 228
 #define BOT_PARTS 8
 static const char *const CTL_WORD[] = {"SELECT", "ALGO", "PRESET", "SEL", "HOME", "REC", "PLAY", "OCT", "KEYS", "WHITE",
-                                       "BLACK", "SAVE", "EDIT", "SEQ", "ENV", "FX", "LFO", "ARP", "GLO", "KNOBS"};
+                                       "BLACK", "SAVE", "EDIT", "SEQ", "ENV", "FX", "LFO", "ARP", "GLO", "KNOBS",
+#if BOARD_SMK37
+                                       "PADS",
+#endif
+};
 static int ctl_is(const char *s, uint32_t n)
 {
     for (uint32_t i = 0; i < sizeof CTL_WORD / sizeof CTL_WORD[0]; i++) {
@@ -1701,13 +1729,14 @@ static int32_t bot_part(int32_t x, int32_t y, const char *s, uint32_t n, const f
             b[k] = 0;
             int enc = s_eq(b, "SELECT") || s_eq(b, "ALGO") || s_eq(b, "PRESET") || s_eq(b, "KNOBS");
             int32_t pad = enc ? BOT_PAD_E : BOT_PAD;
-            w = text_w(&FONT_XS, b) + 2 * pad;
+            const char *shown = smk_name(b);          /* (SPIDER: the SMK's name for it) */
+            w = text_w(&FONT_XS, shown) + 2 * pad;
             if (draw) {
 #if BOARD_SMK37
                 uint16_t pc = ctl_ink(b);        /* (SPIDER: the control's colour) */
                 cv_round(x, y, w, BOT_PH, enc ? 7 : 2, pc);
                 cv_round(x + 1, y + 1, w - 2, BOT_PH - 2, enc ? 6 : 1, K_BG);
-                cv_text(x + pad, cap_y(y, BOT_PH, &FONT_XS) - (s_has_q(b) ? 1 : 0), &FONT_XS, b, pc);
+                cv_text(x + pad, cap_y(y, BOT_PH, &FONT_XS) - (s_has_q(shown) ? 1 : 0), &FONT_XS, shown, pc);
 #else
                 cv_round(x, y, w, BOT_PH, enc ? 7 : 2, K_TEXT);
                 cv_round(x + 1, y + 1, w - 2, BOT_PH - 2, enc ? 6 : 1, K_BG);
@@ -1915,7 +1944,7 @@ static void draw_card(void)
         int32_t bh = i < 0 ? 20 : 42 + (n - 1) * 17 + (CARD[i].l2 ? 4 : 0), top = 4 + (MAIN_H - 8 - bh) / 2;
         if (top < 10)
             top = 10;
-        x = pill_o(18, top, 0, BTN_LABEL[(ui.card - 1) % NB], K_TEXT, K_TEXT);
+        x = pill_o(18, top, 0, smk_name(BTN_LABEL[(ui.card - 1) % NB]), K_TEXT, K_TEXT);
         y = top + 30;
     }
     if (i >= 0) {
