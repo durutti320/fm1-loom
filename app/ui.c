@@ -121,6 +121,8 @@ static void lsmk_lights(void);
 static int lsmk_daw_frame(void);
 static int lsmk_nr_release(uint32_t held_ms);
 static int lsmk_nr_lit(void);
+static int lsmk_arp_release(uint32_t held_ms);
+static int lsmk_arp_lit(void);
 static int lsmk_kit_of(int trk);
 static void lsmk_kit_put(int trk, int k);
 #include "smk_daw.h"                             /* DAW mode's map and messages (daw_on: smk37.c's frame instead) */
@@ -2457,6 +2459,8 @@ static void input(void)
 #if BOARD_SMK37
             if (i == B_LFO && !(ui.btn_used & m) && lsmk_nr_release(plat_ms() - ui.btn_t[i]))
                 continue;                           /* (NOTE REPEAT tapped: note repeat on / off; held: LFO, below) */
+            if (i == B_ARP && !(ui.btn_used & m) && lsmk_arp_release(plat_ms() - ui.btn_t[i]))
+                continue;                           /* (ARP tapped: the track's arp on / off; held: Players, below) */
 #endif
             if (hold && !(ui.btn_used & m))
                 button_up((int)i);
@@ -2585,6 +2589,8 @@ static void leds(void)
 #if BOARD_SMK37
     if (lsmk_nr_lit())
         b |= 1u << B_LFO;                           /* (NOTE REPEAT on) */
+    if (lsmk_arp_lit())
+        b |= 1u << B_ARP;                           /* (the selected track's arp on) */
 #endif
     loom_lights(b, k, proj.lights == 1, dim & ~k, rec);
 #if BOARD_SMK37

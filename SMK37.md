@@ -64,6 +64,7 @@ The manual still applies: the FM-1's controls are where the SMK-37 prints the sa
 | Mod wheel | the filter of the track the keys play: its cutoff (a DYNAMIC filter: its hi cut). A pick-up: the wheel acts once it passes the value the track has, so nothing jumps; the screen says where to pick it up |
 | K1 | the volume (the FM-1's MASTER) |
 | K2 / K3 / K4 | SELECT / ALGORITHM / PRESETS |
+| ARP | tapped: the selected track's arpeggiator on / off (lit while on); held: the Players page, its settings |
 | K5..K8 | KNOB 1..4 (the help cards say K5..K8) |
 | FX, SCALE, CHORD, PARA, GLOBE | FX, SEL, ENV, EDIT, GLO (NOTE REPEAT: above) |
 | PATCH / BT | HOME / SAVE |

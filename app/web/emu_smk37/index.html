@@ -188,6 +188,7 @@ body.learn [data-learn] { cursor: crosshair; }
         <li><b>The keys</b> play the selected track on every page, Steps too (the pads are the steps there).</li>
         <li><b>Pads 9–16</b> the kit's drums, whatever track is selected. <b>Pads 1–6</b> the tracks' mutes, <b>7</b> the throws (held: the conductor), <b>8</b> the effects: a tap opens the delay's page, another the reverb's, another goes back. On <b>SEQ</b> they are the bar's steps; <b>KNOB BANK</b> flips them to live pads.</li>
         <li><b>Faders</b> T1–T4; <b>FADER BANK</b>: T5, T6, the effects, the master.</li>
+        <li><b>ARP</b> tapped: the selected track's arpeggiator on or off (lit). Held: its Players page (rate, pattern...).</li>
         <li><b>NOTE REPEAT</b> tapped: repeat on or off (lit). Held, then a top pad: its rate. Held alone and let go: the LFO page.</li>
         <li><b>Kits:</b> a new project starts on ACOUSTIC. With T1 (the kit) selected, <b>PARA</b> opens its Engine page; <b>SCALE</b> opens the list with <b>KIT</b> first: turn <b>K3</b> for ACOUSTIC, 909 or SYNTH, <b>SCALE</b> again puts it on.</li>
         <li><b>&gt;</b> held: the pads fire the throws. <b>&lt;</b> <b>&gt;</b> the bar. Both together: DAW mode.</li>
@@ -238,7 +239,7 @@ function mkBtn(parent, printed, job, bit, smk) {
 const smkEls = {};
 function toggleLatch(smk, bit) { if (smk) smkLatched ^= 1 << bit; else latched ^= 1 << bit; sync(); }
 // the 2 x 6 under the faders, as printed on the SMK (its name, then what it does in SPIDER)
-const ROW1 = [["ARP", "", "ARP"], ["NOTE REPEAT", "repeat / LFO", "LFO"], ["SCALE", "select", "SEL"], ["CHORD", "envelopes", "ENV"],
+const ROW1 = [["ARP", "on / off · players", "ARP"], ["NOTE REPEAT", "repeat / LFO", "LFO"], ["SCALE", "select", "SEL"], ["CHORD", "envelopes", "ENV"],
               ["GLOBE", "global", "GLO"], ["BT", "save", "SAVE"]];
 const ROW2 = [["PATCH", "home · shift", "HOME"], ["PARA", "sound", "EDIT"], ["FX", "", "FX"], ["SEQ", "steps", "SEQ"],
               ["SEQ PLAY", "play", "PLAY"], ["SEQ REC", "rec", "REC"]];

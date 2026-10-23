@@ -83,3 +83,22 @@ wait 400
 key 12 up
 wait 300
 wavstop
+# ARP: tapped, the selected track's arp on and off (TP_PLAYER 1, 0); held and let go, its Players page
+tap HOME
+turn ALGO 1
+wait 200
+expect trk 5
+expect par5.player 0
+tap ARP
+wait 100
+expect par5.player 1
+expect page Arrange
+tap ARP
+wait 100
+expect par5.player 0
+press ARP
+wait 600
+release ARP
+wait 100
+expect page Players
+expect par5.player 0

@@ -15,6 +15,7 @@
  *               the bar's 16 cells instead, pads 1-8 the top row: the white keys' job there, every gesture of
  *               theirs (a tap, a hold, a later one for the length); lit in the track's colour: a step with notes dim,
  *               the step playing bright, a step held white
+ *   ARP         tapped: the selected track's arpeggiator on / off (lit while on); held: the Players page (its settings)
  *   NOTE REPEAT tapped: note repeat on / off (lit): the drum pads held sound again in time (seq.c rp_*: on the
  *               grid while playing, and recorded while recording); held: pads 1-8 pick its rate (1/4 1/8 1/8T 1/16
  *               1/16T 1/32 1/32T 1/64, lit while held; a pick turns it on); held and let go alone: the LFO page (the
@@ -195,6 +196,26 @@ static int lsmk_nr_release(uint32_t held_ms)
     return 1;
 }
 static int lsmk_nr_lit(void) { return lsmk.nr_on; }
+/* ARP tapped (let go sooner than a hold): the selected track's player, arp <-> off (another player: arp); held and let
+ * go alone: its Players page (the FM-1's ARP button) */
+static int lsmk_arp_release(uint32_t held_ms)
+{
+    int t = sel_trk();
+    if (daw_on || held_ms >= LSMK_NR_TAP_MS)
+        return 0;
+    if (t >= NTRK || is_drum(t)) {
+        say_no("NO ARP", "a synth track's");
+        return 1;
+    }
+    set_tp(t, TP_PLAYER, proj.trk[t].par[TP_PLAYER] == PL_ARP ? PL_OFF : PL_ARP);
+    say(proj.trk[t].par[TP_PLAYER] == PL_ARP ? "ARP ON" : "ARP OFF", TRACK_NAME[t]);
+    return 1;
+}
+static int lsmk_arp_lit(void)
+{
+    int t = sel_trk();
+    return t < NTRK && proj.trk[t].par[TP_PLAYER] == PL_ARP;
+}
 
 static void lsmk_pads(void)
 {
