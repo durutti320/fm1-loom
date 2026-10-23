@@ -188,7 +188,7 @@ static void guard_apply(void)
 enum { C_PARAM, C_ALL, C_KEY, C_KEYS_OFF, C_PUNCH, C_BRAIN_KEY, C_MASTER, C_FX, C_PANIC,
        C_METRO, C_TEMPO, C_GROOVE, C_SCENE, C_NOP
 #if BOARD_SMK37
-       , C_REPEAT
+       , C_REPEAT, C_DJ
 #endif
 };                                                       /* at most sixteen: the type is four bits */
 #define CQ 512u
@@ -243,6 +243,45 @@ void engine_repeat(int trk, int key, int on, int vel)
     cq_put(C_REPEAT, (uint32_t)trk, (uint32_t)key, (uint32_t)((on ? 0x80u : 0u) | ((uint32_t)vel & 0x7Fu)));
 }
 void engine_repeat_rate(int rate) { cq_put(C_REPEAT, 0, 0, (uint32_t)rate & 0x7Fu); }
+/* the DJ filter on the whole mix (SPIDER's mod wheel): 0..127, 64 none (a dead zone about it), down a low-pass
+ * closing, up a high-pass opening (dj_run) */
+static uint8_t dj_want = 64;
+static float dj_x, dj_s[4];                     /* the filter's position -1..1 (glided), its state: L ic1 ic2, R */
+void engine_dj(int v) { cq_put(C_DJ, 0, 0, (uint32_t)(v < 0 ? 0 : v > 127 ? 127 : v)); }
+static void dj_run(float *l, float *r, uint32_t n)
+{
+    float want = dj_want < 58 ? -(float)(58 - dj_want) / 58.0f : dj_want > 70 ? (float)(dj_want - 70) / 57.0f : 0.0f;
+    float x, fc, g, k, a1, a2, a3;
+    uint32_t i;
+    dj_x += (want - dj_x) * 0.25f;               /* (glided a block at a time: ~20 ms, no zipper) */
+    if (fm_fabsf(want - dj_x) < 0.001f)
+        dj_x = want;
+    x = dj_x;
+    if (x == 0.0f) {                             /* (none: the state let go, nothing computed) */
+        dj_s[0] = dj_s[1] = dj_s[2] = dj_s[3] = 0.0f;
+        return;
+    }
+    fc = x < 0.0f ? 18000.0f * fm_exp2f(x * 8.0f) : 30.0f * fm_exp2f(x * 7.6f);   /* 18 kHz .. 70 Hz; 30 Hz .. 5.8 kHz */
+    g = fm_tanf(3.14159265f * fm_minf(fc, 19000.0f) * (1.0f / 44100.0f));
+    k = 1.0f / (0.72f + 0.9f * fm_fabsf(x));     /* a little resonance the further it goes */
+    a1 = 1.0f / (1.0f + g * (g + k));
+    a2 = g * a1;
+    a3 = g * a2;
+    for (i = 0; i < n; i++) {                    /* a 12 dB state-variable filter a side (TPT) */
+        float v3 = l[i] - dj_s[1], v1 = a1 * dj_s[0] + a2 * v3, v2 = dj_s[1] + a2 * dj_s[0] + a3 * v3;
+        dj_s[0] = 2.0f * v1 - dj_s[0];
+        dj_s[1] = 2.0f * v2 - dj_s[1];
+        l[i] = x < 0.0f ? v2 : l[i] - k * v1 - v2;
+        v3 = r[i] - dj_s[3];
+        v1 = a1 * dj_s[2] + a2 * v3;
+        v2 = dj_s[3] + a2 * dj_s[2] + a3 * v3;
+        dj_s[2] = 2.0f * v1 - dj_s[2];
+        dj_s[3] = 2.0f * v2 - dj_s[3];
+        r[i] = x < 0.0f ? v2 : r[i] - k * v1 - v2;
+    }
+    for (i = 0; i < 4; i++)
+        dj_s[i] = fm_flush(dj_s[i]);
+}
 #endif
 void engine_punch(int fx, int on, int target_trk)
 {
@@ -709,6 +748,7 @@ static void drain(void)
         case C_BRAIN_KEY: seq_brain_key(&seq, (int)a, (int)b); break;
 #if BOARD_SMK37
         case C_REPEAT: seq_repeat(&seq, (int)a, (int)b, (int)((v >> 7) & 1u), (int)(v & 0x7Fu)); break;
+        case C_DJ: dj_want = (uint8_t)v; break;
 #endif
         case C_MASTER: master_set(MST, (int)a, (int)v); break;
         case C_FX:
@@ -1135,6 +1175,9 @@ void engine_render(int32_t *out_lr, uint32_t n, uint32_t gain_q12)
     eng_scene_cue = seq.cue;
     eng_pump_db = master_pump_db(MST);
     PROF_T(po);
+#if BOARD_SMK37
+    dj_run(mix_l, mix_r, n);                             /* the DJ filter: after the master, before the volume */
+#endif
     {   /* quiet (the autosave waits for it: a flash write cuts the audio): every sample under -60 dB */
         float pk = 0.0f;
         for (i = 0; i < n; i++)

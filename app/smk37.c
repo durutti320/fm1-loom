@@ -30,7 +30,8 @@
  *               T1-T4's levels (lit); T5's and T6's, the returns', the master's (blinking); a fader acts once it moves
  *   outer keys  C3..E3 and G#5..C6 carry on the keys: more notes, with velocity; on a kit, its keys
  *   pitch wheel bend of the track the keys play (+-2 semitones, as a MIDI bend)
- *   mod wheel   the filter of the track the keys play (its cutoff; DYNAMIC: its hi cut; acid: its cutoff knob), once the wheel passes the
+ *   mod wheel   a DJ filter on the whole mix: down none, up a low-pass closing (PATCH held as it leaves the rest: a
+ *               high-pass opening) (lsmk_modw). Before: the filter of the track the keys play, once the wheel passes the
  *               value it has (a pick-up: nothing jumps)
  *
  * DAW mode (< + > together; ported from Snoop37 by way of the Loom FM-1 port; smk_daw.h has the map): the SMK is a
@@ -58,7 +59,7 @@ static struct {
     uint8_t out_trk[NOUTER], out_note[NOUTER];   /* an outer key's note playing: track and note (0 none) */
     uint8_t bend_trk;                   /* the track the pitch wheel bends (0xFF none) */
     int32_t bend;
-    uint8_t mw_trk, mw_par, mw_last, mw_armed;   /* the mod wheel: its track and parameter, as last seen, picked up */
+    uint8_t mw_trk, mw_par, mw_last, mw_armed;   /* the mod wheel: as last seen; mw_armed its filter the high-pass */
     uint8_t fp_trk[4], fp_par[4], fp_armed[4];   /* the macros (cutoff, reso, delay, reverb): the same */
     uint8_t lr_both;                    /* < + > pressed together: neither steps a bar (until both are up) */
     uint32_t sbtn;                      /* the SMK buttons as last seen */
@@ -505,42 +506,27 @@ static void lsmk_wheels(void)
     }
 }
 
-/* the mod wheel: the filter of the track the keys play, its cutoff (DYNAMIC: its hi cut). A pick-up: the wheel acts
- * once it passes the value the track has (another track, or another filter type: picked up again) */
+/* the mod wheel: a DJ filter on the whole mix (engine_dj). At rest (down) none; up, a low-pass closes over everything;
+ * moved up while PATCH is held, a high-pass opens instead (it stays the high-pass until the wheel is back down) */
 static void lsmk_modw(void)
 {
-    int t = lsmk_play_trk(), p, span;
-    uint32_t m = plat_modw(), cur;
-    const tp_info_t *in;
+    uint32_t m = plat_modw();
     char s[24];
-    if (t < 0 || t >= NTRK)
-        return;
-    p = lsmk_filter_par(t, 0);
-    if (t != lsmk.mw_trk || p != lsmk.mw_par) {
-        lsmk.mw_trk = (uint8_t)t;
-        lsmk.mw_par = (uint8_t)p;
-        lsmk.mw_last = (uint8_t)m;
-        lsmk.mw_armed = 0;
-        return;
-    }
     if (m == lsmk.mw_last)
         return;
-    in = tp_info_par(p, proj.trk[t].par);
-    span = in->hi - in->lo;
-    if (span <= 0)
-        return;
-    cur = (uint32_t)(clampi(proj.trk[t].par[p], in->lo, in->hi) - in->lo) * 127u / (uint32_t)span;
-    if (!lsmk.mw_armed && ((lsmk.mw_last <= cur && m >= cur) || (lsmk.mw_last >= cur && m <= cur)))
-        lsmk.mw_armed = 1;
+    if (lsmk.mw_last <= 3u && m > 3u)            /* (leaving the rest: which filter, by PATCH) */
+        lsmk.mw_armed = (uint8_t)home_held();
+    if (home_held())
+        ui.btn_used |= 1u << B_HOME;             /* (PATCH held for this: no Arrange page when let go) */
     lsmk.mw_last = (uint8_t)m;
-    if (!lsmk.mw_armed) {
-        s_cat(num_s(cur * 100u / 127u, s_cat(s, "pick up at ")), "%");
-        say("FILTER", s);
+    if (m <= 3u) {
+        engine_dj(64);
+        say("DJ FILTER", "off");
         return;
     }
-    set_tp(t, p, in->lo + (int)((uint32_t)span * m + 63u) / 127);
-    s_cat(num_s(m * 100u / 127u, s_cat(s, p == TP_KTRK ? "hi cut " : "cutoff ")), "%");
-    say(TRACK_NAME[t], s);
+    engine_dj(lsmk.mw_armed ? 70 + (int)((m - 3u) * 57u / 124u) : 58 - (int)((m - 3u) * 58u / 124u));
+    s_cat(num_s(m * 100u / 127u, s_cat(s, lsmk.mw_armed ? "high-pass " : "low-pass ")), "%");
+    say("DJ FILTER", s);
 }
 
 /* every input pass, first */
@@ -1263,6 +1249,7 @@ static void lsmk_daw_set(int on)
         for (k = 0; k < NE; k++)
             (void)plat_enc(k);
         plat_k1_raw(1);
+        engine_dj(64);                             /* (DAW mode: SPIDER as a sound module, unfiltered) */
     } else {
         lsmk_daw_quiet();
         ld.edit = 0;
@@ -1280,6 +1267,7 @@ static void lsmk_daw_set(int on)
         for (k = 0; k < 4; k++)
             lsmk.flast[k] = 0xFF;
         lsmk.mw_trk = 0xFF;
+        lsmk.mw_last = (uint8_t)plat_modw();       /* (the wheel where it is: it acts once it moves) */
         lsmk.latch = 0;
     }
     daw_on = (uint8_t)on;

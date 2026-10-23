@@ -56,6 +56,7 @@ void engine_midi_in(uint32_t pkt);                       /* a USB-MIDI packet (t
 void engine_bend(int trk, int32_t v);                    /* a panel's pitch wheel, -8192..8191 (the SMK-37's) */
 void engine_repeat(int trk, int key, int on, int vel);   /* note repeat: kit key 1..11 of trk held / let go (seq.h) */
 void engine_repeat_rate(int rate);                       /* SEQ_RP_* */
+void engine_dj(int v);                                    /* the DJ filter on the mix: 0..127, 64 none (SPIDER's mod wheel) */
 #endif
 void engine_transport(int what);                         /* 0 stop, 1 start, 2 continue, 3 start from the top */
 void engine_metronome(int mode);

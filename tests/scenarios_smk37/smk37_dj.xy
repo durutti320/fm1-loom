@@ -1,0 +1,24 @@
+# the mod wheel: the DJ filter on the whole mix (smk37.c lsmk_modw, engine.c dj_run): up a low-pass, PATCH held a high-pass;
+# dj.wav, a held poly note through both (the run_tests WAVs)
+wait 3000
+turn ALGO 2
+wait 200
+param 3 cut 127
+wait 100
+wav dj.wav
+key 7 down 100
+wait 700
+modw 120
+wait 700
+modw 0
+wait 400
+press HOME
+modw 110
+wait 700
+release HOME
+wait 100
+modw 0
+wait 400
+key 7 up
+wait 300
+wavstop

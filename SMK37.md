@@ -61,7 +61,7 @@ The manual still applies: the FM-1's controls are where the SMK-37 prints the sa
 | < / > | the bar before / after (the bar Steps shows and the pads write), when let go; > not after it fired a throw. Both together: DAW mode (below) |
 | Faders 1..4 | three banks, FADER BANK steps through them: the **macros** of the track the keys play, **cutoff**, **resonance** (acid: its own cutoff and reso), **delay** send, **reverb** send, picked up as the mod wheel is; then T1-T4's levels (FADER BANK lit); then T5's, T6's, both returns' and the master's (blinking). A fader acts only once it moves |
 | Pitch wheel | bend of the track the keys play, +-2 semitones (as a MIDI pitch bend) |
-| Mod wheel | the filter of the track the keys play: its cutoff (a DYNAMIC filter: its hi cut; acid: its cutoff knob). A pick-up: the wheel acts once it passes the value the track has, so nothing jumps; the screen says where to pick it up |
+| Mod wheel | a **DJ filter on the whole mix**: down (its rest) none; up, a low-pass closing over everything (to ~70 Hz at the top). Hold PATCH as the wheel leaves its rest for a high-pass opening instead (to ~6 kHz); it stays the high-pass until the wheel is back down. Off in DAW mode |
 | K1 | the volume (the FM-1's MASTER) |
 | K2 / K3 / K4 | SELECT / ALGORITHM / PRESETS (the screen's hints name the SMK's controls: K2, K3, K4, K5-8, SCALE, PATCH, PARA, CHORD, REPEAT, GLOBE, BT) |
 | ARP | tapped: the selected track's arpeggiator on / off (lit while on); held: the Players page, its settings |
