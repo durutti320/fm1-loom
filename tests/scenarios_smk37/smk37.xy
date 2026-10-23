@@ -45,7 +45,9 @@ wait 40
 expect bar 1
 spin ALGO 1
 expect trk 2
-# faders: T1-T4, then FADER BANK: T5, T6, the returns, the master; a fader acts once it moves
+# faders, three banks: the macros (smk37_tracks.xy); FADER BANK: T1-T4; again: T5, T6, the returns, the master; a
+# fader acts once it moves
+smktap FADERBANK
 fader 0 127
 expect par1.level 127
 fader 0 0
@@ -56,6 +58,7 @@ expect par1.level 0
 fader 0 100
 expect par5.level 100
 expect par1.level 0
+smktap FADERBANK
 pads
 # outer keys: notes on the track the keys play
 expect voices 0

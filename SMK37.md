@@ -59,7 +59,7 @@ The manual still applies: the FM-1's controls are where the SMK-37 prints the sa
 | > held, then the pads | the throws: pads 1-12 fire the 12 momentary effects (mute, stutter, repeat, echo, build, floor, jumble, warble, pan, octave, chop, ring) on the whole mix, while held, on every page (Steps too: no step is touched). Dim violet, bright while firing; > lights |
 | KNOB BANK | the pads' job. On Steps: live pads there too, mutes and drums (lit; REC + PLAY records the drums you play), again the cells. On any other page: opens Steps, with the pads as its cells |
 | < / > | the bar before / after (the bar Steps shows and the pads write), when let go; > not after it fired a throw. Both together: DAW mode (below) |
-| Faders 1..4 | the levels of T1-T4; after FADER BANK (lit) T5's and T6's, then the **cutoff** and **resonance** of the track the keys play (acid: its own cutoff and reso), picked up as the mod wheel is. A fader acts only once it moves. The master is K1, the returns' levels the Mix page |
+| Faders 1..4 | three banks, FADER BANK steps through them: the **macros** of the track the keys play, **cutoff**, **resonance** (acid: its own cutoff and reso), **delay** send, **reverb** send, picked up as the mod wheel is; then T1-T4's levels (FADER BANK lit); then T5's, T6's, both returns' and the master's (blinking). A fader acts only once it moves |
 | Pitch wheel | bend of the track the keys play, +-2 semitones (as a MIDI pitch bend) |
 | Mod wheel | the filter of the track the keys play: its cutoff (a DYNAMIC filter: its hi cut; acid: its cutoff knob). A pick-up: the wheel acts once it passes the value the track has, so nothing jumps; the screen says where to pick it up |
 | K1 | the volume (the FM-1's MASTER) |

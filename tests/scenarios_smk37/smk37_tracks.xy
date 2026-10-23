@@ -45,42 +45,54 @@ shot tracks_fx2.png
 tappad 7
 expect page Arrange
 expect mute 0
-# the faders' second bank
-smktap FADERBANK
-fader 1 64
-fader 1 100
-expect par6.level 100
-fader 0 64
-fader 0 80
-expect par5.level 80
-# faders 3 and 4: the cutoff and resonance of the track the keys play, picked up (a sweep past the value, then set);
-# on acid its own cutoff and reso knobs; nothing on the kit
-fader 2 0
-fader 2 127
-fader 2 90
+# the faders: bank 1 the macros of the track the keys play (cutoff, reso, delay, reverb), picked up (a sweep past the
+# value, then set; acid: its own cutoff and reso; the kit: none); bank 2 T1-T4; bank 3 T5, T6, both returns, the master
+fader 0 0
+fader 0 127
+fader 0 90
 expect par1.level 100
 turn ALGO 1
 wait 100
 expect trk 2
+fader 0 0
+fader 0 127
+fader 0 90
+expect par2.cut 90
+fader 1 0
+fader 1 127
+fader 1 20
+expect par2.res 20
 fader 2 0
 fader 2 127
-fader 2 90
-expect par2.cut 90
+fader 2 40
+expect par2.send1 40
 fader 3 0
 fader 3 127
-fader 3 20
-expect par2.res 20
+fader 3 60
+expect par2.send2 60
 turn ALGO 3
 wait 100
 expect trk 5
-fader 2 0
-fader 2 127
-fader 2 33
+fader 0 0
+fader 0 127
+fader 0 33
 expect par5.e1 33
-fader 3 0
-fader 3 127
-fader 3 77
+fader 1 0
+fader 1 127
+fader 1 77
 expect par5.e2 77
+smktap FADERBANK
+fader 3 64
+fader 3 99
+expect par4.level 99
+smktap FADERBANK
+fader 1 64
+fader 1 100
+expect par6.level 100
+fader 2 64
+fader 2 90
+expect par9.level 90
+expect par10.level 90
 smktap FADERBANK
 turn ALGO -4
 wait 100

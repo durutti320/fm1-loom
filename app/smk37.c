@@ -25,8 +25,9 @@
  *   < >         the bar before / after (any page: the one Steps shows and the pads write), when let go (> not if
  *               it fired a throw)
  *   < + >       DAW mode (below)
- *   faders      the levels of T1-T4, or (FADER BANK, lit) T5, T6, then the cutoff and resonance of the track the
- *               keys play (acid: its own cutoff and reso), picked up as the mod wheel is; a fader acts once it moves
+ *   faders      three banks, FADER BANK steps through them: the macros of the track the keys play (cutoff,
+ *               resonance (acid: its own cutoff and reso), delay send, reverb send: picked up as the mod wheel is);
+ *               T1-T4's levels (lit); T5's and T6's, the returns', the master's (blinking); a fader acts once it moves
  *   outer keys  C3..E3 and G#5..C6 carry on the keys: more notes, with velocity; on a kit, its keys
  *   pitch wheel bend of the track the keys play (+-2 semitones, as a MIDI bend)
  *   mod wheel   the filter of the track the keys play (its cutoff; DYNAMIC: its hi cut; acid: its cutoff knob), once the wheel passes the
@@ -52,19 +53,19 @@ static struct {
     uint8_t last_kit;                   /* the kit DAW mode's LOCAL pads play when a synth is selected (0xFF: none) */
     uint8_t pad_drums;                  /* KNOB BANK: the pads mutes and tracks on Steps too */
     uint8_t gt_used;                    /* > held fired a throw (its let-go steps no bar) */
-    uint8_t fbank;                      /* the faders: 0 T1-T4, 1 T5, T6, the returns, the master */
+    uint8_t fbank;                      /* the faders: 0 the macros, 1 T1-T4, 2 T5, T6, the returns, the master */
     uint8_t flast[4];                   /* (soft takeover: 0xFF waits for the fader to move) */
     uint8_t out_trk[NOUTER], out_note[NOUTER];   /* an outer key's note playing: track and note (0 none) */
     uint8_t bend_trk;                   /* the track the pitch wheel bends (0xFF none) */
     int32_t bend;
     uint8_t mw_trk, mw_par, mw_last, mw_armed;   /* the mod wheel: its track and parameter, as last seen, picked up */
-    uint8_t fp_trk[2], fp_par[2], fp_armed[2];   /* FADER BANK's faders 3 and 4 (cutoff, resonance): the same */
+    uint8_t fp_trk[4], fp_par[4], fp_armed[4];   /* the macros (cutoff, reso, delay, reverb): the same */
     uint8_t lr_both;                    /* < + > pressed together: neither steps a bar (until both are up) */
     uint32_t sbtn;                      /* the SMK buttons as last seen */
     uint8_t p6_down;                    /* pad 7 pressed as the throws' mute: its let-go decides (a hold: the conductor) */
     uint8_t fx_back;                    /* pad 8: the page it opened the delay from (0xFF none) */
     uint32_t p6_ms;
-} lsmk = {.last_kit = 0xFF, .flast = {0xFF, 0xFF, 0xFF, 0xFF}, .bend_trk = 0xFF, .mw_trk = 0xFF, .nr_rate = SEQ_RP_16, .fx_back = 0xFF, .fp_trk = {0xFF, 0xFF}};
+} lsmk = {.last_kit = 0xFF, .flast = {0xFF, 0xFF, 0xFF, 0xFF}, .bend_trk = 0xFF, .mw_trk = 0xFF, .nr_rate = SEQ_RP_16, .fx_back = 0xFF, .fp_trk = {0xFF, 0xFF, 0xFF, 0xFF}};
 static const char *const LSMK_RATE[NSEQ_RP] = {"1/4", "1/8", "1/8T", "1/16", "1/16T", "1/32", "1/32T", "1/64"};
 #define LSMK_NR_TAP_MS 400u                     /* NOTE REPEAT let go sooner: a tap (on / off); later: the LFO page */
 /* the top row's eight (away from Steps): T1-T6's mutes, then the throws' (pad 7; held, the conductor's); pad 8 the
@@ -72,9 +73,13 @@ static const char *const LSMK_RATE[NSEQ_RP] = {"1/4", "1/8", "1/8T", "1/16", "1/
 #define LSMK_PAD_THROW 6
 #define LSMK_PAD_FX 7
 static const uint8_t LSMK_TOP[8] = {0, 1, 2, 3, 4, 5, AUX_PUNCH, AUX_FX1};
-/* the faders: T1-T4; FADER BANK: T5, T6, then the filter of the track the keys play: its cutoff (-3), its resonance
- * (-4), picked up (lsmk_pickup). The master is K1; the returns' levels, the Mix page */
-static const int8_t LSMK_FADER[2][4] = {{0, 1, 2, 3}, {4, 5, -3, -4}};
+/* the faders, three banks (FADER BANK steps through them): the macros of the track the keys play, its cutoff (-3),
+ * resonance (-4), delay send (-5) and reverb send (-6), picked up (lsmk_pickup); T1-T4's levels; T5's and T6's, both
+ * returns' (-2), the master's (-1) */
+#define LSMK_NFBANK 3
+static const int8_t LSMK_FADER[LSMK_NFBANK][4] = {{-3, -4, -5, -6}, {0, 1, 2, 3}, {4, 5, -2, -1}};
+static const char *const LSMK_FBANK_NAME[LSMK_NFBANK] = {"cut reso delay verb", "T1 to T4", "T5 T6 FX master"};
+static const char *const LSMK_MACRO[4] = {"cutoff", "reso", "delay", "reverb"};
 static int lsmk_play_trk(void);
 /* the filter's parameter a control moves on track t: acid's own (its cutoff and reso knobs: its Filter page is a
  * bypass), else the Filter page's cutoff (DYNAMIC: its hi cut) and resonance */
@@ -413,10 +418,12 @@ static void lsmk_buttons(void)
     if (pressed >> SB_KNOB_BANK & 1u)
         lsmk_pad_mode();
     if (pressed >> SB_FADER_BANK & 1u) {
-        lsmk.fbank ^= 1u;
-        for (f = 0; f < 4; f++)
+        lsmk.fbank = (uint8_t)((lsmk.fbank + 1u) % LSMK_NFBANK);
+        for (f = 0; f < 4; f++) {
             lsmk.flast[f] = 0xFF;                  /* (the other bank: each fader waits to move) */
-        say("FADERS", lsmk.fbank ? "T5, T6, cutoff, reso" : "T1 to T4");
+            lsmk.fp_armed[f] = 0;                  /* (and the macros pick up again) */
+        }
+        say(lsmk.fbank == 0 ? "MACROS" : "FADERS", LSMK_FBANK_NAME[lsmk.fbank]);
     }
 }
 
@@ -425,26 +432,28 @@ static void lsmk_faders(void)
     int f;
     for (f = 0; f < 4; f++) {
         uint32_t v = plat_fader(f);
-        int t = LSMK_FADER[lsmk.fbank & 1u][f];
+        int t = LSMK_FADER[lsmk.fbank % LSMK_NFBANK][f];
         if (lsmk.flast[f] == 0xFF) {
             lsmk.flast[f] = (uint8_t)v;
             continue;
         }
         if (v == lsmk.flast[f])
             continue;
-        if (t == -3 || t == -4) {                  /* the filter of the track the keys play, picked up */
-            int k = t == -4, pt = lsmk_play_trk(), pp;
+        if (t <= -3) {                             /* a macro of the track the keys play, picked up */
+            int k = -3 - t, pt = lsmk_play_trk(), pp;
             uint32_t last = lsmk.flast[f];
             lsmk.flast[f] = (uint8_t)v;
-            if (pt < 0 || pt >= NTRK || is_drum(pt))
+            if (pt < 0 || pt >= NTRK || is_drum(pt)) {   /* (the kit: its filter and sends are each key's) */
+                say_no("MACROS", "a synth track's");
                 continue;
-            pp = lsmk_filter_par(pt, k);
+            }
+            pp = k < 2 ? lsmk_filter_par(pt, k) : k == 2 ? TP_SEND1 : TP_SEND2;
             if (pt != lsmk.fp_trk[k] || pp != lsmk.fp_par[k]) {
                 lsmk.fp_trk[k] = (uint8_t)pt;
                 lsmk.fp_par[k] = (uint8_t)pp;
                 lsmk.fp_armed[k] = 0;
             }
-            lsmk_pickup(pt, pp, v, last, &lsmk.fp_armed[k], k ? "reso" : "cutoff");
+            lsmk_pickup(pt, pp, v, last, &lsmk.fp_armed[k], LSMK_MACRO[k]);
             continue;
         }
         lsmk.flast[f] = (uint8_t)v;
@@ -613,7 +622,7 @@ static void lsmk_lights(void)
     if (lsmk_nr_held() && !lsmk_throws())      /* NOTE REPEAT held: the rates, the one in use bright */
         for (c = 0; c < 8; c++)
             plat_pad_rgb(c, lsmk_rgb(theme->ink[2], c == lsmk.nr_rate ? 240u : 40u));
-    plat_smk_leds((lsmk.fbank ? 1u << SB_FADER_BANK : 0u) | (lsmk.pad_drums ? 1u << SB_KNOB_BANK : 0u) |
+    plat_smk_leds((lsmk.fbank == 1 || (lsmk.fbank == 2 && (plat_ms() & 256u)) ? 1u << SB_FADER_BANK : 0u) | (lsmk.pad_drums ? 1u << SB_KNOB_BANK : 0u) |
                   (lsmk_throws() ? 1u << SB_RIGHT : 0u));
 }
 
