@@ -9,8 +9,9 @@
 > on his [fm1-base](https://github.com/charlesvestal/fm1-base) and on [felucca-bsp](https://github.com/hugelton/felucca-bsp)
 > by Leo Kuroshita (Hügelton Instruments), from [Felucca](https://github.com/hugelton/Felucca). The SMK-37 hardware
 > support and the DAW mode are genkigenki's ([fm1-to-smk37](https://github.com/genkigenki/fm1-to-smk37), Felucca's
-> `smk37` branch, and Snoop37 in [sloop-fm1](https://github.com/genkigenki/sloop-fm1/tree/snoop37)). The SPIDER
-> port is by Cam Durnsford, written with Claude. Not affiliated with or endorsed by M-VAVE.
+> `smk37` branch, and Snoop37 in [sloop-fm1](https://github.com/genkigenki/sloop-fm1/tree/snoop37)). The FM engine is
+> [Dexed](https://github.com/asb2m10/dexed)'s msfa core (Apache-2.0) as Leo Kuroshita ported it for Felucca and SLOOP
+> carries it; the ACOUSTIC kit is SLOOP's. The SPIDER port is by Cam Durnsford, written with Claude. Not affiliated with or endorsed by M-VAVE.
 >
 > **No warranty.** Installing custom firmware is at your own risk. Back up your keyboard's flash first (SMK37.md),
 > and M-VAVE's own updater puts the factory firmware back. Licences as below (LICENSING.md): GPL-3.0-only, with
