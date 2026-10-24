@@ -1,0 +1,773 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"></head><body>
+<title>SPIDER Browser Emulator</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* layout: the SMK-37 Pro as it is laid out, in SPIDER's colours: on the left the wheels and the screen with its six
+   buttons under it; in the middle K1..K8 in a row over the 2 x 8 pads; on the right the four faders over the 2 x 6
+   buttons; the 37 keys below; under it the MIDI it sends and how to play it. Narrower than the panel: it scrolls
+   sideways inside its frame (the page itself does not) */
+:root {
+  --night: #0d0a13; --body: #1b1624; --tray: #120e19; --rule: #2e2639; --bone: #ece4d6; --muted: #a497b6;
+  --blood: #c11a36; --violet: #9a7bdc; --silk: #dcd2ff; --amber: #e4b652; --keyw: #e7e2ea; --keyb: #231d2c;
+  --display: "Pirata One", "UnifrakturCook", Georgia, serif;
+  --ui: "Barlow Semi Condensed", "Arial Narrow", Arial, sans-serif;
+  --text: "Barlow", "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+html, body { background: var(--night); color: var(--bone); }
+body { margin: 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+       padding-block: 20px 40px; font: 400 15px/1.5 var(--text); }
+main { max-width: 1340px; margin: 0 auto; display: grid; gap: 18px; }
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; }
+h1 { font: 400 2.6rem/1 var(--display); letter-spacing: .02em; margin: 0; color: var(--bone); text-shadow: 2px 2px 0 var(--blood); }
+header p { margin: 0; color: var(--muted); font: 500 1rem var(--ui); }
+.hdr-actions { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; }
+button { font: 600 .95rem var(--ui); letter-spacing: .04em; color: var(--bone); background: var(--body); border: 1px solid var(--rule);
+         border-radius: 8px; padding: .4em .9em; cursor: pointer; }
+button:focus-visible, .ctl:focus-visible, input:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+button.primary { background: var(--blood); border-color: var(--blood); color: #fff; }
+button:disabled { opacity: .55; cursor: progress; }
+.status { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--muted); font: 500 .95rem var(--ui); font-variant-numeric: tabular-nums; }
+.status b { color: var(--bone); font-weight: 600; }
+
+/* the instrument */
+.device { position: relative; background: var(--body); border: 1px solid var(--rule); border-radius: 22px; padding: 18px;
+          display: grid; gap: 16px; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+.frame { overflow-x: auto; overscroll-behavior-x: contain; border-radius: 22px; }
+.device { width: max-content; min-width: 100%; box-sizing: border-box; }
+.top { display: grid; grid-template-columns: auto auto auto; gap: 16px; align-items: stretch; justify-content: space-between; }
+.left { display: grid; grid-template-columns: auto auto; gap: 14px; align-items: start; }
+.scrcol { display: grid; gap: 10px; justify-items: stretch; }
+.nav { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.nav .btn { min-height: 36px; }
+.middle { display: grid; gap: 14px; align-content: start; }
+.right { display: grid; gap: 12px; align-content: start; }
+.grid6 { display: grid; grid-template-columns: repeat(6, 56px); gap: 6px; }
+.grid6 .btn { font-size: .68rem; }
+.grid6 .btn { min-height: 40px; }
+.tray { background: var(--tray); border-radius: 14px; padding: 12px; }
+.label { font: 600 .72rem var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); text-align: center; }
+.wheels { display: flex; gap: 12px; }
+.wheel { display: grid; justify-items: center; gap: 6px; }
+input[type=range].v { writing-mode: vertical-lr; direction: rtl; width: 34px; height: 170px; accent-color: var(--violet); cursor: ns-resize; }
+.screen { width: 240px; max-width: 100%; aspect-ratio: 1; image-rendering: pixelated; background: #000; border-radius: 4px; display: block;
+          border: 6px solid #07050a; }
+.knobs { display: grid; grid-template-columns: repeat(8, 52px); gap: 8px; }
+.knob { display: grid; justify-items: center; gap: 4px; }
+.knob .dial { width: 46px; height: 46px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #3a3146, #17121e 70%);
+              border: 2px solid #3d3449; position: relative; cursor: ns-resize; touch-action: none; }
+.knob .dial::after { content: ""; position: absolute; left: 50%; top: 5px; width: 3px; height: 13px; margin-left: -1.5px; border-radius: 2px;
+                     background: var(--knob-ink, var(--bone)); transform-origin: 50% 20px; transform: rotate(var(--a, 0deg)); }
+.knob .name { font: 600 .75rem var(--ui); letter-spacing: .06em; color: var(--bone); }
+.knob .job { font: 500 .7rem var(--ui); color: var(--muted); }
+.faders { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; justify-items: center; }
+.faders input[type=range].v { height: 120px; }
+.btn { font: 600 .74rem/1.15 var(--ui); letter-spacing: .05em; text-transform: uppercase; color: var(--bone); background: #2a2333;
+       border: 1px solid #3b3247; border-radius: 9px; min-height: 44px; padding: 4px; display: grid; place-items: center; text-align: center;
+       cursor: pointer; touch-action: none; }
+.btn small { display: block; font: 500 .66rem var(--ui); text-transform: none; letter-spacing: .02em; color: var(--muted); }
+.btn.lit { background: var(--amber); color: #1a1208; border-color: var(--amber); }
+.btn.lit small { color: #3b2a0c; }
+.btn.held { outline: 2px solid var(--silk); outline-offset: -2px; }
+.btn.latched { box-shadow: 0 0 0 2px var(--violet) inset; }
+.pads { display: grid; grid-template-columns: repeat(8, 52px); gap: 8px; }
+.pad { aspect-ratio: 1; border-radius: 9px; background: var(--pad, #241e2c); border: 1px solid #3a3146; cursor: pointer; touch-action: none;
+       box-shadow: 0 0 var(--glow, 0px) var(--pad, transparent); position: relative; }
+.pad span { position: absolute; left: 6px; top: 4px; font: 600 .66rem var(--ui); color: rgba(255, 255, 255, .55); mix-blend-mode: difference; }
+.pad.held { outline: 2px solid var(--silk); outline-offset: 1px; }
+.keys-wrap { overflow-x: auto; border-radius: 14px; background: var(--tray); padding: 12px; }
+.keys { position: relative; height: 150px; min-width: 860px; }
+.key { position: absolute; top: 0; border-radius: 0 0 7px 7px; cursor: pointer; touch-action: none; }
+.key.w { height: 150px; background: var(--keyw); border: 1px solid #b9b2c2; z-index: 1; }
+.key.b { height: 92px; background: var(--keyb); border: 1px solid #000; z-index: 2; }
+.key.outer.w { background: #cfc8d6; }
+.key.held.w { background: var(--silk); box-shadow: inset 0 -6px 0 var(--violet); }
+.key.held.b { background: var(--violet); }
+.key i { position: absolute; bottom: 6px; left: 0; right: 0; text-align: center; font: 600 .62rem var(--ui); color: #6d6478; font-style: normal; }
+.start { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(13, 10, 19, .78); border-radius: 22px; z-index: 5; }
+.start div { display: grid; gap: 10px; justify-items: center; text-align: center; padding: 16px; max-width: 34ch; }
+.start p { margin: 0; color: var(--muted); }
+[hidden] { display: none !important; }
+.swipe { display: none; margin: -8px 0 0; color: var(--muted); font: 500 .85rem var(--ui); }
+@media (max-width: 1360px) { .swipe { display: block; } }
+
+/* under it */
+.below { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+@media (max-width: 800px) { .below { grid-template-columns: minmax(0, 1fr); } }
+section h2 { font: 700 1.05rem var(--ui); letter-spacing: .06em; text-transform: uppercase; margin: 0 0 6px; color: var(--bone); }
+section p, section li { color: var(--muted); max-width: 64ch; }
+section ul { margin: 0; padding-left: 1.1rem; display: grid; gap: 4px; }
+section b { color: var(--bone); font-weight: 600; }
+kbd { font: 600 .82em var(--mono); background: var(--body); border: 1px solid var(--rule); border-radius: 4px; padding: 0 .3em; color: var(--bone); }
+.midi { font: 400 .82rem/1.55 var(--mono); background: var(--tray); border: 1px solid var(--rule); border-radius: 12px; padding: 10px 12px;
+        min-height: 12.5em; max-height: 18em; overflow: auto; font-variant-numeric: tabular-nums; }
+.midi div { white-space: nowrap; color: var(--bone); }
+.midi div span { color: var(--muted); }
+.midi .empty { color: var(--muted); white-space: normal; }
+.inrow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+select { font: 500 .95rem var(--ui); color: var(--bone); background: var(--body); border: 1px solid var(--rule); border-radius: 8px;
+         padding: .35em .6em; max-width: 100%; }
+.heard { font: 400 .82rem var(--mono); color: var(--bone); min-height: 1.5em; margin: 0; overflow-wrap: anywhere;
+         white-space: pre; max-height: 15em; overflow: auto; }
+.learning { outline: 3px solid var(--amber) !important; outline-offset: 2px; }
+body.learn [data-learn] { cursor: crosshair; }
+/* phone width: last, so it wins over the rules above */
+@media (max-width: 560px) {
+  .device { padding: 12px; gap: 12px; }
+  .tray { padding: 10px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<main>
+  <header>
+    <h1>SPIDER</h1>
+    <p>the firmware for the M-VAVE SMK-37, running in your browser: the same code the keyboard runs</p>
+    <div class="hdr-actions">
+      <button id="boot" type="button" disabled title="Play the boot animation and its sound again">Boot again</button>
+      <button id="reset" type="button" title="Forget the projects saved in this browser and start from the factory settings">Factory reset</button>
+    </div>
+  </header>
+  <div class="status" id="status"><span id="state">Off. Sound starts when you switch it on.</span><span id="vol"></span><span id="cpu"></span></div>
+
+  <div class="frame"><div class="device" id="device">
+    <div class="top">
+      <div class="tray left">
+        <div class="wheels" aria-label="Wheels">
+          <div class="wheel"><input class="v" type="range" id="bend" min="-8192" max="8191" value="0" aria-label="Pitch wheel"><span class="label">Pitch</span></div>
+          <div class="wheel"><input class="v" type="range" id="modw" min="0" max="127" value="0" aria-label="Mod wheel: the DJ filter"><span class="label">Mod</span></div>
+        </div>
+        <div class="scrcol">
+          <canvas class="screen" id="screen" width="240" height="240" aria-label="The screen"></canvas>
+          <div class="nav" id="nav" aria-label="The buttons under the screen"></div>
+        </div>
+      </div>
+      <div class="tray middle">
+        <div class="knobs" id="knobs" aria-label="Knobs K1 to K8"></div>
+        <div class="pads" id="pads" aria-label="Pads 1 to 16"></div>
+      </div>
+      <div class="tray right">
+        <div class="faders" id="faders" aria-label="Faders"></div>
+        <div class="grid6" id="grid6" aria-label="Buttons"></div>
+      </div>
+    </div>
+    <div class="keys-wrap"><div class="keys" id="keys" aria-label="37 keys, C3 to C6"></div></div>
+    <div class="start" id="start"><div><button class="primary" id="go" type="button">Switch on</button>
+      <p>It boots as the keyboard does: the spider, its sound, the pads. Any key, pad or button skips it.</p></div></div>
+  </div></div>
+  <p class="swipe">The panel is as wide as the keyboard's: swipe it sideways.</p>
+
+  <div class="below">
+    <section id="midiin">
+      <h2>Play it from your keyboard</h2>
+      <p>Plug a MIDI keyboard into this computer by USB and play the page from it: your SMK-37 as it is now, on its own
+        firmware, works. Chrome or Edge on a computer.</p>
+      <div class="inrow">
+        <button id="midiGo" type="button">Use a MIDI keyboard</button>
+        <select id="midiPort" hidden aria-label="MIDI input"></select>
+        <button id="learn" type="button" hidden>Learn a control</button>
+        <button id="unlearn" type="button" hidden>Forget learned controls</button>
+        <button id="panic" type="button" hidden>Let go of everything</button>
+      </div>
+      <p id="midiState">Its keys play the keys, the wheels the wheels; pads sending notes 36–51 on channel 10 play the pads (36–43
+        the drums). For the rest, <b>Learn a control</b>: click a knob, fader, pad or button here, then move or press yours.</p>
+      <p class="heard" id="heard"></p>
+    </section>
+    <section>
+      <h2>MIDI out</h2>
+      <div class="midi" id="midi" aria-live="polite"><div class="empty">What SPIDER sends shows here (the clock left out). Press &lt; and &gt; together for DAW mode: the pads, knobs, faders, buttons and keys then send their notes and CCs.</div></div>
+    </section>
+    <section>
+      <h2>Playing it</h2>
+      <ul>
+        <li><b>Six tracks:</b> T1 the kit, T2 <b>mono</b> (after the SH-101), T3 <b>poly</b> (after the Juno-106), T4 <b>fm</b> (six operators, sixteen patches: electric pianos, basses, brass, bells, organ...), T5 <b>acid</b> (after the TB-303: velocity 110+ accents, a note held into the next slides), T6 samples (a break). <b>ALGORITHM</b> (K3) picks the track.</li>
+        <li><b>Sounds:</b> <b>PARA</b> opens the track's sound; <b>K4</b> (PRESETS) steps through its presets, auditioned as you go. On fm, K5 picks the patch, K6 makes it brighter or duller, K7 its decay longer or shorter, K8 spreads it (detune).</li>
+        <li><b>The keys</b> play the selected track on every page, Steps too (the pads are the steps there).</li>
+        <li><b>Pads 9–16</b> the kit's drums, whatever track is selected. <b>Pads 1–6</b> the tracks' mutes, <b>7</b> the throws (held: the conductor), <b>8</b> the effects: a tap opens the delay's page, another the reverb's, another goes back. On <b>SEQ</b> they are the bar's steps; <b>KNOB BANK</b> flips them to live pads.</li>
+        <li><b>Faders</b>, three banks (<b>FADER BANK</b> steps through them): the <b>macros</b> of the track you're playing, cutoff, resonance, delay and reverb (picked up: move a fader past the current value and it takes over); then the levels of T1–T4 (FADER BANK lit); then T5, T6, the effects and the master (blinking).</li>
+        <li><b>Mod wheel</b>: a DJ filter on the whole mix. Push it up and a low-pass closes over everything; hold <b>PATCH</b> (Shift) as you start moving it for a high-pass instead. Back down: off.</li>
+        <li><b>Hold a button</b> for a second for its help card, in the SMK's names.</li>
+        <li><b>Scroll over the screen</b> to move through a list or the pages (that's K2). The hints at the bottom of the screen use the SMK's names.</li>
+        <li><b>ARP</b> tapped: the selected track's arpeggiator on or off (lit). Held: its Players page (rate, pattern...).</li>
+        <li><b>NOTE REPEAT</b> tapped: repeat on or off (lit). Held, then a top pad: its rate. Held alone and let go: the LFO page.</li>
+        <li><b>Kits:</b> a new project starts on ACOUSTIC. With T1 (the kit) selected, <b>PARA</b> opens its Engine page; <b>SCALE</b> opens the list with <b>KIT</b> first: turn <b>K3</b> for ACOUSTIC, 909 or SYNTH, <b>SCALE</b> again puts it on.</li>
+        <li><b>&gt;</b> held: the pads fire the throws. <b>&lt;</b> <b>&gt;</b> the bar. Both together: DAW mode.</li>
+        <li><b>SEQ PLAY</b> plays, <b>SEQ REC</b> held with it records. <b>PATCH</b> is home, held the shift. <b>BT</b> saves.</li>
+        <li>Higher on a key or pad plays softer, lower plays harder. Drag knobs up and down, or scroll over them. Right-click a button to keep it held (again to let go).</li>
+        <li>Computer keys: pads 1–8 <kbd>1</kbd>–<kbd>8</kbd>, drums <kbd>Z</kbd> <kbd>X</kbd> <kbd>C</kbd> <kbd>V</kbd> <kbd>B</kbd> <kbd>N</kbd> <kbd>M</kbd> <kbd>,</kbd>; notes <kbd>A</kbd>–<kbd>;</kbd> with <kbd>W</kbd> <kbd>E</kbd> <kbd>T</kbd> <kbd>Y</kbd> <kbd>U</kbd> <kbd>O</kbd> <kbd>P</kbd>; <kbd>Space</kbd> play, <kbd>Enter</kbd> rec, <kbd>Q</kbd> note repeat, <kbd>Shift</kbd> patch, <kbd>←</kbd> <kbd>→</kbd> &lt; &gt;, <kbd>↑</kbd> <kbd>↓</kbd> select, <kbd>-</kbd> <kbd>=</kbd> octave.</li>
+      </ul>
+      <p>Projects you save stay in this browser. It runs at the browser's frame rate, so the boot looks smoother here than on the keyboard.</p>
+    </section>
+  </div>
+</main>
+
+<script>
+"use strict";
+const BTN = { FX: 0, SEL: 1, ENV: 2, LFO: 3, EDIT: 4, GLO: 5, HOME: 6, SAVE: 7, ARP: 8, SEQ: 9, PLAY: 10, REC: 11, "OCT-": 12, "OCT+": 13 };
+const SB = { KNOBBANK: 0, FADERBANK: 1, LEFT: 2, RIGHT: 3 };
+const ENC = { SELECT: 0, ALGORITHM: 1, PRESETS: 2, KNOB1: 3, KNOB2: 4, KNOB3: 5, KNOB4: 6 };
+const STORE_KEY = "spider-emu-store";
+const INK = ["#d62c40", "#e87034", "#e4b652", "#8eca5c", "#48b6a2", "#688ee8", "#a468e8", "#de70c0"];
+let node = null, btnMask = 0, latched = 0, smkMask = 0, smkLatched = 0;
+const btnHeld = new Map(), smkHeld = new Map();
+function send(m) { if (node) node.port.postMessage(m); }
+
+// ---------------------------------------------------------------- the buttons (printed name -> the FM-1's)
+const btnEls = {};
+function mkBtn(parent, printed, job, bit, smk) {
+  const b = document.createElement("div");
+  b.className = "btn ctl"; b.tabIndex = 0; b.setAttribute("role", "button");
+  b.dataset.learn = (smk ? "smk:" : "btn:") + bit; b.dataset.name = printed;
+  const esc = (t) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  b.innerHTML = `${esc(printed)}${job ? `<small>${esc(job)}</small>` : ""}`;
+  b.setAttribute("aria-label", printed + (job ? ": " + job : ""));
+  parent.appendChild(b);
+  (smk ? smkEls : btnEls)[bit] = b;
+  b.addEventListener("contextmenu", (e) => e.preventDefault());
+  b.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    if (e.button === 2) { toggleLatch(smk, bit); return; }          // (right-click: held. Not Shift-click: Shift is PATCH)
+    if ((smk ? smkLatched : latched) & (1 << bit)) { toggleLatch(smk, bit); return; }
+    b.setPointerCapture(e.pointerId);
+    (smk ? smkHeld : btnHeld).set("p" + e.pointerId, bit);
+    sync();
+  });
+  b.addEventListener("keydown", (e) => { if ((e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); e.stopPropagation(); (smk ? smkHeld : btnHeld).set("f" + bit, bit); sync(); } });
+  b.addEventListener("keyup", (e) => { if (e.key === " " || e.key === "Enter") { e.stopPropagation(); (smk ? smkHeld : btnHeld).delete("f" + bit); sync(); } });
+  return b;
+}
+const smkEls = {};
+function toggleLatch(smk, bit) { if (smk) smkLatched ^= 1 << bit; else latched ^= 1 << bit; sync(); }
+// the 2 x 6 under the faders, as printed on the SMK (its name, then what it does in SPIDER)
+const ROW1 = [["ARP", "on / off · players", "ARP"], ["NOTE REPEAT", "repeat / LFO", "LFO"], ["SCALE", "select", "SEL"], ["CHORD", "envelopes", "ENV"],
+              ["GLOBE", "global", "GLO"], ["BT", "save", "SAVE"]];
+const ROW2 = [["PATCH", "home · shift", "HOME"], ["PARA", "sound", "EDIT"], ["FX", "", "FX"], ["SEQ", "steps", "SEQ"],
+              ["SEQ PLAY", "play", "PLAY"], ["SEQ REC", "rec", "REC"]];
+const grid6 = document.getElementById("grid6");
+for (const [p, j, n] of [...ROW1, ...ROW2]) mkBtn(grid6, p, j, BTN[n]);
+// the six under the screen, two a row
+const nav = document.getElementById("nav");
+mkBtn(nav, "KNOB BANK", "pads", SB.KNOBBANK, true);
+mkBtn(nav, "FADER BANK", "macros · T1-4 · T5-6", SB.FADERBANK, true);
+mkBtn(nav, "<", "bar", SB.LEFT, true);
+mkBtn(nav, ">", "bar · throws", SB.RIGHT, true);
+mkBtn(nav, "OCTAVE −", "", BTN["OCT-"]);
+mkBtn(nav, "OCTAVE +", "", BTN["OCT+"]);
+
+function sync() {
+  let m = latched, s = smkLatched;
+  for (const b of btnHeld.values()) m |= 1 << b;
+  for (const b of smkHeld.values()) s |= 1 << b;
+  if (m !== btnMask) { btnMask = m; send({ type: "buttons", mask: m }); }
+  if (s !== smkMask) { smkMask = s; send({ type: "smk", mask: s }); }
+  for (const [bit, el] of Object.entries(btnEls)) { el.classList.toggle("held", !!(m & (1 << bit))); el.classList.toggle("latched", !!(latched & (1 << bit))); }
+  for (const [bit, el] of Object.entries(smkEls)) { el.classList.toggle("held", !!(s & (1 << bit))); el.classList.toggle("latched", !!(smkLatched & (1 << bit))); }
+}
+
+// ---------------------------------------------------------------- knobs: K1 the volume (a knob of SPIDER's own in DAW mode)
+const KNOBS = [["K1", "volume", "k1"], ["K2", "page", ENC.SELECT], ["K3", "track", ENC.ALGORITHM], ["K4", "sound", ENC.PRESETS],
+               ["K5", "", ENC.KNOB1], ["K6", "", ENC.KNOB2], ["K7", "", ENC.KNOB3], ["K8", "", ENC.KNOB4]];
+const knobs = {};
+const knobBox = document.getElementById("knobs");
+KNOBS.forEach(([name, job, role], i) => {
+  const w = document.createElement("div");
+  w.className = "knob";
+  w.innerHTML = `<div class="dial ctl" tabindex="0" role="slider" aria-label="${name}: ${job}" aria-valuetext="turn with the arrow keys"></div><span class="name">${name}</span><span class="job">${job}</span>`;
+  knobBox.appendChild(w);
+  const d = w.querySelector(".dial");
+  d.dataset.learn = "knob:" + name; d.dataset.name = name;
+  if (i >= 4) d.style.setProperty("--knob-ink", INK[[2, 3, 5, 6][i - 4]]);
+  const k = knobs[name] = { d, role, a: 0 };
+  let drag = null, wheel = 0;
+  d.addEventListener("pointerdown", (e) => { e.preventDefault(); d.setPointerCapture(e.pointerId); drag = { y: e.clientY, acc: 0 }; });
+  d.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    drag.acc += drag.y - e.clientY; drag.y = e.clientY;
+    const n = Math.trunc(drag.acc / 7);
+    if (n) { drag.acc -= n * 7; turn(k, n); }
+  });
+  const end = () => { drag = null; };
+  d.addEventListener("pointerup", end); d.addEventListener("pointercancel", end);
+  d.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const dy = e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY;
+    if (Math.abs(dy) >= 50) { turn(k, dy < 0 ? 1 : -1); wheel = 0; return; }
+    wheel -= dy; const n = Math.trunc(wheel / 25);
+    if (n) { wheel -= n * 25; turn(k, n); }
+  }, { passive: false });
+  d.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowUp" || e.key === "ArrowRight") { turn(k, 1); e.preventDefault(); e.stopPropagation(); }
+    if (e.key === "ArrowDown" || e.key === "ArrowLeft") { turn(k, -1); e.preventDefault(); e.stopPropagation(); }
+  });
+});
+function turn(k, n) {
+  if (!n) return;
+  k.a = (k.a + n * 18) % 360;
+  k.d.style.setProperty("--a", k.a + "deg");
+  if (k.role === "k1") send({ type: "k1", n }); else send({ type: "enc", role: k.role, n });
+}
+
+// ---------------------------------------------------------------- faders and wheels
+const faderBox = document.getElementById("faders");
+for (let f = 0; f < 4; f++) {
+  const w = document.createElement("div");
+  w.className = "wheel";
+  w.innerHTML = `<input class="v" type="range" id="fader${f}" min="0" max="127" value="0" aria-label="Fader ${f + 1}"><span class="label">${f + 1}</span>`;
+  faderBox.appendChild(w);
+  const fi = w.querySelector("input");
+  fi.dataset.learn = "fader:" + f; fi.dataset.name = "fader " + (f + 1);
+  fi.addEventListener("input", (e) => send({ type: "fader", f, v: +e.target.value }));
+}
+const bend = document.getElementById("bend");
+bend.dataset.learn = "bend"; bend.dataset.name = "the pitch wheel";
+Object.assign(document.getElementById("modw").dataset, { learn: "modw", name: "the mod wheel" });
+bend.addEventListener("input", () => send({ type: "bend", v: +bend.value }));
+const springBack = () => { bend.value = 0; send({ type: "bend", v: 0 }); };
+bend.addEventListener("pointerup", springBack); bend.addEventListener("change", springBack); bend.addEventListener("blur", springBack);
+document.getElementById("modw").addEventListener("input", (e) => send({ type: "modw", v: +e.target.value }));
+
+// ---------------------------------------------------------------- pads (0..7 the top row)
+const padEls = [], padHeld = new Map();
+const padBox = document.getElementById("pads");
+for (let p = 0; p < 16; p++) {
+  const d = document.createElement("div");
+  d.className = "pad ctl"; d.tabIndex = -1; d.setAttribute("role", "button");
+  d.dataset.learn = "pad:" + p; d.dataset.name = "pad " + (p + 1);
+  d.setAttribute("aria-label", p < 8 ? (p === 7 ? "Pad 8: the delay and reverb pages" : `Pad ${p + 1}: mute ${["T1", "T2", "T3", "T4", "T5", "T6", "the throws"][p]}`) : `Pad ${p + 1}: drum ${p - 7}`);
+  d.innerHTML = `<span>${p + 1}</span>`;
+  padBox.appendChild(d); padEls.push(d);
+  d.addEventListener("pointerdown", (e) => {
+    e.preventDefault(); d.setPointerCapture(e.pointerId);
+    const r = d.getBoundingClientRect(), vel = Math.max(1, Math.min(127, Math.round(35 + 92 * (e.clientY - r.top) / r.height)));
+    padDown("p" + e.pointerId, p, vel);
+  });
+}
+function padDown(id, p, vel) { if (padHeld.has(id)) return; padHeld.set(id, p); padEls[p].classList.add("held"); send({ type: "pad", p, vel }); }
+function padUp(id) {
+  if (!padHeld.has(id)) return;
+  const p = padHeld.get(id); padHeld.delete(id);
+  if (![...padHeld.values()].includes(p)) { padEls[p].classList.remove("held"); send({ type: "pad", p, vel: 0 }); }
+}
+function lift(v) { return Math.round(255 * Math.pow(v / 255, 0.55)); }   // (an LED's low levels, made visible on a screen)
+function drawPads(rgb) {
+  for (let p = 0; p < 16; p++) {
+    const c = rgb[p] >>> 0, r = c >> 16 & 255, g = c >> 8 & 255, b = c & 255, m = Math.max(r, g, b);
+    padEls[p].style.setProperty("--pad", m ? `rgb(${lift(r)} ${lift(g)} ${lift(b)})` : "#241e2c");
+    padEls[p].style.setProperty("--glow", m > 120 ? "14px" : m ? "5px" : "0px");
+  }
+}
+
+// ---------------------------------------------------------------- 37 keys, C3 (48) to C6 (84): F3..G5 the FM-1's 27, the rest the outer ten
+const keyBox = document.getElementById("keys"), keyEls = {}, keyHeld = new Map();
+const BLACK = new Set([1, 3, 6, 8, 10]), NAMES = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"];
+(function layout() {
+  const whites = [];
+  for (let n = 48; n <= 84; n++) if (!BLACK.has(n % 12)) whites.push(n);
+  const W = 100 / whites.length;
+  let wi = 0;
+  for (let n = 48; n <= 84; n++) {
+    const d = document.createElement("div"), black = BLACK.has(n % 12);
+    d.className = "key ctl " + (black ? "b" : "w") + (n < 53 || n > 79 ? " outer" : "");
+    d.setAttribute("aria-label", `${NAMES[n % 12]}${Math.floor(n / 12) - 1}`);
+    if (black) Object.assign(d.style, { left: `calc(${wi * W}% - ${W * 0.3}%)`, width: `${W * 0.6}%` });
+    else { Object.assign(d.style, { left: `${wi * W}%`, width: `${W}%` }); if (n % 12 === 0) d.innerHTML = `<i>C${Math.floor(n / 12) - 1}</i>`; wi++; }
+    keyBox.appendChild(d); keyEls[n] = d;
+    d.addEventListener("pointerdown", (e) => {
+      e.preventDefault(); d.setPointerCapture(e.pointerId);
+      const r = d.getBoundingClientRect(), vel = Math.max(1, Math.min(127, Math.round(30 + 97 * (e.clientY - r.top) / r.height)));
+      noteDown("p" + e.pointerId, n, vel);
+    });
+  }
+})();
+function noteSend(n, vel) {
+  if (n >= 53 && n <= 79) send({ type: "key", k: n - 53, vel });
+  else send({ type: "outer", k: n < 53 ? n - 48 : 5 + n - 80, vel });
+}
+function noteDown(id, n, vel) { if (keyHeld.has(id)) return; keyHeld.set(id, n); keyEls[n].classList.add("held"); noteSend(n, vel); }
+function noteUp(id) {
+  if (!keyHeld.has(id)) return;
+  const n = keyHeld.get(id); keyHeld.delete(id);
+  if (![...keyHeld.values()].includes(n)) { keyEls[n].classList.remove("held"); noteSend(n, 0); }
+}
+function pointerUp(e) {
+  const id = "p" + e.pointerId;
+  if (btnHeld.delete(id) | smkHeld.delete(id)) sync();
+  padUp(id); noteUp(id);
+}
+const device = document.getElementById("device");
+device.addEventListener("pointerup", pointerUp);
+device.addEventListener("pointercancel", pointerUp);
+device.addEventListener("lostpointercapture", pointerUp);
+
+// ---------------------------------------------------------------- the computer's keys
+const NOTEKEYS = { KeyA: 60, KeyW: 61, KeyS: 62, KeyE: 63, KeyD: 64, KeyF: 65, KeyT: 66, KeyG: 67, KeyY: 68, KeyH: 69, KeyU: 70, KeyJ: 71,
+                   KeyK: 72, KeyO: 73, KeyL: 74, KeyP: 75, Semicolon: 76 };
+const PADKEYS = { Digit1: 0, Digit2: 1, Digit3: 2, Digit4: 3, Digit5: 4, Digit6: 5, Digit7: 6, Digit8: 7,
+                  KeyZ: 8, KeyX: 9, KeyC: 10, KeyV: 11, KeyB: 12, KeyN: 13, KeyM: 14, Comma: 15 };
+const BTNKEYS = { Space: BTN.PLAY, Enter: BTN.REC, KeyQ: BTN.LFO, ShiftLeft: BTN.HOME, ShiftRight: BTN.HOME, Minus: BTN["OCT-"], Equal: BTN["OCT+"] };
+const SMKKEYS = { ArrowLeft: SB.LEFT, ArrowRight: SB.RIGHT };
+addEventListener("keydown", (e) => {
+  if (!node || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.target.closest && e.target.closest("input, button")) return;   // (a slider's arrows, a button's Enter)
+  const c = e.code;
+  if (c === "ArrowUp" || c === "ArrowDown") { turn(knobs.K2, c === "ArrowUp" ? 1 : -1); e.preventDefault(); return; }
+  if (!(c in NOTEKEYS || c in PADKEYS || c in BTNKEYS || c in SMKKEYS)) return;
+  e.preventDefault();
+  if (e.repeat) return;
+  if (c in NOTEKEYS) noteDown("k" + c, NOTEKEYS[c], 100);
+  else if (c in PADKEYS) padDown("k" + c, PADKEYS[c], 100);
+  else if (c in BTNKEYS) { btnHeld.set("k" + c, BTNKEYS[c]); sync(); }
+  else { smkHeld.set("k" + c, SMKKEYS[c]); sync(); }
+});
+addEventListener("keyup", (e) => {
+  const id = "k" + e.code;
+  noteUp(id); padUp(id);
+  if (btnHeld.delete(id) | smkHeld.delete(id)) sync();
+});
+addEventListener("blur", () => {
+  for (const id of [...keyHeld.keys()]) if (id[0] === "k") noteUp(id);
+  for (const id of [...padHeld.keys()]) if (id[0] === "k") padUp(id);
+  for (const m of [btnHeld, smkHeld]) for (const id of [...m.keys()]) if (id[0] === "k") m.delete(id);
+  sync();
+});
+
+// ---------------------------------------------------------------- a MIDI keyboard plugged into this computer (Web MIDI)
+// Notes play the keys (folded into C3..C6); notes 36..51 on channel 10 the pads (36..43 the bottom row, the drums);
+// pitch bend the pitch wheel, CC 1 the mod wheel. Anything else is learned: a control clicked here, then the first
+// note or CC that comes in is its (kept in this browser). A learned CC on a knob: relative if it sends 1 / 127 or
+// 63 / 65 again and again, else the change from its last value
+const MAP_KEY = "spider-emu-midimap";
+let midiMap = {};
+try { midiMap = JSON.parse(localStorage.getItem(MAP_KEY) || "{}") || {}; } catch { midiMap = {}; }
+// (an older page let the mod wheel's restless CC 1 be learned onto whatever was clicked, and had no built-in map: once,
+// the CC 1 ones go, and so do those on the CCs the built-in map (below) already knows)
+const MAP_V = "spider-emu-midimap-v2";
+try {
+  if (!localStorage.getItem(MAP_V)) {
+    const builtin = new Set([1, ...Array.from({ length: 8 }, (_, i) => 70 + i), ...Array.from({ length: 8 }, (_, i) => 102 + i),
+      ...Array.from({ length: 8 }, (_, i) => 20 + i), 110, 111, 112, 113, 114, 115, 117, 118, 119, 85, 86, 87, 88]);
+    for (const k of Object.keys(midiMap)) { const m = /^c\d+:(\d+)$/.exec(k); if (m && builtin.has(+m[1])) delete midiMap[k]; }
+    localStorage.setItem(MAP_KEY, JSON.stringify(midiMap));
+    localStorage.setItem(MAP_V, "1");
+  }
+} catch { /* this visit only */ }
+let midiAccess = null, learnEl = null;
+const ccLast = {}, ccMode = {};
+const midiGo = document.getElementById("midiGo"), midiPort = document.getElementById("midiPort");
+const learnBtn = document.getElementById("learn"), unlearnBtn = document.getElementById("unlearn");
+const midiState = document.getElementById("midiState"), heard = document.getElementById("heard");
+const panicBtn = document.getElementById("panic");
+function saveMap() { try { localStorage.setItem(MAP_KEY, JSON.stringify(midiMap)); } catch { /* this visit only */ } }
+function targetName(t) {
+  const el = document.querySelector(`[data-learn="${t}"]`);
+  return el ? el.dataset.name : t;
+}
+function learnStop(msg) {
+  if (learnEl) learnEl.classList.remove("learning");
+  learnEl = null;
+  document.body.classList.remove("learn");
+  learnBtn.textContent = "Learn a control";
+  if (msg) midiState.textContent = msg;
+}
+learnBtn.addEventListener("click", () => {
+  if (document.body.classList.contains("learn")) { learnStop("Learning stopped."); return; }
+  document.body.classList.add("learn");
+  learnBtn.textContent = "Stop learning";
+  midiState.textContent = "Click a knob, fader, pad, button or wheel on this page.";
+});
+unlearnBtn.addEventListener("click", () => {
+  midiMap = {}; saveMap();
+  learnStop("Learned controls forgotten: notes play the keys again.");
+});
+document.addEventListener("pointerdown", (e) => {               // learning: a click picks a control, it does not play it
+  if (!document.body.classList.contains("learn")) return;
+  const el = e.target.closest && e.target.closest("[data-learn]");
+  if (!el) return;
+  e.preventDefault(); e.stopPropagation();
+  if (learnEl) learnEl.classList.remove("learning");
+  learnEl = el; el.classList.add("learning");
+  midiState.textContent = `Now move or press the control on your keyboard for ${el.dataset.name}.`;
+}, true);
+const learnSeen = {};
+function learnTake(key, isNote, v) {                             // the message that came in, for the control picked
+  const t = learnEl.dataset.learn;
+  if (!isNote) {                                                 // a CC: only once it has moved 4 or more since it was
+    if (/^c\d+:1$/.test(key) && t !== "modw") return false;      // first heard while learning (the mod wheel's CC 1 never,
+    if (!(key in learnSeen)) { learnSeen[key] = v; if (v !== 127 && v !== 0) return false; }   // but for the wheel)
+    else if (Math.abs(v - learnSeen[key]) < 4 && v !== 127 && v !== 0) return false;
+  }
+  if (isNote && !/^(pad|btn|smk):/.test(t)) return false;        // (a knob, fader or wheel waits for a CC)
+  if (t === "bend") return false;                                // (the pitch wheel is pitch bend: nothing to learn)
+  for (const k of Object.keys(midiMap)) if (midiMap[k] === t) delete midiMap[k];
+  midiMap[key] = t; saveMap();
+  const [kind, ch, num] = /^(n|c)(\d+):(\d+)$/.exec(key).slice(1);
+  learnStop(`${learnEl.dataset.name} ← ${kind === "n" ? "note" : "CC"} ${num}, channel ${+ch + 1}. Learn another, or play.`);
+  for (const k of Object.keys(learnSeen)) delete learnSeen[k];
+  return true;
+}
+// An SMK on Snoop37 (or SPIDER) in DAW mode, its DEFAULT map: knobs CC 70-77 (bank B 102-109), faders CC 20-23
+// (24-27), buttons CC 127 held / 0 let go, on any channel; pads notes 36-67 on channel 10 (the lot below). A control
+// learned here comes first
+const ccDir = {};
+function jitter(key, v) {                                        // a wheel or fader resting between two values: 24 25 24 ..
+  const last = ccLast[key], d = last === undefined ? 0 : v - last;
+  if (!d && last !== undefined) return true;
+  if (Math.abs(d) === 1 && ccDir[key] && Math.sign(d) !== ccDir[key]) return true;
+  if (d) ccDir[key] = Math.sign(d);
+  ccLast[key] = v;
+  return false;
+}
+const DAW_CC = {};
+for (let i = 0; i < 8; i++) DAW_CC[70 + i] = DAW_CC[102 + i] = "knob:" + KNOBS[i][0];
+for (let f = 0; f < 4; f++) DAW_CC[20 + f] = DAW_CC[24 + f] = "fader:" + f;
+Object.assign(DAW_CC, { 110: "smk:" + SB.LEFT, 111: "smk:" + SB.RIGHT, 115: "btn:" + BTN.PLAY, 117: "btn:" + BTN.REC,
+  112: "btn:" + BTN.SEQ, 113: "btn:" + BTN.FX, 114: "btn:" + BTN.EDIT, 118: "btn:" + BTN.ARP, 119: "btn:" + BTN.LFO,
+  85: "btn:" + BTN.SEL, 86: "btn:" + BTN.ENV, 87: "btn:" + BTN.GLO, 88: "btn:" + BTN.SAVE });
+function ccTurns(key, v) {                                       // a knob's detents from one CC message
+  const last = ccLast[key];
+  ccLast[key] = v;
+  if (!ccMode[key] && last === v && (v === 1 || v === 127)) ccMode[key] = "twos";
+  if (!ccMode[key] && last === v && (v === 63 || v === 65)) ccMode[key] = "off64";
+  if (ccMode[key] === "twos") return v < 64 ? v : v - 128;
+  if (ccMode[key] === "off64") return v - 64;
+  return last === undefined ? 0 : v - last;
+}
+function midiControl(t, id, on, v) {                             // a mapped control: on/off with a velocity, or a CC value
+  const [kind, arg] = t.split(":");
+  if (kind === "pad") { if (on) padDown(id, +arg, Math.max(1, v)); else padUp(id); }
+  else if (kind === "btn" || kind === "smk") {
+    const m = kind === "btn" ? btnHeld : smkHeld;
+    if (on) m.set(id, +arg); else m.delete(id);
+    sync();
+  }
+}
+const inLines = [];
+let inLast = "", inRep = 0;
+function logIn(t) {                                              // the last 40 messages in, a repeat counted not listed
+  if (t === inLast) inLines[0] = `${t}  ×${++inRep + 1}`;
+  else { inLast = t; inRep = 0; inLines.unshift(t); inLines.length = Math.min(inLines.length, 40); }
+  heard.textContent = "in:\n" + inLines.join("\n");
+}
+function kind0(t) { return t.split(":")[0]; }
+function inTo(name) {                                            // the newest line: the control it reached
+  if (!inRep && inLines.length) { inLines[0] += `  → ${name}`; heard.textContent = "in:\n" + inLines.join("\n"); }
+}
+function letGo() {                                               // every note, pad and button the keyboard holds, let go
+  for (const id of [...keyHeld.keys()]) if (id[0] === "m") noteUp(id);
+  for (const id of [...padHeld.keys()]) if (id[0] === "m") padUp(id);
+  for (const m of [btnHeld, smkHeld]) for (const id of [...m.keys()]) if (id[0] === "m") m.delete(id);
+  sync();
+}
+function onMidi(data) {
+  const st = data[0], d1 = data[1] || 0, d2 = data[2] || 0, ty = st & 0xF0, ch = st & 15;
+  if (st >= 0xF0) return;                                        // (clock, sense, SysEx)
+  logIn(`${[st, d1, d2].map((x) => x.toString(16).toUpperCase().padStart(2, "0")).join(" ")}  ch ${String(ch + 1).padStart(2)}  ` +
+    (ty === 0x90 && d2 ? `note on  ${d1} vel ${d2}` : ty === 0x80 || ty === 0x90 ? `note off ${d1}` :
+     ty === 0xB0 ? `CC ${d1} = ${d2}` : ty === 0xE0 ? `pitch bend ${((d2 << 7) | d1) - 8192}` :
+     ty === 0xD0 ? `aftertouch ${d1} (ignored)` : ty === 0xA0 ? `poly aftertouch ${d1} ${d2} (ignored)` :
+     ty === 0xC0 ? `program ${d1} (ignored)` : ""));
+  if (ty === 0xB0 && (d1 === 120 || d1 === 123)) return letGo();  // (all sound off, all notes off)
+  if (ty === 0x90 || ty === 0x80) {
+    const on = ty === 0x90 && d2 > 0, key = `n${ch}:${d1}`, id = "m" + key;
+    if (on && learnEl && learnTake(key, true, d2)) return;
+    if (midiMap[key]) { inTo(targetName(midiMap[key]) + " (learned)"); return midiControl(midiMap[key], id, on, d2); }
+    if (ch === 9 && d1 >= 36 && d1 <= 67) {                     // pads: 36-43 / 52-59 the bottom row, 44-51 / 60-67 the top
+      const r = (d1 - 36) % 16;
+      return midiControl("pad:" + (r < 8 ? r + 8 : r - 8), id, on, d2);
+    }
+    let n = d1;
+    while (n < 48) n += 12;
+    while (n > 84) n -= 12;
+    if (on) noteDown(id, n, d2); else noteUp(id);
+  } else if (ty === 0xB0) {
+    const key = `c${ch}:${d1}`;
+    if (learnEl && learnTake(key, false, d2)) return;
+    const t = midiMap[key] || (d1 === 1 ? "modw" : DAW_CC[d1] || null);
+    if (!t) return inTo("nothing");
+    if (kind0(t) !== "fader" && kind0(t) !== "modw") inTo(targetName(t) + (midiMap[key] ? " (learned)" : ""));
+    const [kind, arg] = t.split(":");
+    if (kind === "knob") {
+      const n = ccTurns(key, d2);
+      if (n) turn(knobs[arg], n);
+    } else if (kind === "fader") {
+      if (jitter(key, d2)) return inTo("(jitter, ignored)");
+      inTo(targetName(t) + (midiMap[key] ? " (learned)" : ""));
+      const el = document.getElementById("fader" + arg);
+      el.value = d2; send({ type: "fader", f: +arg, v: d2 });
+    } else if (kind === "modw") {
+      if (jitter(key, d2)) return inTo("(jitter, ignored)");
+      inTo(targetName(t) + (midiMap[key] ? " (learned)" : ""));
+      const el = document.getElementById("modw");
+      el.value = d2; send({ type: "modw", v: d2 });
+    } else midiControl(t, "m" + key, d2 >= 64, d2 >= 64 ? 100 : 0);
+  } else if (ty === 0xE0) {
+    const v = ((d2 << 7) | d1) - 8192;
+    bend.value = v; send({ type: "bend", v });
+  }
+}
+function midiPorts() {
+  const ins = midiAccess ? [...midiAccess.inputs.values()] : [];
+  const keep = midiPort.value;
+  midiPort.innerHTML = "";
+  for (const i of ins) midiPort.add(new Option(i.name || "MIDI input", i.id));
+  if (ins.length > 1) midiPort.add(new Option("All of them", "*"), 0);
+  const named = ins.filter((i) => /smk|spider|m-?vave|felucca|sloop/i.test(i.name || ""));
+  const smk = named.find((i) => !/midiin\s*\d|port\s*2|\b2\)?$/i.test(i.name || "")) || named[0];
+  midiPort.value = [...midiPort.options].some((o) => o.value === keep) ? keep : smk ? smk.id : ins.length ? midiPort.options[0].value : "";
+  midiPort.hidden = !ins.length;
+  learnBtn.hidden = unlearnBtn.hidden = panicBtn.hidden = !ins.length;
+  midiListen();
+  if (!ins.length) midiState.textContent = "No MIDI keyboard found: plug it in by USB (it shows up here when it is).";
+  else if (!document.body.classList.contains("learn") && !learnEl)
+    midiState.textContent = (node ? "Listening. " : "Listening: switch SPIDER on to hear it. ") +
+      "An SMK in Snoop37's or SPIDER's DAW mode plays it as it is: keys, wheels, knobs, faders, pads and its 13 buttons. " +
+      "PATCH, KNOB BANK, FADER BANK and OCTAVE send nothing in DAW mode: click those here (Shift is PATCH)." +
+      (Object.keys(midiMap).length ? ` ${Object.keys(midiMap).length} learned control(s) override that: ` +
+        "if anything acts oddly, Forget learned controls." : "");
+}
+function midiListen() {
+  for (const i of midiAccess.inputs.values()) i.onmidimessage = midiPort.value === "*" || midiPort.value === i.id ? (e) => onMidi(e.data) : null;
+  letGo();
+}
+midiPort.addEventListener("change", midiListen);
+panicBtn.addEventListener("click", letGo);
+midiGo.addEventListener("click", async () => {
+  if (!navigator.requestMIDIAccess) {
+    midiState.textContent = "This browser has no MIDI (Safari, and phones, don't). Chrome or Edge on a computer do.";
+    return;
+  }
+  midiGo.disabled = true;
+  try {
+    midiAccess = await navigator.requestMIDIAccess({ sysex: false });
+    midiAccess.onstatechange = midiPorts;
+    midiGo.hidden = true;
+    midiPorts();
+  } catch (err) {
+    midiGo.disabled = false;
+    midiState.textContent = `MIDI was refused here (${err && err.name || err}). If you said yes to the browser's question, ` +
+      "the page host may block MIDI: the same page on a web address of its own (GitHub Pages) would not.";
+  }
+});
+
+// ---------------------------------------------------------------- the screen, the lights, the MIDI it sends
+const ctx = document.getElementById("screen").getContext("2d"), img = ctx.createImageData(240, 240);
+// the mouse wheel (or two fingers) over the screen: K2, SELECT, a detent a notch (up the list's up), as on the unit
+{
+  const scr = document.getElementById("screen");
+  let acc = 0;
+  scr.title = "Scroll here: K2 (move through a list or the pages)";
+  scr.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const dy = e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY;
+    if (Math.abs(dy) >= 50) { turn(knobs.K2, dy > 0 ? 1 : -1); acc = 0; return; }
+    acc += dy; const n = Math.trunc(acc / 25);
+    if (n) { acc -= n * 25; turn(knobs.K2, n); }
+  }, { passive: false });
+}
+function drawScreen(fbuf) {
+  const d = img.data;
+  for (let i = 0; i < 240 * 240; i++) {
+    const v = fbuf[i], p = ((v >> 8) | (v << 8)) & 0xFFFF;
+    d[i * 4] = ((p >> 11) & 31) * 255 / 31; d[i * 4 + 1] = ((p >> 5) & 63) * 255 / 63; d[i * 4 + 2] = (p & 31) * 255 / 31; d[i * 4 + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+}
+function drawLights(b, s) {
+  for (const [bit, el] of Object.entries(btnEls)) el.classList.toggle("lit", !!(b & (1 << bit)));
+  for (const [bit, el] of Object.entries(smkEls)) el.classList.toggle("lit", !!(s & (1 << bit)));
+}
+const midiBox = document.getElementById("midi"), midiLines = [];
+const NOTE = (n) => `${NAMES[n % 12]}${Math.floor(n / 12) - 1}`;
+function midiText(pkt) {
+  const st = pkt >>> 8 & 255, d1 = pkt >>> 16 & 127, d2 = pkt >>> 24 & 127, ch = (st & 15) + 1, ty = st & 0xF0;
+  const raw = `<span>${[st, d1, d2].map((x) => x.toString(16).toUpperCase().padStart(2, "0")).join(" ")}</span>`;
+  if (st === 0xF8 || st === 0xFE) return null;
+  if (st === 0xFA) return `${raw}  start`;
+  if (st === 0xFB) return `${raw}  continue`;
+  if (st === 0xFC) return `${raw}  stop`;
+  if (ty === 0x90 && d2) return `${raw}  ch ${String(ch).padStart(2)}  note on   ${String(d1).padStart(3)} ${NOTE(d1).padEnd(4)} vel ${d2}`;
+  if (ty === 0x80 || ty === 0x90) return `${raw}  ch ${String(ch).padStart(2)}  note off  ${String(d1).padStart(3)} ${NOTE(d1)}`;
+  if (ty === 0xB0) return `${raw}  ch ${String(ch).padStart(2)}  CC ${String(d1).padStart(3)} = ${d2}`;
+  if (ty === 0xE0) return `${raw}  ch ${String(ch).padStart(2)}  pitch bend ${((d2 << 7) | d1) - 8192}`;
+  if (ty === 0xC0) return `${raw}  ch ${String(ch).padStart(2)}  program ${d1}`;
+  return raw;
+}
+function logMidi(pkts) {
+  let added = false;
+  for (const p of pkts) { const t = midiText(p); if (t) { midiLines.unshift(t); added = true; } }
+  if (!added) return;
+  midiLines.length = Math.min(midiLines.length, 40);
+  midiBox.innerHTML = midiLines.map((l) => `<div>${l}</div>`).join("");
+}
+
+// ---------------------------------------------------------------- storage
+function loadStore() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORE_KEY) || "{}"), out = {};
+    for (const [o, b64] of Object.entries(raw)) out[o] = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)).buffer;
+    return out;
+  } catch { return {}; }
+}
+function saveStore(store) {
+  try {
+    const raw = {};
+    for (const [o, u8] of Object.entries(store)) { let s = ""; for (const c of u8) s += String.fromCharCode(c); raw[o] = btoa(s); }
+    localStorage.setItem(STORE_KEY, JSON.stringify(raw));
+  } catch { /* storage unavailable: this visit only */ }
+}
+
+// ---------------------------------------------------------------- switching on
+const state = document.getElementById("state"), cpu = document.getElementById("cpu"), vol = document.getElementById("vol");
+async function switchOn() {
+  const go = document.getElementById("go");
+  go.disabled = true; go.textContent = "Starting…";
+  try {
+    const ac = new AudioContext({ sampleRate: 44100, latencyHint: "interactive" });
+    const [wasm] = await Promise.all([
+      fetch("app.wasm").then((r) => { if (!r.ok) throw new Error(`the firmware (app.wasm) did not load: ${r.status}`); return r.arrayBuffer(); }),
+      ac.audioWorklet.addModule("worklet.js")]);
+    node = new AudioWorkletNode(ac, "spider", { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2] });
+    node.connect(ac.destination);
+    await new Promise((res, rej) => {
+      node.port.onmessage = (e) => {
+        const m = e.data;
+        if (m.type === "ready") res();
+        else if (m.type === "error") rej(new Error(m.message));
+        else if (m.type === "frame") {
+          if (m.fb) drawScreen(m.fb);
+          drawLights(m.buttons, m.smk);
+          drawPads(m.pads);
+          if (m.midi) logMidi(m.midi);
+          vol.textContent = `Volume ${Math.round(100 * m.volume / 4096)}%`;
+          if (m.load !== undefined) cpu.textContent = `SPIDER uses ${m.load}% of this computer's time`;
+          if (m.store) saveStore(m.store);
+          window.spiderLast = m;
+        }
+      };
+      node.port.postMessage({ type: "load", wasm, store: loadStore() }, [wasm]);
+    });
+    await ac.resume();
+    document.getElementById("start").hidden = true;
+    document.getElementById("boot").disabled = false;
+    state.textContent = ac.sampleRate === 44100 ? "On." : `On (the browser runs audio at ${ac.sampleRate} Hz).`;
+    sync();
+  } catch (err) {
+    node = null;
+    go.disabled = false; go.textContent = "Switch on";
+    state.textContent = "Could not start: " + (err && err.message || err) + ". A current Chrome, Edge, Firefox or Safari should work.";
+  }
+}
+document.getElementById("go").addEventListener("click", switchOn);
+document.getElementById("boot").addEventListener("click", () => send({ type: "boot" }));
+const reset = document.getElementById("reset");
+reset.addEventListener("click", () => {
+  if (reset.dataset.armed) { try { localStorage.removeItem(STORE_KEY); } catch {} location.reload(); }
+  else { reset.dataset.armed = "1"; reset.textContent = "Click again to forget your projects"; }
+});
+</script>
+</body></html>
