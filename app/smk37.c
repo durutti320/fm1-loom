@@ -529,6 +529,23 @@ static void lsmk_modw(void)
     say("DJ FILTER", s);
 }
 
+/* K1 is the volume (fm1-base's MASTER): its level on the screen as it turns */
+static void lsmk_volume(void)
+{
+    static uint32_t last = 0xFFFFFFFFu;
+    uint32_t v = plat_master();
+    char s[16];
+    if (last == 0xFFFFFFFFu || plat_ms() < 3000u) {   /* (the level at boot is not a turn) */
+        last = v;
+        return;
+    }
+    if (v == last)
+        return;
+    last = v;
+    s_cat(num_s((v * 100u + 2048u) / 4096u, s), "%");
+    say("VOLUME", s);
+}
+
 /* every input pass, first */
 static void lsmk_poll(void)
 {
@@ -541,6 +558,7 @@ static void lsmk_poll(void)
     lsmk_faders();
     lsmk_wheels();
     lsmk_modw();
+    lsmk_volume();
 }
 
 /* the pads' and the SMK buttons' lights, after leds() */

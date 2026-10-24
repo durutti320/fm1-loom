@@ -1560,10 +1560,17 @@ static void page_footer(char *t)
 #else
             s_cat(t, "KNOB 1 3 trick|KNOB 2 4 value");
 #endif
+#if BOARD_SMK37
+        else if (ui.held && is_drum(trk))             /* (SPIDER: a pad held is the step; the footer's names the SMK's) */
+            s_cat(t, "BLACK sounds|ARP tricks|EDIT+ENV+FX+LFO lock");
+        else if (ui.held)
+            s_cat(t, "PADS length|ARP tricks|EDIT+ENV+FX+LFO lock");
+#else
         else if (ui.held && is_drum(trk))
             s_cat(t, "BLACK sounds|ARP tricks|EDIT ENV FX LFO lock");
         else if (ui.held)
             s_cat(t, "WHITE length|ARP tricks|EDIT ENV FX LFO lock");
+#endif
         else if (ui.rec_armed)
             s_cat(t, "KEYS write|OCT+ rest|OCT- back|REC done");
         else if (seq.rec || seq.rec_wait)
@@ -1874,6 +1881,47 @@ static void draw_footer(void)
 #define PG_SOUND (PG(P_ENGINE) | PG(P_PLAY) | PG(P_PLAY2) | PG(P_SUB) | PG(P_ENV) | PG(P_ENV2) | PG(P_KITF) | PG(P_FILTER) | \
                   PG(P_CHARACTER) | PG(P_LFO) | PG(P_LFO2))
 static const struct { uint8_t btn; uint32_t pages; const char *title, *l1, *l2; } CARD[] = {
+#if BOARD_SMK37
+    /* (SPIDER: the SMK-37's names; the pads are the steps, the keys play; four lines at most) */
+    {B_SEQ, PG_ANY, "Steps", "The bar's 16 steps on the pads. < > the bar.",
+     "Pad held, a later pad: its length. + ARP: tricks."},
+    {B_EDIT, PG_STEPS, "Lock", "A step's pad held: PARA, CHORD, FX, REPEAT",
+     "show knobs to lock on it. BT clears."},
+    {B_EDIT, PG_ANY, "Sound", "The engine on K5-K8. K4: next sound.",
+     "SCALE: engine, scramble, save as preset."},
+    {B_ENV, PG_ANY, "Envelope", "The amp's envelope, the filter, its envelope.",
+     "K4 on Filter: its type."},
+    {B_FX, PG_ANY, "Effects", "Character, sends, delay, reverb, Throws.",
+     "K4: the type; on delay and reverb, SCALE: filter."},
+    {B_LFO, PG_ANY, "Note repeat", "Tap: on or off. Held + a top pad: its rate.",
+     "Held and let go alone: the LFO page."},
+    {B_ARP, PG_STEPS, "Tricks", "A step's pad held + ARP: K5 and K7 pick",
+     "two tricks, K6 and K8 their values."},
+    {B_ARP, PG_ANY, "Arp", "Tap: the track's arp on or off (lit).",
+     "Held: the Players page, then Weave."},
+    {B_GLO, PG_ANY, "Mix", "Sends, pan, level. Black keys: mute, held: solo.",
+     "K2: Master EQ, Master out, Setup."},
+    {B_HOME, PG_ANY, "Arrange", "White keys: scenes, black: mutes. Held: shift.",
+     "+ SEQ REC undoes. SCALE: projects."},
+    {B_SEL, PG_ANY, "Lists", "The page's knobs, then its actions.",
+     "K2 moves, K3 changes, SCALE runs, PATCH back."},
+    {B_SAVE, PG_STEPS, "Save", "Tap: save. A step's pad held: clear its locks.",
+     "Held + white key 1 or 2: that slot."},
+    {B_SAVE, PG_SOUND, "Save", "Tap to save the project.",
+     "Held + a white key: the sound as that preset."},
+    {B_SAVE, PG_ANY, "Save", "Saves now (SPIDER saves by itself, stopped).",
+     "Held + white key 1 or 2: that slot."},
+    {B_REC, PG_ANY, "Recording", "Stopped: a tap, then keys write steps.",
+     "+ SEQ PLAY: live. Held: click, count-in, mode."},
+    {B_PLAY, PG(P_SONG), "Play", "Plays the song from the slot picked.", "Again: stops."},
+    {B_PLAY, PG_ANY, "Play", "Starts and stops. Twice quickly: from the top.", "PATCH + SEQ PLAY redoes."},
+    {B_OCTDN, PG_STEPS, "Bar", "The bar before. A step's pad held: earlier.",
+     "Both held 5 s: update mode."},
+    {B_OCTUP, PG_STEPS, "Bar", "The next bar. A step's pad held: later.",
+     "Both held 5 s: update mode."},
+    {B_OCTDN, PG_ANY, "Octave", "The keys an octave down.", "Both held 5 s: update mode."},
+    {B_OCTUP, PG_ANY, "Octave", "The keys an octave up.", "Both held 5 s: update mode."},
+#else
     {B_SEQ, PG_ANY, "Steps", "The bar's 16 steps on the white keys. Hold SEQ and play the notes,",
      "then press steps to write them. A step held + ARP: its tricks."},
     {B_EDIT, PG_STEPS, "Lock", "With a step held, EDIT, ENV, FX or LFO show that module's knobs.",
@@ -1919,6 +1967,7 @@ static const struct { uint8_t btn; uint32_t pages; const char *title, *l1, *l2; 
      "Step record: the cursor on. Hold both for 5 seconds for update mode."},
     {B_OCTDN, PG_ANY, "Octave", "The keys an octave down.", "Hold both for 5 seconds for update mode."},
     {B_OCTUP, PG_ANY, "Octave", "The keys an octave up.", "Hold both for 5 seconds for update mode."},
+#endif
 };
 #define NCARDS (sizeof CARD / sizeof CARD[0])
 static int card_find(int btn)

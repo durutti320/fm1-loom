@@ -15,6 +15,8 @@ class Spider extends AudioWorkletProcessor {
     this.lastFrame = 0;
     this.busy = 0;
     this.frames = 0;
+    this.btnQ = [];                                   // the buttons' states, in order: one a render quantum (process)
+    this.smkQ = [];
     this.port.onmessage = (e) => this.onMessage(e.data);
   }
 
@@ -55,8 +57,10 @@ class Spider extends AudioWorkletProcessor {
     const ex = this.ex;
     if (!ex) return;
     switch (m.type) {
-      case "buttons": ex.web_buttons(m.mask >>> 0); break;
-      case "smk": ex.web_smk_buttons(m.mask >>> 0); break;
+      // (a button's press and release can both come in between two quanta, when the browser runs the audio in bursts:
+      // each state is held for a quantum at least, ~3 ms of the device's time, so the firmware sees every press)
+      case "buttons": this.btnQ.push(m.mask >>> 0); break;
+      case "smk": this.smkQ.push(m.mask >>> 0); break;
       case "key": ex.web_key_vel(m.k, m.vel || 100); ex.web_key(m.k, m.vel, 0); break;
       case "outer": ex.web_outer(m.k, m.vel); break;
       case "pad": ex.web_pad(m.p, m.vel); break;
@@ -107,6 +111,8 @@ class Spider extends AudioWorkletProcessor {
     if (!this.ex) return true;
     const out = outputs[0];
     const n = out[0].length;
+    if (this.btnQ.length) this.ex.web_buttons(this.btnQ.shift());
+    if (this.smkQ.length) this.ex.web_smk_buttons(this.smkQ.shift());
     const t0 = clock();
     this.ex.web_render(n);
     this.busy += clock() - t0;

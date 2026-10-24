@@ -189,13 +189,14 @@ body.learn [data-learn] { cursor: crosshair; }
         <li><b>Pads 9–16</b> the kit's drums, whatever track is selected. <b>Pads 1–6</b> the tracks' mutes, <b>7</b> the throws (held: the conductor), <b>8</b> the effects: a tap opens the delay's page, another the reverb's, another goes back. On <b>SEQ</b> they are the bar's steps; <b>KNOB BANK</b> flips them to live pads.</li>
         <li><b>Faders</b>, three banks (<b>FADER BANK</b> steps through them): the <b>macros</b> of the track you're playing, cutoff, resonance, delay and reverb (picked up: move a fader past the current value and it takes over); then the levels of T1–T4 (FADER BANK lit); then T5, T6, the effects and the master (blinking).</li>
         <li><b>Mod wheel</b>: a DJ filter on the whole mix. Push it up and a low-pass closes over everything; hold <b>PATCH</b> (Shift) as you start moving it for a high-pass instead. Back down: off.</li>
+        <li><b>Hold a button</b> for a second for its help card, in the SMK's names.</li>
         <li><b>Scroll over the screen</b> to move through a list or the pages (that's K2). The hints at the bottom of the screen use the SMK's names.</li>
         <li><b>ARP</b> tapped: the selected track's arpeggiator on or off (lit). Held: its Players page (rate, pattern...).</li>
         <li><b>NOTE REPEAT</b> tapped: repeat on or off (lit). Held, then a top pad: its rate. Held alone and let go: the LFO page.</li>
         <li><b>Kits:</b> a new project starts on ACOUSTIC. With T1 (the kit) selected, <b>PARA</b> opens its Engine page; <b>SCALE</b> opens the list with <b>KIT</b> first: turn <b>K3</b> for ACOUSTIC, 909 or SYNTH, <b>SCALE</b> again puts it on.</li>
         <li><b>&gt;</b> held: the pads fire the throws. <b>&lt;</b> <b>&gt;</b> the bar. Both together: DAW mode.</li>
         <li><b>SEQ PLAY</b> plays, <b>SEQ REC</b> held with it records. <b>PATCH</b> is home, held the shift. <b>BT</b> saves.</li>
-        <li>Higher on a key or pad plays softer, lower plays harder. Drag knobs up and down, or scroll over them. <kbd>Shift</kbd>-click a button to hold it.</li>
+        <li>Higher on a key or pad plays softer, lower plays harder. Drag knobs up and down, or scroll over them. Right-click a button to keep it held (again to let go).</li>
         <li>Computer keys: pads 1–8 <kbd>1</kbd>–<kbd>8</kbd>, drums <kbd>Z</kbd> <kbd>X</kbd> <kbd>C</kbd> <kbd>V</kbd> <kbd>B</kbd> <kbd>N</kbd> <kbd>M</kbd> <kbd>,</kbd>; notes <kbd>A</kbd>–<kbd>;</kbd> with <kbd>W</kbd> <kbd>E</kbd> <kbd>T</kbd> <kbd>Y</kbd> <kbd>U</kbd> <kbd>O</kbd> <kbd>P</kbd>; <kbd>Space</kbd> play, <kbd>Enter</kbd> rec, <kbd>Q</kbd> note repeat, <kbd>Shift</kbd> patch, <kbd>←</kbd> <kbd>→</kbd> &lt; &gt;, <kbd>↑</kbd> <kbd>↓</kbd> select, <kbd>-</kbd> <kbd>=</kbd> octave.</li>
       </ul>
       <p>Projects you save stay in this browser. It runs at the browser's frame rate, so the boot looks smoother here than on the keyboard.</p>
@@ -228,7 +229,7 @@ function mkBtn(parent, printed, job, bit, smk) {
   b.addEventListener("contextmenu", (e) => e.preventDefault());
   b.addEventListener("pointerdown", (e) => {
     e.preventDefault();
-    if (e.shiftKey || e.button === 2) { toggleLatch(smk, bit); return; }
+    if (e.button === 2) { toggleLatch(smk, bit); return; }          // (right-click: held. Not Shift-click: Shift is PATCH)
     if ((smk ? smkLatched : latched) & (1 << bit)) { toggleLatch(smk, bit); return; }
     b.setPointerCapture(e.pointerId);
     (smk ? smkHeld : btnHeld).set("p" + e.pointerId, bit);

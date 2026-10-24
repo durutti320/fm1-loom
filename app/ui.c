@@ -519,7 +519,11 @@ static void step_toggle(int i)
         uint8_t one = 0;
         if (trk == AUX_PUNCH) {
             if (!ui.rem_fx) {
+#if BOARD_SMK37
+                say_no("NO EFFECT YET", "play a key on PARA");
+#else
                 say_no("NO EFFECT YET", "play a key on EDIT");
+#endif
                 return;
             }
             one = ui.rem_fx;
@@ -1063,7 +1067,8 @@ static void key_down(int k)
     }
     if (steps_page(p)) {                         /* Steps and Bar */
 #if BOARD_SMK37
-        if (!(lsmk_padk >> k & 1u)) {            /* the SMK: the pads are the cells, the keybed plays */
+        if (!(lsmk_padk >> k & 1u) && !(ui.held && is_drum(trk) && b >= 0)) {   /* the SMK: the pads are the cells, the
+                                                  * keybed plays (a step's pad held on a kit: black keys its sounds) */
             keyboard_down(k);
             return;
         }
