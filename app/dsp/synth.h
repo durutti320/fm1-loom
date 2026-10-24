@@ -21,7 +21,12 @@
 #endif
 #define SY_CHUNK 64                   /* control rate: envelopes, LFO, glides, locks */
 #define NVOICE 16                     /* synth voices, all tracks */
+#if BOARD_SMK37
+#define NVOICE_TRK 10                 /* (SPIDER: a four-note chord struck again over the last one's release needs 8: at 6
+                                       * the fading notes were cut; the load check still guards the CPU) */
+#else
 #define NVOICE_TRK 6                  /* the most one track takes */
+#endif
 
 /* the engines (2026-10-19: knit the subtractive voice, rayon FM, jacquard the wavetables, bellows the organ; weft,
  * stack, sync, swarm, brocade, gingham and tines gone); the kit (EG_DRUMLINE) is the drum engine, EG_SAMPLE plays a

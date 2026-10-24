@@ -10,7 +10,7 @@ wait 100
 turn PRESET 3
 wait 200
 expect par4.e1 3
-# ten keys held: six voices at most (NVOICE_TRK), the oldest taken
+# ten keys held: ten voices at most (NVOICE_TRK), the oldest taken
 wav fm_chord.wav
 key 0 down 100
 key 2 down 100
@@ -23,7 +23,7 @@ key 12 down 100
 key 14 down 100
 key 16 down 100
 wait 300
-expect voices <7
+expect voices <11
 expect voices >3
 key 0 up
 key 2 up

@@ -268,8 +268,8 @@ function sync() {
 }
 
 // ---------------------------------------------------------------- knobs: K1 the volume (a knob of SPIDER's own in DAW mode)
-const KNOBS = [["K1", "volume", "k1"], ["K2", "select", ENC.SELECT], ["K3", "algorithm", ENC.ALGORITHM], ["K4", "presets", ENC.PRESETS],
-               ["K5", "knob 1", ENC.KNOB1], ["K6", "knob 2", ENC.KNOB2], ["K7", "knob 3", ENC.KNOB3], ["K8", "knob 4", ENC.KNOB4]];
+const KNOBS = [["K1", "volume", "k1"], ["K2", "page", ENC.SELECT], ["K3", "track", ENC.ALGORITHM], ["K4", "sound", ENC.PRESETS],
+               ["K5", "", ENC.KNOB1], ["K6", "", ENC.KNOB2], ["K7", "", ENC.KNOB3], ["K8", "", ENC.KNOB4]];
 const knobs = {};
 const knobBox = document.getElementById("knobs");
 KNOBS.forEach(([name, job, role], i) => {
