@@ -261,6 +261,21 @@ static int s_eq(const char *a, const char *b)
         a++, b++;
     return *a == *b;
 }
+#if BOARD_SMK37
+/* a control's name as the SMK-37 prints it: the footer, the page's tag and the help cards keep the FM-1's names in their
+ * text (the code's), and show these */
+static const char *smk_name(const char *b)
+{
+    static const char *const FM1[] = {"SELECT", "ALGO", "PRESET", "KNOBS", "SEL", "HOME", "EDIT", "ENV", "LFO", "GLO", "SAVE"};
+    static const char *const SMK[] = {"K2", "K3", "K4", "K5-8", "SCALE", "PATCH", "PARA", "CHORD", "REPEAT", "GLOBE", "BT"};
+    for (uint32_t i = 0; i < sizeof FM1 / sizeof FM1[0]; i++)
+        if (s_eq(b, FM1[i]))
+            return SMK[i];
+    return b;
+}
+#else
+#define smk_name(b) (b)
+#endif
 static char *upcase(char *s)
 {
     for (char *c = s; *c; c++)
@@ -745,7 +760,7 @@ static void draw_header(void)
         }
     } else {
         int32_t r = 232, x = 8;
-        const char *bn = BTN_LABEL[PAGE_BTN[page_group(ui.page)].btn];
+        const char *bn = smk_name(BTN_LABEL[PAGE_BTN[page_group(ui.page)].btn]);
         const char *pn = page_name_of(ui.page, sel_trk());
         int32_t w = text_w(&FONT_XS, bn) + 6;
         if (((ui.page >= P_STEPS && ui.page <= P_PLAYERS3) || ui.page == P_WEAVE) && ui.page != P_THROWS) {   /* a track's page */
@@ -1429,7 +1444,11 @@ static void page_footer(char *t)
         return;
     }
     if (!ui.any_btn && ui.page == P_STEPS) {
+#if BOARD_SMK37
+        s_cat(t, "PADS steps|PLAY play|hold a button: help");   /* (the SMK: the pads are the steps, the keys play) */
+#else
         s_cat(t, "WHITE steps|PLAY play|hold a button: help");
+#endif
         return;
     }
     if (home_held()) {
@@ -1457,20 +1476,32 @@ static void page_footer(char *t)
 #else
             s_cat(t, "KNOB 1 3 trick|KNOB 2 4 value");
 #endif
+#if BOARD_SMK37
+        else if (ui.held && is_drum(trk))             /* (the SMK: a pad held is the step) */
+            s_cat(t, "BLACK sounds|ARP tricks|EDIT+ENV+FX+LFO lock");
+        else if (ui.held)
+            s_cat(t, "PADS length|ARP tricks|EDIT+ENV+FX+LFO lock");
+#else
         else if (ui.held && is_drum(trk))
             s_cat(t, "BLACK sounds|ARP tricks|EDIT ENV FX LFO lock");
         else if (ui.held)
             s_cat(t, "WHITE length|ARP tricks|EDIT ENV FX LFO lock");
+#endif
         else if (ui.rec_armed)
             s_cat(t, "KEYS write|OCT+ rest|OCT- back|REC done");
         else if (seq.rec || seq.rec_wait)
             s_cat(t, "KEYS record|REC off");
         else if (ui.btn >> B_SEQ & 1u)
             s_cat(t, is_drum(trk) ? "KEYS pick a sound" : "KEYS the notes a step writes");
+#if BOARD_SMK37
+        else                                         /* (the SMK: the pads the steps, the keys play) */
+            s_cat(t, "PADS steps|KEYS play|PLAY play");
+#else
         else if (is_drum(trk))
             s_cat(t, "WHITE steps|BLACK sound|SEQ held: pick a sound");
         else
             s_cat(t, ui.page == P_BAR ? "WHITE steps|BLACK scale|SEQ held: notes" : "WHITE steps|SEQ held: play notes");
+#endif
         break;
     case P_MIX:
         s_cat(t, "BLACK mute|hold: solo|WHITE play");
@@ -1567,7 +1598,11 @@ static void enc_line(char *t)
 #define BOT_W 228
 #define BOT_PARTS 8
 static const char *const CTL_WORD[] = {"SELECT", "ALGO", "PRESET", "SEL", "HOME", "REC", "PLAY", "OCT", "KEYS", "WHITE",
-                                       "BLACK", "SAVE", "EDIT", "SEQ", "ENV", "FX", "LFO", "ARP", "GLO", "KNOBS"};
+                                       "BLACK", "SAVE", "EDIT", "SEQ", "ENV", "FX", "LFO", "ARP", "GLO", "KNOBS",
+#if BOARD_SMK37
+                                       "PADS",
+#endif
+};
 static int ctl_is(const char *s, uint32_t n)
 {
     for (uint32_t i = 0; i < sizeof CTL_WORD / sizeof CTL_WORD[0]; i++) {
@@ -1617,11 +1652,12 @@ static int32_t bot_part(int32_t x, int32_t y, const char *s, uint32_t n, const f
             b[k] = 0;
             int enc = s_eq(b, "SELECT") || s_eq(b, "ALGO") || s_eq(b, "PRESET") || s_eq(b, "KNOBS");
             int32_t pad = enc ? BOT_PAD_E : BOT_PAD;
-            w = text_w(&FONT_XS, b) + 2 * pad;
+            const char *shown = smk_name(b);          /* (the SMK: its name for it) */
+            w = text_w(&FONT_XS, shown) + 2 * pad;
             if (draw) {
                 cv_round(x, y, w, BOT_PH, enc ? 7 : 2, K_TEXT);
                 cv_round(x + 1, y + 1, w - 2, BOT_PH - 2, enc ? 6 : 1, K_BG);
-                cv_text(x + pad, cap_y(y, BOT_PH, &FONT_XS) - (s_has_q(b) ? 1 : 0), &FONT_XS, b, K_TEXT);   /* (Q's tail) */
+                cv_text(x + pad, cap_y(y, BOT_PH, &FONT_XS) - (s_has_q(shown) ? 1 : 0), &FONT_XS, shown, K_TEXT);   /* (Q's tail) */
             }
             x += w;
             if (i < c) {
@@ -1754,6 +1790,46 @@ static void draw_footer(void)
 #define PG_SOUND (PG(P_ENGINE) | PG(P_PLAY) | PG(P_PLAY2) | PG(P_SUB) | PG(P_ENV) | PG(P_ENV2) | PG(P_KITF) | PG(P_FILTER) | \
                   PG(P_CHARACTER) | PG(P_LFO) | PG(P_LFO2))
 static const struct { uint8_t btn; uint32_t pages; const char *title, *l1, *l2; } CARD[] = {
+#if BOARD_SMK37
+    /* (the SMK-37's names; the pads are the steps, the keys play; four lines at most) */
+    {B_SEQ, PG_ANY, "Steps", "The bar's 16 steps on the pads. < > the bar.",
+     "Pad held, a later pad: its length. + ARP: tricks."},
+    {B_EDIT, PG_STEPS, "Lock", "A step's pad held: PARA, CHORD, FX, REPEAT",
+     "show knobs to lock on it. BT clears."},
+    {B_EDIT, PG_ANY, "Engine", "The engine on K5-K8. K4: its next sound.",
+     "SCALE changes the engine. K2: more pages."},
+    {B_ENV, PG_ANY, "Envelope", "The amp's envelope, the filter, its envelope.",
+     "K4 on Filter: its type."},
+    {B_FX, PG_ANY, "Effects", "Character, sends, FX I, FX II, Throws.",
+     "K4: the type; on FX I and FX II, SCALE: filter."},
+    {B_LFO, PG_ANY, "LFO", "Type, then its first three knobs.", "Page 2: its fourth and fifth."},
+    {B_ARP, PG_STEPS, "Tricks", "A step's pad held + ARP: K5 and K7 pick",
+     "two tricks, K6 and K8 their values."},
+    {B_ARP, PG_ANY, "Players", "Arp, strum or hold on the track's keys.",
+     "The last page: Weave."},
+    {B_GLO, PG_ANY, "Mix", "Sends, pan, level. Black keys: mute, held: solo.",
+     "K2: Master EQ, Master out, Setup."},
+    {B_HOME, PG_ANY, "Arrange", "White keys: scenes, black: mutes.",
+     "+ REC undoes, + PLAY redoes. SCALE: projects."},
+    {B_SEL, PG_ANY, "Lists", "The page's knobs, then its actions.",
+     "K2 moves, K3 changes, SCALE runs, PATCH back."},
+    {B_SAVE, PG_STEPS, "Save", "Tap: save. A step's pad held: clear its locks.",
+     "Held + white key 1 to 3: that slot."},
+    {B_SAVE, PG_SOUND, "Save", "Tap to save the project.",
+     "Held + a white key: the sound as that preset."},
+    {B_SAVE, PG_ANY, "Save", "Saves now (LOOM-8 saves by itself, stopped).",
+     "Held + white key 1 to 3: that slot."},
+    {B_REC, PG_ANY, "Recording", "Stopped: a tap, then keys write steps.",
+     "+ PLAY: live. Held: click, count-in, mode."},
+    {B_PLAY, PG(P_SONG), "Play", "Plays the song from the slot picked.", "Again: stops."},
+    {B_PLAY, PG_ANY, "Play", "Starts and stops. Twice quickly: from the top.", "PATCH + PLAY redoes."},
+    {B_OCTDN, PG_STEPS, "Bar", "The bar before. A step's pad held: earlier.",
+     "Both held 5 s: update mode."},
+    {B_OCTUP, PG_STEPS, "Bar", "The next bar. A step's pad held: later.",
+     "Both held 5 s: update mode."},
+    {B_OCTDN, PG_ANY, "Octave", "The keys an octave down.", "Both held 5 s: update mode."},
+    {B_OCTUP, PG_ANY, "Octave", "The keys an octave up.", "Both held 5 s: update mode."},
+#else
     {B_SEQ, PG_ANY, "Steps", "The bar's 16 steps on the white keys. Hold SEQ and play the notes,",
      "then press steps to write them. A step held + ARP: its tricks."},
     {B_EDIT, PG_STEPS, "Lock", "With a step held, EDIT, ENV, FX or LFO show that module's knobs.",
@@ -1795,6 +1871,7 @@ static const struct { uint8_t btn; uint32_t pages; const char *title, *l1, *l2; 
      "Step record: the cursor on. Hold both for 5 seconds for update mode."},
     {B_OCTDN, PG_ANY, "Octave", "The keys an octave down.", "Hold both for 5 seconds for update mode."},
     {B_OCTUP, PG_ANY, "Octave", "The keys an octave up.", "Hold both for 5 seconds for update mode."},
+#endif
 };
 #define NCARDS (sizeof CARD / sizeof CARD[0])
 static int card_find(int btn)
@@ -1820,7 +1897,7 @@ static void draw_card(void)
         int32_t bh = i < 0 ? 20 : 42 + (n - 1) * 17 + (CARD[i].l2 ? 4 : 0), top = 4 + (MAIN_H - 8 - bh) / 2;
         if (top < 10)
             top = 10;
-        x = pill_o(18, top, 0, BTN_LABEL[(ui.card - 1) % NB], K_TEXT, K_TEXT);
+        x = pill_o(18, top, 0, smk_name(BTN_LABEL[(ui.card - 1) % NB]), K_TEXT, K_TEXT);
         y = top + 30;
     }
     if (i >= 0) {

@@ -69,7 +69,10 @@ static void lsmk_pads(void)
 {
     int p, v;
     while (plat_pad(&p, &v)) {
-        uint32_t m = 1u << p;
+        uint32_t m;
+        if (p < 0 || p >= NPADS)
+            continue;
+        m = 1u << p;
         if (v) {
             if (lsmk_pads_steps()) {               /* a cell: its white key (lsmk_pad_keys) */
                 lsmk.latch |= m;
@@ -268,6 +271,23 @@ static void lsmk_modw(void)
     say(TRACK_NAME[t], s);
 }
 
+/* K1 is the volume (fm1-base's MASTER): its level on the screen as it turns */
+static void lsmk_volume(void)
+{
+    static uint32_t last = 0xFFFFFFFFu;
+    uint32_t v = plat_master();
+    char s[16];
+    if (last == 0xFFFFFFFFu || plat_ms() < 3000u) {   /* (the level at boot is not a turn) */
+        last = v;
+        return;
+    }
+    if (v == last)
+        return;
+    last = v;
+    s_cat(num_s((v * 100u + 2048u) / 4096u, s), "%");
+    say("VOLUME", s);
+}
+
 /* every input pass, first */
 static void lsmk_poll(void)
 {
@@ -280,6 +300,7 @@ static void lsmk_poll(void)
     lsmk_faders();
     lsmk_wheels();
     lsmk_modw();
+    lsmk_volume();
 }
 
 /* the pads' and the SMK buttons' lights, after leds() */
@@ -393,9 +414,11 @@ static void lsmk_daw_load(void)
     if (n > 0)
         (void)daw_store_take((const uint8_t *)s, (uint32_t)n);
 }
-static void lsmk_daw_save(void)                /* a while after the last change, with nothing sounding or held */
+static void lsmk_daw_save(void)                /* a while after the last change, with nothing sounding or held (a
+                                                 * flash write cuts the audio: as autosave, stopped and quiet) */
 {
-    if (!ld.dirty || ld.edit || plat_ms() - ld.dirty_t < 1500u || eng_voices || plat_keys() || plat_pads_held())
+    if (!ld.dirty || ld.edit || plat_ms() - ld.dirty_t < 1500u || playing() || store_held || eng_voices ||
+        eng_quiet < AUTOSAVE_QUIET || plat_keys() || plat_pads_held())
         return;
     daw_store_fill(&lsmk_daw_obj);
     if (plat_store_save(OBJ_DAW, &lsmk_daw_obj, sizeof lsmk_daw_obj) == 0)
@@ -478,9 +501,10 @@ static void lsmk_daw_pads(void)
 {
     int p, v;
     while (plat_pad(&p, &v)) {
-        uint32_t i = v ? DAW_PAD0 + 16u * ld.pb + (uint32_t)p : ld.pad_ent[p];
+        uint32_t i;
         if (p < 0 || p >= NPADS)
             continue;
+        i = v ? DAW_PAD0 + 16u * ld.pb + (uint32_t)p : ld.pad_ent[p];
         if (v)
             ld.pad_ent[p] = (uint8_t)i;
         lsmk_daw_hit(i, (uint32_t)v);

@@ -36,11 +36,11 @@
 /* the SMK-37 (app.h): USRFLASH between the panel calibration's pair and DAW mode's (OBJ_DAW), 0xC4000..0xE7FFF,
  * 144 KB, as three windows end to end (the bank's three, so its format and its tool stay as they are; tools/sampleio.py --board smk37) */
 #define SMP_REG0 0xC4000u
-#define SMP_REG0_SIZE 0x12000u
+#define SMP_REG0_SIZE (72u * 1024u)       /* (sizes in KB: as hex, 0x1xxxx reads as a register to the build's check) */
 #define SMP_REG1 0xD6000u
-#define SMP_REG1_SIZE 0x10000u
+#define SMP_REG1_SIZE (64u * 1024u)
 #define SMP_REG2 0xE6000u
-#define SMP_REG2_SIZE 0x2000u
+#define SMP_REG2_SIZE (8u * 1024u)
 #else
 #define SMP_REG0 0xC1000u                 /* the data area after the projects, up to the calibration: 108 KB */
 #define SMP_REG0_SIZE 0x1B000u

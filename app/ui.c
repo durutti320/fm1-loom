@@ -116,6 +116,7 @@ static int key_note(int k) { return KEY_BASE + k + ui.oct * 12; }
 #define KEY_VEL(k) ((int)plat_key_vel(k))       /* its keys' velocity, from the unit's own curves */
 static void lsmk_poll(void);
 static uint32_t lsmk_pad_keys(void);
+static uint32_t lsmk_padk;                       /* the white keys this pass that are pads (Steps' cells), not the keybed */
 static void lsmk_lights(void);
 static int lsmk_daw_frame(void);
 #include "smk_daw.h"                             /* DAW mode's map and messages (daw_on: smk37.c's frame instead) */
@@ -512,7 +513,11 @@ static void step_toggle(int i)
         uint8_t one = 0;
         if (trk == AUX_PUNCH) {
             if (!ui.rem_fx) {
+#if BOARD_SMK37
+                say_no("NO EFFECT YET", "play a key on PARA");
+#else
                 say_no("NO EFFECT YET", "play a key on EDIT");
+#endif
                 return;
             }
             one = ui.rem_fx;
@@ -1055,6 +1060,13 @@ static void key_down(int k)
         return;
     }
     if (steps_page(p)) {                         /* Steps and Bar */
+#if BOARD_SMK37
+        if (!(lsmk_padk >> k & 1u) && !(ui.held && is_drum(trk) && b >= 0)) {   /* the SMK: the pads are the cells, the
+                                                  * keybed plays (a step's pad held on a kit: black keys its sounds) */
+            keyboard_down(k);
+            return;
+        }
+#endif
         if (!is_seqt(trk))
             return;
         if ((ui.btn >> B_SEQ & 1u) || ui.rec_armed || seq.rec || seq.rec_wait) {   /* a keyboard: SEQ held, recording */
@@ -2350,7 +2362,8 @@ static void input(void)
 {
 #if BOARD_SMK37
     lsmk_poll();                                  /* the SMK's pads, outer keys, faders and wheels first */
-    uint32_t btn = plat_buttons(), keys = plat_keys() | lsmk_pad_keys(), ch, i;   /* (the pads on Steps: its cells) */
+    uint32_t padk = lsmk_pad_keys(), btn = plat_buttons(), keys = plat_keys() | padk, ch, i;   /* (the pads on Steps: its cells) */
+    lsmk_padk = padk;
 #else
     uint32_t btn = plat_buttons(), keys = plat_keys(), ch, i;
 #endif

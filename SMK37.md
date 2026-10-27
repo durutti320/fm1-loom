@@ -24,7 +24,7 @@ The manual still applies: the FM-1's controls are where the SMK-37 prints the sa
 
 | SMK-37 | LOOM-8 |
 | --- | --- |
-| Keys F3..G5 (the middle 27) | the FM-1's 27 keys, **with velocity** (the unit's own factory curves) |
+| Keys F3..G5 (the middle 27) | the FM-1's 27 keys, **with velocity** (the unit's own factory curves). On Steps and Bar they play the track (the pads are the cells there); a step's pad held on a kit: the black keys its sounds |
 | Keys C3..E3, G#5..C6 (the outer 10) | more notes on the track the keys play, with velocity; on a kit, its keys |
 | 16 pads, on Steps and Bar (SEQ) | the bar's 16 cells, pads 1-8 the top row, 9-16 the bottom: everything the white keys do there (a tap, a hold, a later one for the length). Lit in the track's colour: a step with notes dim, the step playing bright, a step held white |
 | 16 pads, every other page | drum pads: pads 1-11 are the 11 keys of a kit, with velocity (the track selected if it is a kit, else the kit selected last). Recorded while recording. Pads 12-16 dark |
@@ -33,9 +33,9 @@ The manual still applies: the FM-1's controls are where the SMK-37 prints the sa
 | Faders 1..4 | the levels of T1-T4, or T5-T8 after FADER BANK (lit on T5-T8). A fader acts only once it moves |
 | Pitch wheel | bend of the track the keys play, +-2 semitones (as a MIDI pitch bend) |
 | Mod wheel | the filter of the track the keys play: its cutoff (a DYNAMIC filter: its hi cut). A pick-up: the wheel acts once it passes the value the track has, so nothing jumps; the screen says where to pick it up |
-| K1 | the volume (the FM-1's MASTER) |
+| K1 | the volume (the FM-1's MASTER); the screen shows the level as it turns |
 | K2 / K3 / K4 | SELECT / ALGORITHM / PRESETS |
-| K5..K8 | KNOB 1..4 (the help cards say K5..K8) |
+| K5..K8 | KNOB 1..4. The screen's hints and help cards use the SMK's names throughout (K2, SCALE, PATCH, PARA, CHORD, REPEAT, GLOBE, BT) |
 | FX, SCALE, CHORD, NOTE REPEAT, PARA, GLOBE | FX, SEL, ENV, LFO, EDIT, GLO |
 | PATCH / BT | HOME / SAVE |
 | ARP / SEQ / SEQ PLAY / SEQ REC | ARP / SEQ / PLAY / REC |
@@ -102,6 +102,13 @@ FM-1 bank is refused by the SMK and the other way round.
 The split is one constant (`app/app.h NPROJ`, with `APP_STORE_MAP` and `dsp/sample.h SMP_REG*`): one slot would leave
 about 192 KB of samples, three about 88 KB.
 
+## On GitHub, and in the browser
+
+Each push to the branch `loom8-smk37` builds the packages (Actions, the newest **LOOM-8 SMK-37 firmware** run,
+**packages**: the three `.fwsc`, the installer, the backup tool and `START-HERE.txt`) and the emulator, onto the branch
+`loom8-smk37-emu` (`app/web/emu_smk37`: the SMK's panel in a page, the firmware itself as WebAssembly; an SMK in
+Snoop37's DAW mode plays it over Web MIDI, Chrome or Edge).
+
 ## Build
 
 ```sh
@@ -120,7 +127,9 @@ MIDI out byte by byte).
 
 1. **Back up the whole flash first.** The SMK-37 keeps its factory key, pad and wheel calibration in flash
    (`trimdat` at 0xC1224), unique to the unit. This firmware never writes there, but have the backup:
-   fm1-to-smk37 `docs/02-update-and-recovery.md`, section 3.
+   `tools/smk37_backup.py loom-smk37.fwsc` (read only: it holds no erase or write command; `tools/START-HERE.txt` has
+   the Windows steps), or by hand: fm1-to-smk37 `docs/02-update-and-recovery.md`, section 3. Then switch the keyboard
+   off and on.
 2. `python3 base/tools/fm1_install.py app/build/loom-smk37.fwsc` (the package for your model).
 3. The way back: M-VAVE's updater with the stock package for your model.
 
