@@ -186,16 +186,17 @@ body.learn [data-learn] { cursor: crosshair; }
         <li><b>LOOM-8</b> as it runs on the FM-1, with the SMK's extra controls added. Eight tracks; <b>K3</b> (ALGORITHM) picks the track, <b>K2</b> (SELECT) the page.</li>
         <li><b>Sounds:</b> <b>PARA</b> opens the track's engine; <b>K4</b> (PRESETS) steps through its sounds; K5–K8 its four knobs.</li>
         <li><b>The keys</b> play the selected track on every page, Steps too (the pads are the steps there). The outer keys add notes either side of the FM-1's 27.</li>
-        <li><b>Pads</b> on <b>SEQ</b> (Steps): the bar's 16 steps; a step's pad held, then a later one: its length. Elsewhere, or after <b>KNOB BANK</b>: pads 1–11 the kit's drums.</li>
+        <li><b>Pads</b> on <b>SEQ</b> (Steps): the bar's 16 steps; a step's pad held, then a later one: its length. Elsewhere, or after <b>KNOB BANK</b>: pads 1–8 mute T1–T8, pads 9–16 the kit's drums, whatever track is selected.</li>
+        <li><b>NOTE REPEAT</b> tapped: repeat on or off (lit), so a drum pad held plays in time. Held, then a top pad: its rate. Held alone and let go: the LFO page.</li>
         <li><b>Faders</b>: the levels of T1–T4; <b>FADER BANK</b> (lit) T5–T8. A fader acts once it moves.</li>
         <li><b>Mod wheel</b>: the filter of the track the keys play, once it passes the current value. <b>Pitch wheel</b>: bend.</li>
         <li><b>K1</b>: the volume. <b>Hold a button</b> for a second for its help card, in the SMK's names.</li>
         <li><b>Scroll over the screen</b> to move through a list or the pages (that's K2).</li>
-        <li><b>ARP</b>: the Players page (arp, strum, hold). <b>NOTE REPEAT</b>: the LFO page. <b>CHORD</b>: envelopes. <b>GLOBE</b>: the mix.</li>
+        <li><b>ARP</b>: the Players page (arp, strum, hold). <b>CHORD</b>: envelopes. <b>GLOBE</b>: the mix.</li>
         <li><b>&lt;</b> <b>&gt;</b> the bar. Both together: DAW mode.</li>
         <li><b>SEQ PLAY</b> plays, <b>SEQ REC</b> records. <b>PATCH</b> is home, held the shift. <b>BT</b> saves. <b>SCALE</b> runs the list's action.</li>
         <li>Higher on a key or pad plays softer, lower plays harder. Drag knobs up and down, or scroll over them. Right-click a button to keep it held (again to let go).</li>
-        <li>Computer keys: pads 1–8 <kbd>1</kbd>–<kbd>8</kbd>, pads 9–16 <kbd>Z</kbd> <kbd>X</kbd> <kbd>C</kbd> <kbd>V</kbd> <kbd>B</kbd> <kbd>N</kbd> <kbd>M</kbd> <kbd>,</kbd>; notes <kbd>A</kbd>–<kbd>;</kbd> with <kbd>W</kbd> <kbd>E</kbd> <kbd>T</kbd> <kbd>Y</kbd> <kbd>U</kbd> <kbd>O</kbd> <kbd>P</kbd>; <kbd>Space</kbd> play, <kbd>Enter</kbd> rec, <kbd>Q</kbd> note repeat, <kbd>Shift</kbd> patch, <kbd>←</kbd> <kbd>→</kbd> &lt; &gt;, <kbd>↑</kbd> <kbd>↓</kbd> select, <kbd>-</kbd> <kbd>=</kbd> octave.</li>
+        <li>Computer keys: mutes (pads 1–8) <kbd>1</kbd>–<kbd>8</kbd>, drums (pads 9–16) <kbd>Z</kbd> <kbd>X</kbd> <kbd>C</kbd> <kbd>V</kbd> <kbd>B</kbd> <kbd>N</kbd> <kbd>M</kbd> <kbd>,</kbd>; notes <kbd>A</kbd>–<kbd>;</kbd> with <kbd>W</kbd> <kbd>E</kbd> <kbd>T</kbd> <kbd>Y</kbd> <kbd>U</kbd> <kbd>O</kbd> <kbd>P</kbd>; <kbd>Space</kbd> play, <kbd>Enter</kbd> rec, <kbd>Q</kbd> note repeat, <kbd>Shift</kbd> patch, <kbd>←</kbd> <kbd>→</kbd> &lt; &gt;, <kbd>↑</kbd> <kbd>↓</kbd> select, <kbd>-</kbd> <kbd>=</kbd> octave.</li>
       </ul>
       <p>Projects you save stay in this browser.</p>
     </section>
@@ -240,7 +241,7 @@ function mkBtn(parent, printed, job, bit, smk) {
 const smkEls = {};
 function toggleLatch(smk, bit) { if (smk) smkLatched ^= 1 << bit; else latched ^= 1 << bit; sync(); }
 // the 2 x 6 under the faders, as printed on the SMK (its name, then what it does in LOOM-8)
-const ROW1 = [["ARP", "players", "ARP"], ["NOTE REPEAT", "LFO", "LFO"], ["SCALE", "select", "SEL"], ["CHORD", "envelopes", "ENV"],
+const ROW1 = [["ARP", "players", "ARP"], ["NOTE REPEAT", "repeat / LFO", "LFO"], ["SCALE", "select", "SEL"], ["CHORD", "envelopes", "ENV"],
               ["GLOBE", "mix", "GLO"], ["BT", "save", "SAVE"]];
 const ROW2 = [["PATCH", "home · shift", "HOME"], ["PARA", "engine", "EDIT"], ["FX", "", "FX"], ["SEQ", "steps", "SEQ"],
               ["SEQ PLAY", "play", "PLAY"], ["SEQ REC", "rec", "REC"]];
@@ -334,7 +335,7 @@ for (let p = 0; p < 16; p++) {
   const d = document.createElement("div");
   d.className = "pad ctl"; d.tabIndex = -1; d.setAttribute("role", "button");
   d.dataset.learn = "pad:" + p; d.dataset.name = "pad " + (p + 1);
-  d.setAttribute("aria-label", p < 11 ? `Pad ${p + 1}: step or drum ${p + 1}` : `Pad ${p + 1}: step ${p + 1}`);
+  d.setAttribute("aria-label", p < 8 ? `Pad ${p + 1}: mute T${p + 1}` : `Pad ${p + 1}: drum ${p - 7}`);
   d.innerHTML = `<span>${p + 1}</span>`;
   padBox.appendChild(d); padEls.push(d);
   d.addEventListener("pointerdown", (e) => {

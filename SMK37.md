@@ -27,8 +27,9 @@ The manual still applies: the FM-1's controls are where the SMK-37 prints the sa
 | Keys F3..G5 (the middle 27) | the FM-1's 27 keys, **with velocity** (the unit's own factory curves). On Steps and Bar they play the track (the pads are the cells there); a step's pad held on a kit: the black keys its sounds |
 | Keys C3..E3, G#5..C6 (the outer 10) | more notes on the track the keys play, with velocity; on a kit, its keys |
 | 16 pads, on Steps and Bar (SEQ) | the bar's 16 cells, pads 1-8 the top row, 9-16 the bottom: everything the white keys do there (a tap, a hold, a later one for the length). Lit in the track's colour: a step with notes dim, the step playing bright, a step held white |
-| 16 pads, every other page | drum pads: pads 1-11 are the 11 keys of a kit, with velocity (the track selected if it is a kit, else the kit selected last). Recorded while recording. Pads 12-16 dark |
-| KNOB BANK | the pads' job. On Steps: drum pads there too (lit), again the cells. On any other page: opens Steps, with the pads as its cells |
+| 16 pads, every other page | pads 1-8 (top row): mute T1-T8, lit while the track plays. Pads 9-16 (bottom row): the drums, the kit's first eight sounds whatever track is selected (the track selected if it is a kit, else the kit selected last), with velocity, recorded into the kit while recording |
+| NOTE REPEAT | tapped: note repeat on / off (lit): a drum pad held sounds again in time, recorded while recording. Held + pads 1-8: its rate (1/4 1/8 1/8T 1/16 1/16T 1/32 1/32T 1/64). Held and let go alone: the LFO page |
+| KNOB BANK | the pads' job. On Steps: live pads there too (mutes and drums, lit), again the cells. On any other page: opens Steps, with the pads as its cells |
 | < / > | the bar before / after (the bar Steps shows and the pads write), when let go. Both together: DAW mode (below) |
 | Faders 1..4 | the levels of T1-T4, or T5-T8 after FADER BANK (lit on T5-T8). A fader acts only once it moves |
 | Pitch wheel | bend of the track the keys play, +-2 semitones (as a MIDI pitch bend) |
@@ -36,7 +37,7 @@ The manual still applies: the FM-1's controls are where the SMK-37 prints the sa
 | K1 | the volume (the FM-1's MASTER); the screen shows the level as it turns |
 | K2 / K3 / K4 | SELECT / ALGORITHM / PRESETS |
 | K5..K8 | KNOB 1..4. The screen's hints and help cards use the SMK's names throughout (K2, SCALE, PATCH, PARA, CHORD, REPEAT, GLOBE, BT) |
-| FX, SCALE, CHORD, NOTE REPEAT, PARA, GLOBE | FX, SEL, ENV, LFO, EDIT, GLO |
+| FX, SCALE, CHORD, PARA, GLOBE | FX, SEL, ENV, EDIT, GLO |
 | PATCH / BT | HOME / SAVE |
 | ARP / SEQ / SEQ PLAY / SEQ REC | ARP / SEQ / PLAY / REC |
 | OCTAVE- / OCTAVE+ | OCT- / OCT+ |
