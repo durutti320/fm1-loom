@@ -168,12 +168,16 @@ body.learn [data-learn] { cursor: crosshair; }
       <div class="inrow">
         <button id="midiGo" type="button">Use a MIDI keyboard</button>
         <select id="midiPort" hidden aria-label="MIDI input"></select>
+        <select id="padMap" hidden aria-label="What the pads send">
+          <option value="daw">Pads: DAW mode (Snoop37's notes)</option>
+          <option value="open">Pads: SMK OPEN</option>
+        </select>
         <button id="learn" type="button" hidden>Learn a control</button>
         <button id="unlearn" type="button" hidden>Forget learned controls</button>
         <button id="panic" type="button" hidden>Let go of everything</button>
       </div>
       <p id="midiState">Its keys play the keys, the wheels the wheels; pads sending notes 36–51 on channel 10 play the pads (36–43
-        the drums). For the rest, <b>Learn a control</b>: click a knob, fader, pad or button here, then move or press yours.</p>
+        the drums); from M-VAVE's SMK OPEN, choose <b>Pads: SMK OPEN</b> (its pads 1–11 play, 12–16 send nothing). For the rest, <b>Learn a control</b>: click a knob, fader, pad or button here, then move or press yours.</p>
       <p class="heard" id="heard"></p>
     </section>
     <section>
@@ -459,6 +463,16 @@ const midiGo = document.getElementById("midiGo"), midiPort = document.getElement
 const learnBtn = document.getElementById("learn"), unlearnBtn = document.getElementById("unlearn");
 const midiState = document.getElementById("midiState"), heard = document.getElementById("heard");
 const panicBtn = document.getElementById("panic");
+// M-VAVE's SMK OPEN: its pads on its drum track send these notes on channel 10, pads 1..11 (1..8 the top row), 12..16
+// nothing; pad n is the page's pad n
+const OPEN_PADS = [36, 38, 41, 45, 48, 37, 39, 56, 49, 46, 42];
+const PAD_MAP_KEY = "loom8-emu-padmap", padMap = document.getElementById("padMap");
+let padMapChosen = false;
+try { const v = localStorage.getItem(PAD_MAP_KEY); if (v) { padMap.value = v; padMapChosen = true; } } catch { /* this visit only */ }
+padMap.onchange = () => {
+  padMapChosen = true; letGo();
+  try { localStorage.setItem(PAD_MAP_KEY, padMap.value); } catch { /* this visit only */ }
+};
 function saveMap() { try { localStorage.setItem(MAP_KEY, JSON.stringify(midiMap)); } catch { /* this visit only */ } }
 function targetName(t) {
   const el = document.querySelector(`[data-learn="${t}"]`);
@@ -573,7 +587,9 @@ function onMidi(data) {
     const on = ty === 0x90 && d2 > 0, key = `n${ch}:${d1}`, id = "m" + key;
     if (on && learnEl && learnTake(key, true, d2)) return;
     if (midiMap[key]) { inTo(targetName(midiMap[key]) + " (learned)"); return midiControl(midiMap[key], id, on, d2); }
-    if (ch === 9 && d1 >= 36 && d1 <= 67) {                     // pads: 36-43 / 52-59 the bottom row, 44-51 / 60-67 the top
+    if (ch === 9 && padMap.value === "open" && OPEN_PADS.includes(d1))
+      return midiControl("pad:" + OPEN_PADS.indexOf(d1), id, on, d2);
+    if (ch === 9 && padMap.value !== "open" && d1 >= 36 && d1 <= 67) {                     // pads: 36-43 / 52-59 the bottom row, 44-51 / 60-67 the top
       const r = (d1 - 36) % 16;
       return midiControl("pad:" + (r < 8 ? r + 8 : r - 8), id, on, d2);
     }
@@ -617,7 +633,9 @@ function midiPorts() {
   const smk = named.find((i) => !/midiin\s*\d|port\s*2|\b2\)?$/i.test(i.name || "")) || named[0];
   midiPort.value = [...midiPort.options].some((o) => o.value === keep) ? keep : smk ? smk.id : ins.length ? midiPort.options[0].value : "";
   midiPort.hidden = !ins.length;
-  learnBtn.hidden = unlearnBtn.hidden = panicBtn.hidden = !ins.length;
+  learnBtn.hidden = unlearnBtn.hidden = panicBtn.hidden = padMap.hidden = !ins.length;
+  const port = ins.find((i) => i.id === midiPort.value);              // (SMK OPEN names its port "... Open")
+  if (!padMapChosen && port && /\bopen\b/i.test(port.name || "")) padMap.value = "open";
   midiListen();
   if (!ins.length) midiState.textContent = "No MIDI keyboard found: plug it in by USB (it shows up here when it is).";
   else if (!document.body.classList.contains("learn") && !learnEl)
