@@ -21,7 +21,7 @@
  *   < + >       DAW mode (below)
  *   faders      the levels of T1-T4, or T5-T8 (FADER BANK, lit on T5-T8); a fader acts once it moves
  *   outer keys  C3..E3 and G#5..C6 carry on the keys: more notes, with velocity; on a kit, its keys
- *   pitch wheel bend of the track the keys play (+-2 semitones, as a MIDI bend)
+ *   pitch wheel bend of the track the keys play (+-7 semitones, a fifth)
  *   mod wheel   the filter of the track the keys play (its cutoff; DYNAMIC: its hi cut), once the wheel passes the
  *               value it has (a pick-up: nothing jumps)
  *

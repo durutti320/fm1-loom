@@ -939,11 +939,12 @@ static void midi_in(uint32_t pkt)
     }
 }
 #if BOARD_SMK37
-/* a pitch wheel on the panel (the SMK-37's): -8192..8191, +-2 semitones onto the track's bend, as a MIDI bend */
+/* a pitch wheel on the panel (the SMK-37's): -8192..8191, +-7 semitones (a fifth) onto the track's bend; a MIDI
+ * bend coming in stays +-2 */
 void engine_bend(int trk, int32_t v)
 {
     if (trk >= 0 && trk < NTRK)
-        bend_c[trk] = (int16_t)(v * 200 / 8192);
+        bend_c[trk] = (int16_t)(v * 700 / 8192);
 }
 #endif
 
