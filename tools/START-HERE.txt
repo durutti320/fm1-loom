@@ -1,0 +1,29 @@
+LOOM-8 for the M-VAVE SMK-37 (beta)
+===================================
+
+In this folder
+  loom-smk37.fwsc         LOOM-8 for the SMK-37 Pro (and the Starrykey 37 Play)
+  loom-smk37-elite.fwsc   LOOM-8 for the SMK-37 Elite
+  loom-smk37-mke.fwsc     LOOM-8 for the MKE-P37
+  smk37_backup.py          makes a full copy of the keyboard's memory chip (do this first)
+  fm1_install.py            puts LOOM-8 on the keyboard
+
+Backup first, then install. Use your model's .fwsc file in both commands.
+
+Windows, once
+  1. Python 3.12 from python.org: 3.12.10, "Windows installer (64-bit)". Tick "Add python.exe to PATH".
+     (Not a newer Python: python-rtmidi, the MIDI part, installs ready-made only up to 3.12.)
+  2. jl-uboot-tool: https://github.com/kagaimiq/jl-uboot-tool  > Code > Download ZIP. Unzip it into this folder.
+  3. In a terminal:   py -3.12 -m pip install mido python-rtmidi pyyaml tqdm crcmod
+
+The backup (a terminal opened as administrator, in this folder; the keyboard on USB, switched on, nothing else
+using it)
+  py -3.12 smk37_backup.py loom-smk37.fwsc
+  If Windows offers to format a disk: Cancel. Never format it.
+  It ends with "backup OK" and a file smk37-backup-(date).bin. Keep it in two places.
+  Then switch the keyboard off and on with its power switch.
+
+The install (in this folder)
+  py -3.12 fm1_install.py loom-smk37.fwsc
+
+The full guide: SMK37.md at https://github.com/durutti320/fm1-loom/tree/loom8-smk37

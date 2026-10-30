@@ -10,6 +10,9 @@
 #include "pages.c"
 #include "ui.c"
 #include "midicc.c"
+#if BOARD_SMK37
+#include "smk37.c"                                  /* the M-VAVE SMK-37's panel: pads, faders, outer keys, wheels */
+#endif
 #include "samples.c"
 #ifndef PLAT_HOST
 #include "plat_loom.c"
@@ -23,12 +26,19 @@ static int work_end(uint32_t n);
 static int load_force = -1;             /* the script's "load N": the guard sees N %, -1 measured (host.c) */
 #endif
 
+#if BOARD_SMK37
+_Static_assert(OBJ_NOBJ == 17 && OBJ_PROJ0 == 2 && OBJ_DAW == 16, "the store map lists every object (APP_STORE_MAP)");
+_Static_assert(SMP_REG0 == PLAT_XDATA0_LO + 0x2000u && SMP_REG0 + SMP_REG0_SIZE == SMP_REG1 &&
+               SMP_REG1 + SMP_REG1_SIZE == SMP_REG2 && SMP_REG2 + SMP_REG2_SIZE + 0x2000u == PLAT_XDATA0_HI,
+               "SMK-37: the user sample bank is USRFLASH between the panel calibration's pair and OBJ_DAW's (plat.h)");
+#else
 _Static_assert(OBJ_NOBJ == 24 && OBJ_PROJ0 == 2, "the store map lists every object (APP_STORE_MAP)");
 _Static_assert(SMP_REG0 >= 0xC1000u && SMP_REG0 + SMP_REG0_SIZE <= 0xDC000u && SMP_REG0 >= PLAT_DATA_LO,
                "the user sample bank's first window between the project slots and the panel calibration");
 _Static_assert(SMP_REG1 == PLAT_XDATA1_LO && SMP_REG1 + SMP_REG1_SIZE == PLAT_XDATA1_HI &&
                SMP_REG2 == PLAT_XDATA0_LO && SMP_REG2 + SMP_REG2_SIZE == PLAT_XDATA0_HI,
                "the user sample bank's other windows: fm1-base's two extra windows, whole (plat.h)");
+#endif
 _Static_assert(SMP_HDR_USED <= SMP_BANK_HDR, "the bank's entries fit its header");
 
 /* no store object (the calibration, the presets, the projects: APP_STORE_MAP, two sectors each) in a window of the

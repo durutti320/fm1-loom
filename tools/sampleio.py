@@ -37,6 +37,8 @@ BLK_V2 = 64
 REGIONS = [(0xC1000, 0x1B000),  # the data area after the projects, up to the calibration (108 KB)
            (0xE5000, 0x17000),  # fm1-base's PLAT_XDATA1 (92 KB)
            (0x93000, 0x4000)]   # fm1-base's PLAT_XDATA0 (16 KB)
+# the M-VAVE SMK-37's (BOARD=smk37, dsp/sample.h): USRFLASH between the panel calibration's pair and DAW mode's, 144 KB in three windows
+REGIONS_SMK37 = [(0xC4000, 0x12000), (0xD6000, 0x10000), (0xE6000, 0x2000)]
 XDATA = (1, 2)                  # the windows where no sector may carry an update record's mark
 REC_MARK = 0xF06                # "AT" there, in a sector: an update record (base/bsp/loader/ldr_core.c)
 BANK_SIZE = sum(n for _, n in REGIONS)
@@ -48,6 +50,17 @@ NENT = BANK_N + NFENT           # the header's entries (SMP_NENT)
 E_FACTORY = 0x01                # an entry's flags: the factory set's (SMP_E_FACTORY)
 BANK_VER = 3                    # 3: a checkpoint every 128 samples; 2 (every 64) still read, and converted
 BANK_VERS = (2, 3)
+
+
+def set_board(board):
+    """the bank's windows for a board: "fm1" (216 KB) or "smk37" (the SMK-37's 144 KB). The bank's format is the same;
+    only how far it may run differs"""
+    global REGIONS, BANK_SIZE, BANK_MAX_DATA
+    if board not in ("fm1", "smk37"):
+        raise SystemExit(f"board {board!r}: fm1 or smk37")
+    REGIONS = list(REGIONS_SMK37 if board == "smk37" else [(0xC1000, 0x1B000), (0xE5000, 0x17000), (0x93000, 0x4000)])
+    BANK_SIZE = sum(n for _, n in REGIONS)
+    BANK_MAX_DATA = BANK_SIZE - BANK_HDR
 ENT0, ENT = 64, 40
 BANK_MAGIC = 0x504D534C         # "LSMP"
 NAME_LEN = 12

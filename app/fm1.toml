@@ -17,6 +17,12 @@ backup_ext = "loom8"           # the backup page's files: NAME.loom8
 backup_holds = "the three projects, the user presets and the samples"
 words = "words.tsv"
 cpu2 = true                    # the second core: fm1-base's (felucca-bsp's chip/fm1_cpu1.h, Melodee's), plat_cpu2_*
+# the M-VAVE SMK-37 build (BOARD=smk37): its USB names; for now without Bluetooth and the USB host (its radio and its
+# flash map for pairing records not yet checked on the device; its USB port a device's)
+smk37_usb_product = "LOOM-8 SMK-37"
+smk37_ble = false
+smk37_bt_audio = false
+smk37_usb_host = false
 # the DSP and the sequencer at -O2, apart (as LOOM-8's own build had them); bench.c: the profiler, empty unless XY_BENCH=1
 o2 = ["dsp/synth.c", "dsp/drumline.c", "dsp/digisophie.c", "dsp/sample.c", "dsp/fx.c", "dsp/bench.c", "seq/pattern.c", "seq/seq.c"]
 # the code that never runs per sample built for size (LLVM's minsize: Melodee's idea; tools/size_fns.py)

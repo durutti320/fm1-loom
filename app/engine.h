@@ -56,6 +56,11 @@ void engine_master(int p, int val);
 void engine_fx(int slot, int pick, const uint8_t knob[4], int hp, int lp);   /* pick: fx.h (effect, reverb mode) */
 int engine_fx_has(int slot, int pick);                   /* the slot can do this effect (fx.h fx_has) */
 void engine_panic(void);
+#if BOARD_SMK37
+void engine_bend(int trk, int32_t v);                    /* a panel's pitch wheel, -8192..8191 (the SMK-37's) */
+void engine_repeat(int trk, int key, int on, int vel);   /* note repeat: kit key 1..11 of trk held / let go (seq.h) */
+void engine_repeat_rate(int rate);                       /* SEQ_RP_* */
+#endif
 void engine_transport(int what);                         /* 0 stop, 1 start, 2 continue, 3 start from the top */
 void engine_metronome(int mode);
 void engine_tempo(int bpm_x10);                          /* the tempo in tenths of a BPM (400..3000) */

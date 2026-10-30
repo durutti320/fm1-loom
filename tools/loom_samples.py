@@ -53,6 +53,7 @@ CRC before it commits), ERASE 14, INFO 15. Needs mido and a backend (pip install
 device commands.
 """
 import struct
+import os
 import sys
 import time
 import zlib
@@ -495,8 +496,14 @@ def main():
                                                  "extract", "factory"):
         sys.exit(__doc__)
     cmd = sys.argv[1]
+    argv = sys.argv[2:]
+    if argv[:1] and argv[0].startswith("--board="):   # --board=smk37: the M-VAVE SMK-37's smaller bank (144 KB)
+        sio.set_board(argv[0].split("=", 1)[1])
+        argv = argv[1:]
+    elif os.environ.get("BOARD"):
+        sio.set_board(os.environ["BOARD"].lower().replace("-", ""))
     try:
-        rate, factory, rest = args_of(sys.argv[2:])
+        rate, factory, rest = args_of(argv)
         if cmd in ("build", "syx"):
             if len(rest) < 2:
                 sys.exit(__doc__)

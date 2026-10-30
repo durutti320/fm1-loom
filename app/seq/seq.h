@@ -306,6 +306,13 @@ typedef struct {
      * the keys, which happen at the sound's time: what they set counting from now counts from that much earlier */
     volatile uint32_t ahead;
     uint32_t live_lead;
+#if BOARD_SMK37
+    /* note repeat (the SMK-37's NOTE REPEAT: app/smk37.c): the kit keys held on rp_trk sound again every period of
+     * rp_rate (seq_repeat), on the grid while playing; heard, and recorded while recording, as the keys are */
+    uint16_t rp_mask;                 /* the keys (bit k: key k + 1) */
+    uint8_t rp_trk, rp_rate, rp_vel[NDRUM];
+    uint32_t rp_to_next;              /* Q8 samples to the next repeat (NEVER: none) */
+#endif
 } seq_t;
 
 void seq_init(seq_t *s, patterns_t *P, uint8_t (*par)[NTP_ALL]);
@@ -349,6 +356,11 @@ void seq_brain_key(seq_t *s, int note, int on);
  * while playing the key is recorded into the PUNCH track's pattern. The latch (PUNCH track E1) is the UI's:
  * it sends on / off as the latched state changes */
 void seq_punch_key(seq_t *s, int fx, int on, int target_trk);
+#if BOARD_SMK37
+/* note repeat: key (1..NDRUM) of kit trk held (on) or let go, its velocity; key 0: the rate is vel (SEQ_RP_*) */
+enum { SEQ_RP_4, SEQ_RP_8, SEQ_RP_8T, SEQ_RP_16, SEQ_RP_16T, SEQ_RP_32, SEQ_RP_32T, SEQ_RP_64, NSEQ_RP };
+void seq_repeat(seq_t *s, int trk, int key, int on, int vel);
+#endif
 int punch_group_of(const seq_t *s, int trk);        /* 0 percussive (a drumline or slice track), 1 melodic */
 uint32_t seq_punch_mask(const seq_t *s, int trk);   /* the 12 PX_* bits in force on track trk now (held keys aimed at
                                                      * it or its group, and the sequenced ones); the engine's per-track

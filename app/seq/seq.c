@@ -2698,8 +2698,87 @@ static void punch_in(seq_t *s, int fx, int on, int tgt)
     }
 }
 
+#if BOARD_SMK37
+/* ------------------------------------------------------------ note repeat --- */
+/* the SMK-37's NOTE REPEAT (app/smk37.c): the kit keys held sound again every period: 1/4 .. 1/64 (in sixteenths,
+ * num / den). While playing on the grid (the first repeat the grid line after the hit, not one nearer than a quarter
+ * of the period: the hit was that one), stopped from the hit on. Each repeat is heard as the key is (emit_drum), and
+ * recorded while recording (live, quantised, as a key; a hit: no length kept) */
+static const uint8_t RP_NUM[NSEQ_RP] = {4, 2, 4, 1, 2, 1, 1, 1}, RP_DEN[NSEQ_RP] = {1, 1, 3, 1, 3, 2, 3, 4};
+static uint32_t rp_period(const seq_t *s)
+{
+    return six_q8(s) / RP_DEN[s->rp_rate % NSEQ_RP] * RP_NUM[s->rp_rate % NSEQ_RP];
+}
+static uint32_t rp_next(const seq_t *s)          /* to the next repeat, from now */
+{
+    uint32_t P = rp_period(s), six = six_q8(s), T, into, next;
+    if (!P)
+        return NEVER;
+    if (!s->playing || s->ext)
+        return P;
+    into = six > s->six_to_next ? six - s->six_to_next : 0;
+    T = (s->step_tick & 63u) * six + into;
+    next = (T / P + 1u) * P;
+    return next - T < P / 4u ? next - T + P : next - T;
+}
+static void rp_rec(seq_t *s, int t, int note, int vel)   /* recorded as a key, its slot for a length dropped */
+{
+    uint8_t had[8];
+    int i;
+    for (i = 0; i < 8; i++)
+        had[i] = s->rec_note[i];
+    rec_key_on(s, t, note, vel);
+    for (i = 0; i < 8; i++)
+        if (!had[i] && s->rec_note[i])
+            s->rec_note[i] = 0;
+}
+static void rp_fire(seq_t *s, const seq_sink_t *o)
+{
+    uint32_t carry = s->rp_to_next < SEQ_DUE ? s->rp_to_next : 0;
+    int t = s->rp_trk, k;
+    if (!s->rp_mask || t >= NTRK || !is_drum(s, t)) {
+        s->rp_mask = 0;
+        s->rp_to_next = NEVER;
+        return;
+    }
+    for (k = 0; k < NDRUM; k++)
+        if (s->rp_mask >> k & 1u) {
+            if (s->rec && s->playing && !s->count_in && !s->rec_wait)
+                rp_rec(s, t, k + 1, s->rp_vel[k]);
+            emit_drum(s, t, k, s->rp_vel[k], 0, TAG_KEY, 0, o);
+        }
+    s->rp_to_next = s->playing && !s->ext ? rp_next(s) : carry + rp_period(s);
+}
+static void rp_key(seq_t *s, int t, int key, int on, int vel)
+{
+    if (!key) {                       /* the rate */
+        s->rp_rate = (uint8_t)(vel % NSEQ_RP);
+        return;
+    }
+    if (t < 0 || t >= NTRK || key > NDRUM)
+        return;
+    if (on) {
+        if (s->rp_trk != t)
+            s->rp_mask = 0;
+        s->rp_trk = (uint8_t)t;
+        if (!s->rp_mask)
+            s->rp_to_next = rp_next(s);
+        s->rp_mask |= (uint16_t)(1u << (key - 1));
+        s->rp_vel[key - 1] = (uint8_t)(vel ? vel : 1);
+    } else if (t == s->rp_trk) {
+        s->rp_mask &= (uint16_t)~(1u << (key - 1));
+        if (!s->rp_mask)
+            s->rp_to_next = NEVER;
+    }
+}
+#endif
+
 /* the main loop's keys, played here */
-enum { KQ_KEY, KQ_ALLOFF, KQ_BRAIN, KQ_PUNCH, KQ_MIDI, KQ_FLUSH };
+enum { KQ_KEY, KQ_ALLOFF, KQ_BRAIN, KQ_PUNCH, KQ_MIDI, KQ_FLUSH
+#if BOARD_SMK37
+       , KQ_REPEAT
+#endif
+};
 static void key_queue(seq_t *s, int kind, int trk, int note, int on, int vel)
 {
     uint8_t w = s->kq_w, n = (uint8_t)((w + 1) & 31);
@@ -2729,6 +2808,9 @@ static void keys_play(seq_t *s, const seq_sink_t *o)
         case KQ_BRAIN: brain_key_in(s, note, on, o); break;
         case KQ_PUNCH: punch_in(s, note, on, trk == 15 ? -1 : trk); break;
         case KQ_FLUSH: midi_flush(s, o); break;
+#if BOARD_SMK37
+        case KQ_REPEAT: rp_key(s, trk, note, on, vel); break;
+#endif
         default: break;
         }
     }
@@ -3048,6 +3130,10 @@ void seq_init(seq_t *s, patterns_t *P, uint8_t (*par)[NTP_ALL])
         z[i] = 0;
     s->P = P;
     s->par = par;
+#if BOARD_SMK37
+    s->rp_to_next = NEVER;
+    s->rp_rate = SEQ_RP_16;
+#endif
     s->bpm = 120.0f;
     s->ext_bpm = 120.0f;
     s->clock = SEQ_CLK_RECEIVE;
@@ -3116,6 +3202,10 @@ uint32_t seq_until_event(seq_t *s, uint32_t n)
             if ((e = tr->off[__builtin_ctz(pend)].off_at >> 8) < mo)
                 mo = e;
     }
+#if BOARD_SMK37
+    if (s->rp_to_next != NEVER && (e = s->rp_to_next >> 8) < m)
+        m = e;
+#endif
     if (s->playing) {
         for (t = 0; t < NSEQT; t++) {
             const seq_trk_t *tr = &s->t[t];
@@ -3233,6 +3323,9 @@ void seq_advance(seq_t *s, uint32_t k, const seq_sink_t *o)
     for (i = 0; i < 8; i++)
         if (s->rec_note[i])
             s->rec_age[i] += dq;
+#if BOARD_SMK37
+    dec(&s->rp_to_next, dq);
+#endif
     dec(&s->six_to_next, dq);
     if (!s->ext && s->clock == SEQ_CLK_SEND)     /* the clock waits for a stretch's end (its byte leaves after the render anyway):
                                        * not clamped, so a late tick keeps its lateness and the next is on time */
@@ -3304,6 +3397,12 @@ void seq_advance(seq_t *s, uint32_t k, const seq_sink_t *o)
                 fired = 1;
             }
         }
+#if BOARD_SMK37
+        if (s->rp_to_next < SEQ_DUE) {
+            rp_fire(s, o);
+            fired = 1;
+        }
+#endif
         if (!fired)
             break;
     }
@@ -3425,6 +3524,9 @@ void seq_key(seq_t *s, int trk, int note, int on, int vel) { key_queue(s, KQ_KEY
 void seq_key_midi(seq_t *s, int trk, int note, int on, int vel) { key_queue(s, KQ_MIDI, trk, note, on, vel); }
 void seq_key_all_off(seq_t *s, int trk) { key_queue(s, KQ_ALLOFF, trk, 0, 0, 0); }
 void seq_midi_notes_off(seq_t *s) { key_queue(s, KQ_FLUSH, 0, 0, 0, 0); }
+#if BOARD_SMK37
+void seq_repeat(seq_t *s, int trk, int key, int on, int vel) { key_queue(s, KQ_REPEAT, trk, key, on, vel); }
+#endif
 void seq_brain_key(seq_t *s, int note, int on) { key_queue(s, KQ_BRAIN, AUX_BRAIN, note, on, 0); }
 
 void seq_punch_key(seq_t *s, int fx, int on, int target_trk)

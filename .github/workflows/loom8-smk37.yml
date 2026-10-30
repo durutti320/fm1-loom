@@ -1,0 +1,154 @@
+# LOOM-8 on the M-VAVE SMK-37 (the plain port, branch loom8-smk37): built on GitHub by the FM-1 community's shared,
+# reviewed builder (zvenson/fm1-build: JieLi's toolchain and the AC79 SDK, a signed build attestation, the release on a
+# tag). A push to loom8-smk37, or "Run workflow" on the Actions tab: the packages as a downloadable artifact
+# ("packages"); a tag loom8-vX.Y: also a release with them. The builder checks out this repository alone, so the build
+# first fetches the nested projects (base = fm1-base, base/bsp = felucca-bsp, the forks .gitmodules names).
+name: LOOM-8 SMK-37 firmware
+
+on:
+  push:
+    branches: [loom8-smk37]
+    tags: ["loom8-v*"]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  # LOOM-8 on the SMK in the browser: fm1-base's emulator (web/emu, the simulated SMK-37) built with Emscripten for BOARD=smk37,
+  # with its own page (app/web/emu_smk37), onto the branch loom8-smk37-emu (app.wasm, index.html, worklet.js), where it can
+  # be served as it is. Pushes to loom8-smk37 and manual runs (not tags)
+  emu:
+    if: startsWith(github.ref, 'refs/heads/')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Emscripten (emsdk 3.1.74) and Python (numpy, Pillow with raqm)
+        run: |
+          set -euo pipefail
+          git clone -q --depth 1 https://github.com/emscripten-core/emsdk.git "$RUNNER_TEMP/emsdk"
+          "$RUNNER_TEMP/emsdk/emsdk" install 3.1.74 > /dev/null
+          "$RUNNER_TEMP/emsdk/emsdk" activate 3.1.74 > /dev/null
+          sudo apt-get install -y -qq libfribidi0
+          python3 -m venv "$RUNNER_TEMP/py"
+          "$RUNNER_TEMP/py/bin/pip" install -q numpy Pillow
+      - name: Build
+        run: |
+          set -euo pipefail
+          source "$RUNNER_TEMP/emsdk/emsdk_env.sh" > /dev/null
+          rc=0
+          PYTHON="$RUNNER_TEMP/py/bin/python3" BOARD=smk37 ./build.sh --web > /tmp/emu.log 2>&1 || rc=$?
+          cat /tmp/emu.log
+          if [ "$rc" != 0 ]; then
+            echo "::error title=Emulator build failed::$(tail -n 60 /tmp/emu.log | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"
+            exit "$rc"
+          fi
+      - name: Onto loom8-smk37-emu
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/emu"
+          mkdir -p "$out"
+          cp app/build/emu/app.wasm app/web/emu_smk37/worklet.js "$out"/
+          # the page as a document of its own (it is written for a host that wraps it: claude.ai's artifacts), so the
+          # branch can be a website as it is (GitHub Pages: Settings, Pages, branch loom8-smk37-emu), where Web MIDI works
+          { printf '<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'
+            printf '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"></head><body>\n'
+            cat app/web/emu_smk37/index.html
+            printf '</body></html>\n'; } > "$out/index.html"
+          touch "$out/.nojekyll"
+          cd "$out"
+          git init -q -b loom8-smk37-emu
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "LOOM-8 SMK-37 in the browser, from $GITHUB_SHA"
+          git push -q -f "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" loom8-smk37-emu
+
+  build:
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    uses: zvenson/fm1-build/.github/workflows/build.yml@v1
+    # Each block runs in a bash of its own; when one fails, its last lines also go up as an error note on the run's
+    # page (readable where the full log isn't).
+    with:
+      sdk: true
+      build: |
+        rc=0
+        bash -euo pipefail > /tmp/l8-build.log 2>&1 <<'EOF' || rc=$?
+        # the builder checks out without submodules: fm1-base (base/) and its felucca-bsp (base/bsp/), at the
+        # commits this one links (.gitmodules: the forks)
+        git submodule update --init --recursive
+        # the fonts' OpenType features (base/tools/gen_font.py): Pillow's raqm, which loads the system's FriBiDi
+        # (as LOOM-8's own release.yml)
+        sudo apt-get install -y -qq libfribidi0
+        python3 -c "from PIL import features; assert features.check('raqm'), 'Pillow without raqm'"
+        if [[ "$GITHUB_REF" == refs/tags/loom8-v* ]]; then rel=(--release "${GITHUB_REF_NAME#loom8-v}"); else rel=(); fi
+        BOARD=smk37 ./build.sh "${rel[@]}"
+        BOARD=smk37 MODEL=elite ./build.sh "${rel[@]}"
+        BOARD=smk37 MODEL=mke ./build.sh "${rel[@]}"
+        # the download: the three packages, the installer and the backup tool, and a note on where to start
+        mkdir -p build/loom8
+        cp app/build/loom-smk37*.fwsc base/tools/fm1_install.py tools/smk37_backup.py tools/START-HERE.txt \
+          build/loom8/
+        EOF
+        cat /tmp/l8-build.log
+        # the sizes as a note on the run's page (the image against the SMK-37's app slot, 619,520 B; the factory
+        # samples), readable where the full log isn't
+        grep -E "image [0-9]+ B; RAM|^samples: " /tmp/l8-build.log | while read -r l; do
+          echo "::notice title=Size::$l"
+        done || true
+        if [ "$rc" != 0 ]; then
+          echo "::error title=Build failed::$(tail -n 60 /tmp/l8-build.log | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"
+          exit "$rc"
+        fi
+      packages: build/loom8/*
+      test: |
+        rc=0
+        bash -euo pipefail > /tmp/l8-test.log 2>&1 <<'EOF' || rc=$?
+        BOARD=smk37 ./build.sh --host
+        mkdir -p /tmp/l8-scenarios
+        for s in tests/scenarios_smk37/*.xy; do app/build/host/loom-smk37_host "$s" /tmp/l8-scenarios; done
+        cc -std=c99 -Wall -Wno-unused-function -o /tmp/smk_daw_test tests/smk_daw_test.c
+        /tmp/smk_daw_test
+        python3 tests/smk37_backup_test.py
+        EOF
+        cat /tmp/l8-test.log
+        if [ "$rc" != 0 ]; then
+          echo "::error title=Tests failed::$(tail -n 60 /tmp/l8-test.log | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"
+          exit "$rc"
+        fi
+
+  # every job's log onto the branch loom8-smk37-ci-log (RESULT.txt: how each job ended), readable without the Actions
+  # page: Claude reads it to fix a failed build
+  log:
+    needs: [emu, build]
+    if: always()
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Onto loom8-smk37-ci-log
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESULTS: "emu=${{ needs.emu.result }} build=${{ needs.build.result }}"
+        run: |
+          set -u
+          mkdir -p "$RUNNER_TEMP/logs" && cd "$RUNNER_TEMP/logs"
+          echo "$GITHUB_SHA $RESULTS" > RESULT.txt
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=50" \
+            --jq '.jobs[] | select(.name != "log") | "\(.id)\t\(.name)\t\(.conclusion)"' > jobs.tsv || true
+          while IFS="$(printf '\t')" read -r id name concl; do
+            gh api "repos/$GITHUB_REPOSITORY/actions/jobs/$id/logs" 2>/dev/null | tail -c 400000 > "job-$id.log" || true
+          done < jobs.tsv
+          git init -q -b loom8-smk37-ci-log
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "$RESULTS ($GITHUB_SHA)"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" loom8-smk37-ci-log
