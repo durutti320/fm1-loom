@@ -32,7 +32,7 @@ The manual still applies: the FM-1's controls are where the SMK-37 prints the sa
 | KNOB BANK | the pads' job. On Steps: live pads there too (mutes and drums, lit), again the cells. On any other page: opens Steps, with the pads as its cells |
 | < / > | the bar before / after (the bar Steps shows and the pads write), when let go. Both together: DAW mode (below) |
 | Faders 1..4 | the levels of T1-T4, or T5-T8 after FADER BANK (lit on T5-T8). A fader acts only once it moves |
-| Pitch wheel | bend of the track the keys play, +-2 semitones (as a MIDI pitch bend) |
+| Pitch wheel | bend of the track the keys play, up to a fifth (+-7 semitones) |
 | Mod wheel | the filter of the track the keys play: its cutoff (a DYNAMIC filter: its hi cut). A pick-up: the wheel acts once it passes the value the track has, so nothing jumps; the screen says where to pick it up |
 | K1 | the volume (the FM-1's MASTER); the screen shows the level as it turns |
 | K2 / K3 / K4 | SELECT / ALGORITHM / PRESETS |
