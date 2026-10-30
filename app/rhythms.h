@@ -27,8 +27,8 @@ static const rhythm_t RHYTHM[] = {
         "S ....x.......x...",
         "H X.x.x.x.X.x.x.x.",
      }, 0},
-    {"forbidden beat", "Burlap", 16, 0, {      /* punk's: k s k s k s kk s, the snare on every off-beat eighth */
-        "K x...x...x...xx..",
+    {"forbidden beat", "Burlap", 16, 0, {      /* punk's: the kick on 1 5 9, then 14 and 16; the snare off the beat */
+        "K x...x...x....x.x",
         "S ..X...X...X...X.",
         "H x.x.x.x.x.x.x.x.",
         "Y X...............",
