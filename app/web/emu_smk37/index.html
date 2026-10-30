@@ -473,6 +473,16 @@ padMap.onchange = () => {
   padMapChosen = true; letGo();
   try { localStorage.setItem(PAD_MAP_KEY, padMap.value); } catch { /* this visit only */ }
 };
+// not chosen here: SMK OPEN is known by what it sends: pad pressure as channel aftertouch on channel 10 (DAW mode
+// sends none), or note 56 there (pad 8; Snoop37's pads stop at 51)
+function padMapSeen(st, d1) {
+  if (padMapChosen || padMap.value === "open") return;
+  if (st === 0xD9 || (st === 0x99 && d1 === 56)) {
+    padMap.value = "open";
+    try { localStorage.setItem(PAD_MAP_KEY, "open"); } catch { /* this visit only */ }      // (next visit: from the start)
+    midiState.textContent = "SMK OPEN's pads recognised: its pads 1-11 play the page's pads 1-11 (12-16 send nothing).";
+  }
+}
 function saveMap() { try { localStorage.setItem(MAP_KEY, JSON.stringify(midiMap)); } catch { /* this visit only */ } }
 function targetName(t) {
   const el = document.querySelector(`[data-learn="${t}"]`);
@@ -577,6 +587,7 @@ function letGo() {                                               // every note, 
 function onMidi(data) {
   const st = data[0], d1 = data[1] || 0, d2 = data[2] || 0, ty = st & 0xF0, ch = st & 15;
   if (st >= 0xF0) return;                                        // (clock, sense, SysEx)
+  padMapSeen(st, d1);
   logIn(`${[st, d1, d2].map((x) => x.toString(16).toUpperCase().padStart(2, "0")).join(" ")}  ch ${String(ch + 1).padStart(2)}  ` +
     (ty === 0x90 && d2 ? `note on  ${d1} vel ${d2}` : ty === 0x80 || ty === 0x90 ? `note off ${d1}` :
      ty === 0xB0 ? `CC ${d1} = ${d2}` : ty === 0xE0 ? `pitch bend ${((d2 << 7) | d1) - 8192}` :
