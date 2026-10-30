@@ -22,21 +22,32 @@ typedef struct {
 } rhythm_t;
 
 static const rhythm_t RHYTHM[] = {
-    {"motorik", "Burlap", 16, 0, {
-        "K x.....x.x.......",
-        "S ....x.......x...",
-        "H X.x.x.x.X.x.x.x.",
-     }, 0},
-    {"forbidden beat", "Burlap", 16, 0, {      /* punk's: the kick on 1 5 9, then 14 and 16; the snare off the beat */
-        "K x...x...x....x.x",
-        "S ..X...X...X...X.",
-        "H x.x.x.x.x.x.x.x.",
-        "Y X...............",
-     }, 0},
-    {"backbeat", "Burlap", 16, 0, {            /* the money beat: the kick on 1 and 3 */
+    /* Keep Chopping's drum module (keepchopping.neocities.org), its punk and psych grooves step for step; its tempo
+     * in each comment */
+    {"workhorse", "Burlap", 16, 0, {           /* 85: the backbeat; 170 and up, the Ramones */
         "K x.......x.......",
-        "S ....X.......X...",
-        "H x.o.x.o.x.o.x.o.",
+        "S ....x.......x...",
+        "H o.o.o.o.o.o.o.o.",
+     }, 0},
+    {"d-beat", "Burlap", 16, 0, {              /* 175: the Discharge tumble, the kick rolling through the snare */
+        "K x.....x.x.....x.",
+        "S ....x.......x...",
+        "H o.o.o.o.o.o.o.o.",
+     }, 0},
+    {"skank", "Burlap", 16, 0, {               /* 190: hardcore's double time */
+        "K x...x...x...x...",
+        "S ..x...x...x...x.",
+        "H o.o.o.o.o.o.o.o.",
+     }, 0},
+    {"motorik", "Burlap", 16, 0, {             /* 130: krautrock, straight sixteenths */
+        "K x.......x.......",
+        "S ....x.......x...",
+        "H oooooooooooooooo",
+     }, 0},
+    {"drone two-step", "Burlap", 16, 0, {      /* 100: Spacemen 3, the hat off the beat */
+        "K x.......x.......",
+        "S ............x...",
+        "H ..o...o...o...o.",
      }, 0},
     {"dembow", "Sequin", 16, 0, {
         "K x...x...x...x...",
@@ -132,20 +143,21 @@ static const rhythm_t RHYTHM[] = {
         "C ....x.......x...",
         "P ...o......o...o.",
      }, 0},
-    {"one drop", "Linen", 16, 30, {           /* reggae: nothing on 1, the kick and rim on 3 (Linen's key 8: a rim) */
-        "K ........X.......",
+    /* Keep Chopping's reggae and dub grooves, step for step (Linen's key 8: a rim) */
+    {"one drop", "Linen", 16, 0, {             /* 75: nothing on 1, the kick and rim together on 3 */
+        "K ........x.......",
         "P ........x.......",
-        "H x.x.x.x.x.x.x.x.",
+        "H o.o.o.o.o.o.o.o.",
      }, 0},
-    {"rockers", "Linen", 16, 24, {
-        "K x.......x.......",
-        "P ........x.......",
-        "H x.xxx.xxx.xxx.xx",
-     }, 0},
-    {"steppers", "Linen", 16, 20, {
+    {"steppers", "Linen", 16, 0, {             /* 76: the kick on all four, the rim on 3 */
         "K x...x...x...x...",
         "P ........x.......",
-        "H ..x...x...x...x.",
+        "H o.o.o.o.o.o.o.o.",
+     }, 0},
+    {"rockers", "Linen", 16, 0, {              /* 78: the kick on 1 and 3 and a pickup into the bar, the snare on 3 */
+        "K x.......x.....x.",
+        "S ........x.......",
+        "H o.o.o.o.o.o.o.o.",
      }, 0},
 };
 #define NRHYTHM ((int)(sizeof RHYTHM / sizeof RHYTHM[0]))
