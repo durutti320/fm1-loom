@@ -145,7 +145,9 @@ jobs:
           gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=50" \
             --jq '.jobs[] | select(.name != "log") | "\(.id)\t\(.name)\t\(.conclusion)"' > jobs.tsv || true
           while IFS="$(printf '\t')" read -r id name concl; do
-            gh api "repos/$GITHUB_REPOSITORY/actions/jobs/$id/logs" 2>/dev/null | tail -c 400000 > "job-$id.log" || true
+            curl -sSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/jobs/$id/logs" 2> "job-$id.err" | tail -c 400000 > "job-$id.log" || true
+            grep -E "image [0-9]+ B; RAM|^samples: |error|Error" "job-$id.log" | head -40 > "job-$id-summary.txt" || true
           done < jobs.tsv
           git init -q -b loom8-smk37-ci-log
           git add -A
