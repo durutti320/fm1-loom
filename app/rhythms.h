@@ -27,9 +27,9 @@ static const rhythm_t RHYTHM[] = {
         "S ....x.......x...",
         "H X.x.x.x.X.x.x.x.",
      }, 0},
-    {"d-beat", "Burlap", 16, 0, {              /* the forbidden beat: kick, snare, kick-kick, snare (two in the back half) */
-        "K x.......x.x.....",
-        "S ....X.......X...",
+    {"forbidden beat", "Burlap", 16, 0, {      /* punk's: k s k s k s kk s, the snare on every off-beat eighth */
+        "K x...x...x...xx..",
+        "S ..X...X...X...X.",
         "H x.x.x.x.x.x.x.x.",
         "Y X...............",
      }, 0},
@@ -124,6 +124,13 @@ static const rhythm_t RHYTHM[] = {
         "S ....X.......X...",
         "H xoxoxoxoxoxoxoxo",
         "Y ..x.....x.....x.",                  /* (Sequin's cowbell) */
+     }, 0},
+    {"techno", "Denim", 16, 0, {               /* 909: the kick on every beat, the open hat between, a choked tick */
+        "K x...x...x...x...",
+        "O ..x...x...x...x.",
+        "H .o.o.o.o.o.o.o.o",
+        "C ....x.......x...",
+        "P ...o......o...o.",
      }, 0},
     {"one drop", "Linen", 16, 30, {           /* reggae: nothing on 1, the kick and rim on 3 (Linen's key 8: a rim) */
         "K ........X.......",
