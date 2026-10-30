@@ -454,6 +454,14 @@ int app_expect(const char *what, int *got)
         if (sscanf(what + 4, "%d.%d.%d.%d", &t, &pt, &st, &k) != 4)
             return 0;
         *got = step_vel(pats.lane, t - 1, pt - 1, st - 1, k - 1);
+    } else if (!strncmp(what, "kmask", 5) || !strncmp(what, "svel", 4) || !strncmp(what, "nudge", 5)) {
+        /* kmaskT.PAT.S: a kit step's sounds (bit k: sound k + 1); svelT.PAT.S: a step's velocity; nudgeT.PAT.S: its
+         * nudge in ticks (SPIDER's rhythms) */
+        int t, pt, st, w = what[0] == 'k' ? 5 : what[0] == 's' ? 4 : 5;
+        tpat_t *tp;
+        if (sscanf(what + w, "%d.%d.%d", &t, &pt, &st) != 3 || !(tp = pat_of(t, pt)) || st < 1 || st > NSTEP)
+            return 0;
+        *got = what[0] == 'k' ? (int)kit_mask(&tp->st[st - 1]) : what[0] == 's' ? tp->st[st - 1].vel : tp->st[st - 1].nudge;
     } else if (!strncmp(what, "kcond", 5) || !strncmp(what, "ktrick", 6)) {   /* kcondT.PAT.S.K / ktrickT.PAT.S.K: kit
                                                      * sound K's condition / first trick (its own, or the step's) */
         int t, pt, st, k, tr = what[1] == 't';
