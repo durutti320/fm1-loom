@@ -6,7 +6,7 @@ expect trk 1
 tap SEQ
 tap SEL
 row RHYTHM
-turn ALGO 8
+turn ALGO 10
 tap SEL
 wait 40
 said dilla
@@ -38,3 +38,16 @@ expect kmask1.1.4 2
 expect kmask1.1.7 6
 expect kmask1.1.1 1
 expect nudge1.1.5 0
+# Keep Chopping's d-beat: the kick on 1, 7, 9 and 15, the snare on 5 and 13, the hat on the eighths
+tap SEL
+row RHYTHM
+turn ALGO -4
+tap SEL
+wait 40
+said d-beat
+expect kmask1.1.1 5
+expect kmask1.1.7 5
+expect kmask1.1.5 6
+expect kmask1.1.15 5
+expect kmask1.1.3 4
+expect kmask1.1.8 0
