@@ -1,0 +1,108 @@
+# LOOM-8 on the SMK-37: the weekly check. Has LOOM-8 (charlesvestal/fm1-loom) moved on since the branch loom8-smk37 was
+# last brought up to it (.github/loom8-upstream on that branch)? Then the SMK-37 commits are replayed onto the new
+# LOOM-8 (git rebase --onto) on the branch loom8-smk37-sync, the SMK-37 and FM-1 simulators built and every test run.
+# fm1-base (charlesvestal/fm1-base, the platform) moving on is reported only: its SMK-37 fork is merged by hand.
+# How it went: SYNC.md on loom8-smk37-sync, an issue (when the repository has issues), and a failed run (GitHub
+# emails the owner) when something needs a hand: a clash, a failed test, or no issue to say so.
+# (On the default branch because GitHub runs schedules only from there; it works on loom8-smk37.)
+name: LOOM-8 SMK-37 weekly sync check
+
+on:
+  schedule:
+    - cron: "17 20 * * 0"          # Sunday 20:17 UTC: Monday 06:17 in Brisbane
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: loom8-smk37
+          fetch-depth: 0
+          submodules: recursive
+      - name: Python (numpy, Pillow with raqm)
+        run: |
+          sudo apt-get install -y -qq libfribidi0
+          python3 -m venv "$RUNNER_TEMP/py"
+          "$RUNNER_TEMP/py/bin/pip" install -q numpy Pillow
+      - name: Try LOOM-8's latest
+        id: try
+        env:
+          PYTHON: ${{ runner.temp }}/py/bin/python3
+        run: |
+          set -u
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add upstream https://github.com/charlesvestal/fm1-loom
+          git fetch -q upstream main
+          git -C base remote add upstream https://github.com/charlesvestal/fm1-base
+          git -C base fetch -q upstream main
+          was=$(cat .github/loom8-upstream); now=$(git rev-parse upstream/main)
+          bwas=$(cat .github/fm1-base-upstream); bnow=$(git -C base rev-parse upstream/main)
+          {
+            echo "# LOOM-8 SMK-37 sync check, $(date -u +%Y-%m-%d)"
+            echo
+            if [ "$bwas" != "$bnow" ]; then
+              echo "- fm1-base has moved on ($(git -C base rev-list --count "$bwas..$bnow" 2>/dev/null || echo some) commits): the SMK-37 platform fork needs a merge, by hand."
+            else
+              echo "- fm1-base: no change."
+            fi
+          } > "$RUNNER_TEMP/SYNC.md"
+          if [ "$was" = "$now" ]; then
+            echo "- LOOM-8: no change." >> "$RUNNER_TEMP/SYNC.md"
+            [ "$bwas" != "$bnow" ] && echo "state=base" >> "$GITHUB_OUTPUT" || echo "state=same" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          n=$(git rev-list --count "$was..$now" 2>/dev/null || echo "?")
+          git checkout -q -b loom8-smk37-sync
+          if ! git rebase -q --onto upstream/main "$was" > "$RUNNER_TEMP/rebase.log" 2>&1; then
+            files=$(git diff --name-only --diff-filter=U | tr '\n' ' ')
+            git rebase --abort
+            echo "- LOOM-8 has $n new commits; the SMK-37 changes clash with them in: $files. Needs a hand (Claude)." >> "$RUNNER_TEMP/SYNC.md"
+            echo "state=clash" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "$now" > .github/loom8-upstream
+          git commit -q -am "loom8-smk37-sync: on LOOM-8 $now"
+          rc=0
+          {
+            BOARD=smk37 ./build.sh --host || rc=1
+            mkdir -p "$RUNNER_TEMP/s"
+            for s in tests/scenarios_smk37/*.xy; do
+              out=$(app/build/host/loom-smk37_host "$s" "$RUNNER_TEMP/s" 2>&1) || rc=1
+              echo "== $s"; echo "$out" | grep -E "FAIL|EXPECTATIONS" || true
+              echo "$out" | grep -q FAIL && rc=1
+            done
+            ./build.sh --host && bash tests/run_tests.sh || rc=1
+          } > "$RUNNER_TEMP/tests.log" 2>&1
+          cp "$RUNNER_TEMP/tests.log" sync-tests.log
+          if [ "$rc" = 0 ]; then
+            echo "- LOOM-8 has $n new commits; the SMK-37 changes replayed onto them cleanly and every test passed: ready on the branch loom8-smk37-sync, to try and then bring into loom8-smk37." >> "$RUNNER_TEMP/SYNC.md"
+            echo "state=ready" >> "$GITHUB_OUTPUT"
+          else
+            echo "- LOOM-8 has $n new commits; they replay cleanly but tests fail (sync-tests.log on loom8-smk37-sync). Needs a hand (Claude)." >> "$RUNNER_TEMP/SYNC.md"
+            echo "state=tests" >> "$GITHUB_OUTPUT"
+          fi
+          cp "$RUNNER_TEMP/SYNC.md" SYNC.md
+          git add SYNC.md sync-tests.log
+          git commit -q -m "loom8-smk37-sync: the check's report"
+          git push -q -f origin loom8-smk37-sync
+      - name: Say so
+        if: steps.try.outputs.state != 'same'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STATE: ${{ steps.try.outputs.state }}
+        run: |
+          set -u
+          title="LOOM-8 SMK-37 sync: $STATE"
+          if ! gh issue create -R "$GITHUB_REPOSITORY" --title "$title" --body-file "$RUNNER_TEMP/SYNC.md"; then
+            echo "::warning::no issue (issues off in this repository?)"; cat "$RUNNER_TEMP/SYNC.md"; exit 1
+          fi
+          cat "$RUNNER_TEMP/SYNC.md"
+          case "$STATE" in clash|tests) exit 1;; esac
