@@ -27,14 +27,14 @@ static const rhythm_t RHYTHM[] = {
         "S ....x.......x...",
         "H X.x.x.x.X.x.x.x.",
      }, 0},
-    {"forbidden beat", "Burlap", 16, 0, {      /* punk's skank: the kick on the beat, the snare off it */
-        "K x...x...x...x...",
-        "S ..X...X...X...X.",
+    {"d-beat", "Burlap", 16, 0, {              /* the forbidden beat: kick, snare, kick-kick, snare (two in the back half) */
+        "K x.......x.x.....",
+        "S ....X.......X...",
         "H x.x.x.x.x.x.x.x.",
         "Y X...............",
      }, 0},
-    {"backbeat", "Burlap", 16, 0, {
-        "K x.......x.x.....",
+    {"backbeat", "Burlap", 16, 0, {            /* the money beat: the kick on 1 and 3 */
+        "K x.......x.......",
         "S ....X.......X...",
         "H x.o.x.o.x.o.x.o.",
      }, 0},
@@ -104,6 +104,13 @@ static const rhythm_t RHYTHM[] = {
         "P x.x..x.x.x..x.x.",                  /* tamborim */
         "Z XoooXoooXoooXooo",
         "L x.......x.......",
+     }, 0},
+    {"cumbia", "Loom", 16, 0, {                /* the tambora on 1 and 3, the llamador off the beat, the guacharaca's
+                                                * long-short-short */
+        "K x.......x.......",
+        "P ..x...x...x...x.",
+        "Z X.ooX.ooX.ooX.oo",
+        "L ..............o.",
      }, 0},
     {"afrobeat", "Loom", 16, 12, {
         "K x.....x...x.....",
