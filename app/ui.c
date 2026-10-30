@@ -2519,6 +2519,7 @@ static void list_change_do(int32_t e)
         case A_PRESET: ui.pick_preset = (uint16_t)((ui.pick_preset + d + NPRESETS) % (NPRESETS ? NPRESETS : 1)); break;
         case A_SAVE_PRESET: ui.pick_slot = (uint8_t)((ui.pick_slot + d + NUSER_PRESETS) % NUSER_PRESETS); break;
         case A_KIT: ui.pick_kit = (uint8_t)((ui.pick_kit + d + NKITS) % NKITS); break;
+        case A_RHYTHM: ui.pick_rhythm = (uint8_t)((ui.pick_rhythm + d + NRHYTHM) % NRHYTHM); break;
         case A_SAVE_KIT: ui.pick_kslot = (uint8_t)((ui.pick_kslot + d + NUSER_KITS) % NUSER_KITS); break;
         case A_LOAD_PROJ: ui.pick_slot = (uint8_t)((ui.pick_slot + d + NPROJ) % NPROJ); break;
         case A_SAVE_TO: ui.pick_save = (uint8_t)((ui.pick_save + d + NPROJ) % NPROJ); break;
@@ -3138,6 +3139,39 @@ static void act_kit(int k)
     kit_label(k, t);
     say("KIT", t);
 }
+/* SPIDER's rhythms (rhythms.h): rhythm r into the kit track's pattern (its steps, length, swing; the pattern's locks and
+ * its sounds' velocities cleared: the rhythm's own); with_kit: the factory kit it was written for too */
+static void act_rhythm(int r, int with_kit)
+{
+    int trk = sel_trk(), pt = cur_pat(trk), k;
+    const rhythm_t *rh = &RHYTHM[r % NRHYTHM];
+    tpat_t *tp = tpat(trk);
+    if (!is_drum(trk))
+        return;
+    undo_keep();
+    for (int i = 0; i < NSTEP; i++) {
+        int vel;
+        uint32_t mask = i < rh->len ? rhythm_step(rh, i, &vel) : 0u;
+        memset(&tp->st[i], 0, sizeof tp->st[i]);
+        tp->st[i].vel = 100;
+        if (mask) {
+            kit_set(&tp->st[i], mask);
+            tp->st[i].vel = (uint8_t)vel;
+            tp->st[i].nudge = (int8_t)(rh->nudge ? rh_nudge(rh->nudge[i]) : 0);
+        }
+    }
+    pattern_clear_locks(pats.lane, trk, pt);
+    for (int j = 0; j < NLANE; j++)                /* (the sounds' velocities and tunes: the rhythm's are its own) */
+        if (pats.lane[j].used && pats.lane[j].trk == trk && pats.lane[j].pat == pt && lane_is_note(pats.lane[j].param))
+            lane_clear(pats.lane, j);
+    tp->len = rh->len;
+    tp->lstart = tp->lend = 0;
+    tp->groove = rh->groove;
+    mark_dirty();
+    if (with_kit && (k = rhythm_kit(rh)) >= 0)
+        act_kit(k);
+    say("RHYTHM", rh->name);
+}
 static void do_save_kit(void)
 {
     uint8_t img[KIT_LEN];
@@ -3624,6 +3658,8 @@ static void action_run(int a)
     case A_SCRAMBLE: act_scramble(); say("SCRAMBLED", 0); break;
     case A_SAVE_PRESET: act_save_preset(ui.pick_slot % NUSER_PRESETS); return;
     case A_KIT: act_kit(ui.pick_kit % NKITS); break;
+    case A_RHYTHM: act_rhythm(ui.pick_rhythm % NRHYTHM, 0); break;
+    case A_RHYTHM_KIT: act_rhythm(ui.pick_rhythm % NRHYTHM, 1); break;
     case A_SAVE_KIT: act_save_kit(ui.pick_kslot % NUSER_KITS); return;
     case A_INIT:
         undo_sound(sel_trk());

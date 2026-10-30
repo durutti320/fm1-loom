@@ -7,7 +7,7 @@ name: LOOM-8 SMK-37 firmware
 
 on:
   push:
-    branches: [loom8-smk37]
+    branches: [loom8-smk37, spider2]   # (spider2: SPIDER, rebuilt on LOOM-SMK; each branch builds onto BRANCH-emu)
     tags: ["loom8-v*"]
   workflow_dispatch:
 
@@ -62,11 +62,11 @@ jobs:
             printf '</body></html>\n'; } > "$out/index.html"
           touch "$out/.nojekyll"
           cd "$out"
-          git init -q -b loom8-smk37-emu
+          git init -q -b "${GITHUB_REF_NAME}-emu"
           git add -A
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
             commit -q -m "LOOM-8 SMK-37 in the browser, from $GITHUB_SHA"
-          git push -q -f "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" loom8-smk37-emu
+          git push -q -f "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "${GITHUB_REF_NAME}-emu"
 
   build:
     permissions:
@@ -149,8 +149,8 @@ jobs:
               "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/jobs/$id/logs" 2> "job-$id.err" | tail -c 400000 > "job-$id.log" || true
             grep -E "image [0-9]+ B; RAM|^samples: |error|Error" "job-$id.log" | head -40 > "job-$id-summary.txt" || true
           done < jobs.tsv
-          git init -q -b loom8-smk37-ci-log
+          git init -q -b "${GITHUB_REF_NAME}-ci-log"
           git add -A
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
             commit -q -m "$RESULTS ($GITHUB_SHA)"
-          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" loom8-smk37-ci-log
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "${GITHUB_REF_NAME}-ci-log"

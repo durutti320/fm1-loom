@@ -1,0 +1,40 @@
+# SPIDER's rhythms (app/rhythms.h): a kit track's Steps list, RHYTHM (K3 picks, SCALE writes it into the pattern) and
+# RHYTHM + KIT (the kit it was written for too); PATCH + REC undoes
+wait 300
+listen
+expect trk 1
+tap SEQ
+tap SEL
+row RHYTHM
+turn ALGO 8
+tap SEL
+wait 40
+said dilla
+# step 1: kick and hat (sounds 1 and 3); 5: snare and hat; 8: the early kick and a hat; 2: nothing
+expect kmask1.1.1 5
+expect kmask1.1.5 6
+expect kmask1.1.8 5
+expect kmask1.1.2 0
+expect svel1.1.5 127
+expect nudge1.1.5 5
+expect nudge1.1.8 -3
+expect loop 1 1 16
+# RHYTHM + KIT: Velvet (its clap a sample, its key 8 sophie)
+tap SEL
+row RHYTHM + KIT
+tap SEL
+wait 40
+expect par1.d5.model 10
+expect par1.d8.model 20
+expect kmask1.1.1 5
+# another: dembow's snare on 4, 7, 12, 15
+tap SEL
+row RHYTHM
+turn ALGO -5
+tap SEL
+wait 40
+said dembow
+expect kmask1.1.4 2
+expect kmask1.1.7 6
+expect kmask1.1.1 1
+expect nudge1.1.5 0
