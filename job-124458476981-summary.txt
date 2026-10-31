@@ -1,0 +1,1 @@
+2026-10-31T05:52:53.2465412Z [36;1m  echo "::error title=Emulator build failed::$(tail -n 60 /tmp/emu.log | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"[0m

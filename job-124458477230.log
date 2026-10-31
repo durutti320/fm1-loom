@@ -1,0 +1,930 @@
+﻿2026-10-31T05:52:11.7476017Z Current runner version: '2.338.2'
+2026-10-31T05:52:11.7491120Z ##[group]Runner Image Provisioner
+2026-10-31T05:52:11.7491804Z Hosted Compute Agent
+2026-10-31T05:52:11.7492201Z Version: 20261021.618
+2026-10-31T05:52:11.7492566Z Commit: 21505ad2541d5be6135ed84fc33697146cf75b8e
+2026-10-31T05:52:11.7493145Z Build Date: 2026-10-21T00:45:21Z
+2026-10-31T05:52:11.7493656Z Worker ID: {5b67a343-a365-4aa8-9681-e0b73ca7935b}
+2026-10-31T05:52:11.7494044Z Region: centralus
+2026-10-31T05:52:11.7494414Z Cloud: Azure
+2026-10-31T05:52:11.7494734Z ##[endgroup]
+2026-10-31T05:52:11.7495542Z ##[group]Operating System
+2026-10-31T05:52:11.7495907Z Ubuntu
+2026-10-31T05:52:11.7496217Z 24.04.5
+2026-10-31T05:52:11.7496550Z LTS
+2026-10-31T05:52:11.7496856Z ##[endgroup]
+2026-10-31T05:52:11.7497195Z ##[group]Runner Image
+2026-10-31T05:52:11.7497627Z Image: ubuntu-24.04
+2026-10-31T05:52:11.7497965Z Version: 20261025.353.1
+2026-10-31T05:52:11.7498723Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261025.353/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-31T05:52:11.7499618Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261025.353
+2026-10-31T05:52:11.7500159Z ##[endgroup]
+2026-10-31T05:52:11.7500831Z ##[group]GITHUB_TOKEN Permissions
+2026-10-31T05:52:11.7502134Z Attestations: write
+2026-10-31T05:52:11.7502517Z Contents: write
+2026-10-31T05:52:11.7502895Z Metadata: read
+2026-10-31T05:52:11.7503378Z ##[endgroup]
+2026-10-31T05:52:11.7504578Z Secret source: Actions
+2026-10-31T05:52:11.7505206Z Cache mode: write
+2026-10-31T05:52:11.7505732Z Prepare workflow directory
+2026-10-31T05:52:11.7704087Z Prepare all required actions
+2026-10-31T05:52:11.7732977Z Getting action download info
+2026-10-31T05:52:11.9897843Z Download action repository 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683' (SHA:11bd71901bbe5b1630ceea73d27597364c9af683)
+2026-10-31T05:52:12.1093972Z Download action repository 'actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-10-31T05:52:12.2126810Z Download action repository 'actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be' (SHA:e8998f949152b193b063cb0ec769d69d929409be)
+2026-10-31T05:52:12.5364914Z Download action repository 'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-10-31T05:52:12.6784753Z Download action repository 'softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8' (SHA:72f2c25fcb47643c292f7107632f7a47c1df5cd8)
+2026-10-31T05:52:13.0407703Z Getting action download info
+2026-10-31T05:52:13.1366565Z Download action repository 'actions/attest-build-provenance@1176ef556905f349f669722abf30bce1a6e16e01' (SHA:1176ef556905f349f669722abf30bce1a6e16e01)
+2026-10-31T05:52:13.4121386Z Download action repository 'actions/attest@ce27ba3b4a9a139d9a20a4a07d69fabb52f1e5bc' (SHA:ce27ba3b4a9a139d9a20a4a07d69fabb52f1e5bc)
+2026-10-31T05:52:13.7471509Z Uses: zvenson/fm1-build/.github/workflows/build.yml@refs/tags/v1 (5ba8c359b1744cc53c4530b15eff52d0d5c1255b)
+2026-10-31T05:52:13.7474525Z ##[group] Inputs
+2026-10-31T05:52:13.7477940Z   build: rc=0
+bash -euo pipefail > /tmp/l8-build.log 2>&1 <<'EOF' || rc=$?
+# the builder checks out without submodules: fm1-base (base/) and its felucca-bsp (base/bsp/), at the
+# commits this one links (.gitmodules: the forks)
+git submodule update --init --recursive
+# the fonts' OpenType features (base/tools/gen_font.py): Pillow's raqm, which loads the system's FriBiDi
+# (as LOOM-8's own release.yml)
+sudo apt-get install -y -qq libfribidi0
+python3 -c "from PIL import features; assert features.check('raqm'), 'Pillow without raqm'"
+if [[ "$GITHUB_REF" == refs/tags/loom8-v* ]]; then rel=(--release "${GITHUB_REF_NAME#loom8-v}"); else rel=(); fi
+BOARD=smk37 ./build.sh "${rel[@]}"
+BOARD=smk37 MODEL=elite ./build.sh "${rel[@]}"
+BOARD=smk37 MODEL=mke ./build.sh "${rel[@]}"
+# the download: the three packages, the installer and the backup tool, and a note on where to start
+mkdir -p build/loom8
+cp app/build/loom-smk37*.fwsc base/tools/fm1_install.py tools/smk37_backup.py tools/START-HERE.txt \
+  build/loom8/
+EOF
+cat /tmp/l8-build.log
+# the sizes as a note on the run's page (the image against the SMK-37's app slot, 619,520 B; the factory
+# samples), readable where the full log isn't
+grep -E "image [0-9]+ B; RAM|^samples: " /tmp/l8-build.log | while read -r l; do
+  echo "::notice title=Size::$l"
+done || true
+if [ "$rc" != 0 ]; then
+  echo "::error title=Build failed::$(tail -n 60 /tmp/l8-build.log | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"
+  exit "$rc"
+fi
+
+2026-10-31T05:52:13.7481451Z   packages: build/loom8/*
+2026-10-31T05:52:13.7482848Z   test: rc=0
+bash -euo pipefail > /tmp/l8-test.log 2>&1 <<'EOF' || rc=$?
+BOARD=smk37 ./build.sh --host
+mkdir -p /tmp/l8-scenarios
+for s in tests/scenarios_smk37/*.xy; do app/build/host/loom-smk37_host "$s" /tmp/l8-scenarios; done
+cc -std=c99 -Wall -Wno-unused-function -o /tmp/smk_daw_test tests/smk_daw_test.c
+/tmp/smk_daw_test
+python3 tests/smk37_backup_test.py
+EOF
+cat /tmp/l8-test.log
+if [ "$rc" != 0 ]; then
+  echo "::error title=Tests failed::$(tail -n 60 /tmp/l8-test.log | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"
+  exit "$rc"
+fi
+
+2026-10-31T05:52:13.7484548Z   tests-block: true
+2026-10-31T05:52:13.7484941Z   sdk: true
+2026-10-31T05:52:13.7485319Z ##[endgroup]
+2026-10-31T05:52:13.7485715Z Complete job name: build / build
+2026-10-31T05:52:13.8073559Z ##[group]Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+2026-10-31T05:52:13.8074204Z with:
+2026-10-31T05:52:13.8074604Z   persist-credentials: false
+2026-10-31T05:52:13.8075042Z   repository: durutti320/fm1-loom
+2026-10-31T05:52:13.8076969Z   token: ***
+2026-10-31T05:52:13.8077373Z   ssh-strict: true
+2026-10-31T05:52:13.8077762Z   ssh-user: git
+2026-10-31T05:52:13.8078143Z   clean: true
+2026-10-31T05:52:13.8078539Z   sparse-checkout-cone-mode: true
+2026-10-31T05:52:13.8078965Z   fetch-depth: 1
+2026-10-31T05:52:13.8079352Z   fetch-tags: false
+2026-10-31T05:52:13.8079741Z   show-progress: true
+2026-10-31T05:52:13.8080147Z   lfs: false
+2026-10-31T05:52:13.8080521Z   submodules: false
+2026-10-31T05:52:13.8080914Z   set-safe-directory: true
+2026-10-31T05:52:13.8081396Z ##[endgroup]
+2026-10-31T05:52:13.9740926Z Syncing repository: durutti320/fm1-loom
+2026-10-31T05:52:13.9742606Z ##[group]Getting Git version info
+2026-10-31T05:52:13.9743603Z Working directory is '/home/runner/work/fm1-loom/fm1-loom'
+2026-10-31T05:52:13.9744684Z [command]/usr/bin/git version
+2026-10-31T05:52:13.9807842Z git version 2.56.0
+2026-10-31T05:52:13.9820588Z ##[endgroup]
+2026-10-31T05:52:13.9830345Z Temporarily overriding HOME='/home/runner/work/_temp/380e549d-65e6-4704-b837-40c7c2902104' before making global git config changes
+2026-10-31T05:52:13.9831489Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-31T05:52:13.9833365Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/fm1-loom/fm1-loom
+2026-10-31T05:52:13.9873714Z Deleting the contents of '/home/runner/work/fm1-loom/fm1-loom'
+2026-10-31T05:52:13.9877062Z ##[group]Initializing the repository
+2026-10-31T05:52:13.9880445Z [command]/usr/bin/git init /home/runner/work/fm1-loom/fm1-loom
+2026-10-31T05:52:13.9945767Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-31T05:52:13.9946733Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-31T05:52:13.9947644Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-31T05:52:13.9948402Z hint: call:
+2026-10-31T05:52:13.9948931Z hint:
+2026-10-31T05:52:13.9949558Z hint: 	git config --global init.defaultBranch <name>
+2026-10-31T05:52:13.9950208Z hint:
+2026-10-31T05:52:13.9950881Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-31T05:52:13.9951779Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-31T05:52:13.9952512Z hint:
+2026-10-31T05:52:13.9953037Z hint: 	git branch -m <name>
+2026-10-31T05:52:13.9953957Z hint:
+2026-10-31T05:52:13.9954667Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-31T05:52:13.9955736Z Initialized empty Git repository in /home/runner/work/fm1-loom/fm1-loom/.git/
+2026-10-31T05:52:13.9961871Z [command]/usr/bin/git remote add origin https://github.com/durutti320/fm1-loom
+2026-10-31T05:52:13.9997623Z ##[endgroup]
+2026-10-31T05:52:13.9998662Z ##[group]Disabling automatic garbage collection
+2026-10-31T05:52:14.0000168Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-31T05:52:14.0032281Z ##[endgroup]
+2026-10-31T05:52:14.0033316Z ##[group]Setting up auth
+2026-10-31T05:52:14.0037352Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-31T05:52:14.0065774Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-31T05:52:14.0338147Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-31T05:52:14.0373586Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-31T05:52:14.0554161Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-31T05:52:14.0593836Z ##[endgroup]
+2026-10-31T05:52:14.0594621Z ##[group]Fetching the repository
+2026-10-31T05:52:14.0601573Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +10ef682af2680afb0118ea5d12cee196593da9b5:refs/remotes/origin/loom8-smk37
+2026-10-31T05:52:14.6942622Z From https://github.com/durutti320/fm1-loom
+2026-10-31T05:52:14.6943805Z  * [new ref]         10ef682af2680afb0118ea5d12cee196593da9b5 -> origin/loom8-smk37
+2026-10-31T05:52:14.6947077Z ##[endgroup]
+2026-10-31T05:52:14.6947481Z ##[group]Determining the checkout info
+2026-10-31T05:52:14.6948956Z ##[endgroup]
+2026-10-31T05:52:14.6953617Z [command]/usr/bin/git sparse-checkout disable
+2026-10-31T05:52:14.6999108Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-31T05:52:14.7031051Z ##[group]Checking out the ref
+2026-10-31T05:52:14.7033980Z [command]/usr/bin/git checkout --progress --force -B loom8-smk37 refs/remotes/origin/loom8-smk37
+2026-10-31T05:52:14.7312108Z Switched to a new branch 'loom8-smk37'
+2026-10-31T05:52:14.7315851Z branch 'loom8-smk37' set up to track 'origin/loom8-smk37'.
+2026-10-31T05:52:14.7320187Z ##[endgroup]
+2026-10-31T05:52:14.7358893Z [command]/usr/bin/git log -1 --format=%H
+2026-10-31T05:52:14.7386882Z 10ef682af2680afb0118ea5d12cee196593da9b5
+2026-10-31T05:52:14.7393568Z ##[group]Removing auth
+2026-10-31T05:52:14.7395744Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-31T05:52:14.7427109Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-31T05:52:14.7605887Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-31T05:52:14.7634141Z http.https://github.com/.extraheader
+2026-10-31T05:52:14.7639881Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-31T05:52:14.7672817Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-31T05:52:14.7860880Z ##[endgroup]
+2026-10-31T05:52:14.8065349Z ##[group]Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+2026-10-31T05:52:14.8065594Z with:
+2026-10-31T05:52:14.8065736Z   python-version: 3.12
+2026-10-31T05:52:14.8065887Z   check-latest: false
+2026-10-31T05:52:14.8067352Z   token: ***
+2026-10-31T05:52:14.8067668Z   update-environment: true
+2026-10-31T05:52:14.8067833Z   allow-prereleases: false
+2026-10-31T05:52:14.8068010Z   freethreaded: false
+2026-10-31T05:52:14.8068157Z ##[endgroup]
+2026-10-31T05:52:14.8879988Z ##[group]Installed versions
+2026-10-31T05:52:14.8934652Z (node:2142) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-31T05:52:14.8935280Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-31T05:52:14.8935607Z Successfully set up CPython (3.12.15)
+2026-10-31T05:52:14.8935932Z ##[endgroup]
+2026-10-31T05:52:14.9105317Z ##[group]Run python3 -m pip install Pillow
+2026-10-31T05:52:14.9105729Z [36;1mpython3 -m pip install Pillow[0m
+2026-10-31T05:52:14.9138856Z shell: /usr/bin/bash -e {0}
+2026-10-31T05:52:14.9139121Z env:
+2026-10-31T05:52:14.9139396Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:52:14.9139812Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-10-31T05:52:14.9140231Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:52:14.9140580Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:52:14.9140934Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:52:14.9141300Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-10-31T05:52:14.9141621Z ##[endgroup]
+2026-10-31T05:52:15.6412705Z Collecting Pillow
+2026-10-31T05:52:15.7157813Z   Downloading pillow-13.0.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (9.1 kB)
+2026-10-31T05:52:15.7318611Z Downloading pillow-13.0.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (7.1 MB)
+2026-10-31T05:52:15.8475432Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 7.1/7.1 MB 84.9 MB/s  0:00:00
+2026-10-31T05:52:15.8758359Z Installing collected packages: Pillow
+2026-10-31T05:52:16.0847680Z Successfully installed Pillow-13.0.0
+2026-10-31T05:52:16.1211099Z ##[group]Run mkdir -p ~/.jieli
+2026-10-31T05:52:16.1211309Z [36;1mmkdir -p ~/.jieli[0m
+2026-10-31T05:52:16.1211566Z [36;1mcurl -fL --retry 3 https://pkgman.jieliapp.com/s/linux-toolchain | tar -xJ -C ~/.jieli[0m
+2026-10-31T05:52:16.1211885Z [36;1mTC="$(ls -d ~/.jieli/jieli-linux-toolchains-* | sort | tail -1)"[0m
+2026-10-31T05:52:16.1212108Z [36;1mln -sfn "$(basename "$TC")" ~/.jieli/toolchain[0m
+2026-10-31T05:52:16.1212320Z [36;1mecho "JIELI_TOOLCHAIN=$HOME/.jieli/toolchain" >> "$GITHUB_ENV"[0m
+2026-10-31T05:52:16.1212523Z [36;1mecho "toolchain: $(basename "$TC")"[0m
+2026-10-31T05:52:16.1228566Z shell: /usr/bin/bash -e {0}
+2026-10-31T05:52:16.1228697Z env:
+2026-10-31T05:52:16.1228842Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:52:16.1229070Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-10-31T05:52:16.1229291Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:52:16.1229512Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:52:16.1229716Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:52:16.1229919Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-10-31T05:52:16.1230087Z ##[endgroup]
+2026-10-31T05:52:16.1328809Z   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+2026-10-31T05:52:16.1329325Z                                  Dload  Upload   Total   Spent    Left  Speed
+2026-10-31T05:52:16.1329591Z 
+2026-10-31T05:52:16.9890102Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+2026-10-31T05:52:16.9890458Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+2026-10-31T05:52:16.9890794Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+2026-10-31T05:52:18.0169645Z 
+2026-10-31T05:52:18.8810823Z   0 24.8M    0  7717    0     0   4095      0  1:45:55  0:00:01  1:45:54  4095
+2026-10-31T05:52:19.8924258Z   4 24.8M    4 1267k    0     0   461k      0  0:00:55  0:00:02  0:00:53 1456k
+2026-10-31T05:52:20.1951948Z  74 24.8M   74 18.3M    0     0  5009k      0  0:00:05  0:00:03  0:00:02  9.7M
+2026-10-31T05:52:20.1952275Z 100 24.8M  100 24.8M    0     0  6256k      0  0:00:04  0:00:04 --:--:-- 11.3M
+2026-10-31T05:52:20.2094886Z toolchain: jieli-linux-toolchains-20260730.1
+2026-10-31T05:52:20.2143885Z ##[group]Run for i in 1 2 3; do                     # (gitee.com drops a clone now and then: try again)
+2026-10-31T05:52:20.2144218Z [36;1mfor i in 1 2 3; do                     # (gitee.com drops a clone now and then: try again)[0m
+2026-10-31T05:52:20.2144473Z [36;1m  git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 \[0m
+2026-10-31T05:52:20.2144759Z [36;1m      https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git ~/fw-AC79_AIoT_SDK && break[0m
+2026-10-31T05:52:20.2144993Z [36;1m  rm -rf ~/fw-AC79_AIoT_SDK[0m
+2026-10-31T05:52:20.2145132Z [36;1m  sleep 20[0m
+2026-10-31T05:52:20.2145244Z [36;1mdone[0m
+2026-10-31T05:52:20.2145357Z [36;1mtest -d ~/fw-AC79_AIoT_SDK[0m
+2026-10-31T05:52:20.2145537Z [36;1mecho "AC79_SDK=$HOME/fw-AC79_AIoT_SDK" >> "$GITHUB_ENV"[0m
+2026-10-31T05:52:20.2160965Z shell: /usr/bin/bash -e {0}
+2026-10-31T05:52:20.2161095Z env:
+2026-10-31T05:52:20.2161237Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:52:20.2161481Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-10-31T05:52:20.2161704Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:52:20.2161902Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:52:20.2162100Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:52:20.2162301Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-10-31T05:52:20.2162491Z   JIELI_TOOLCHAIN: /home/runner/.jieli/toolchain
+2026-10-31T05:52:20.2162644Z ##[endgroup]
+2026-10-31T05:52:20.2201450Z Cloning into '/home/runner/fw-AC79_AIoT_SDK'...
+2026-10-31T05:53:00.2298882Z warning: refs/tags/AC79NN_SDK_V1.2.1_2023-12-13 b02c8c9354c077238ccbf764e36eff53782e1c16 is not a commit!
+2026-10-31T05:53:00.2303143Z Note: switching to 'd179b4484759423312073f5fbb232501aa491047'.
+2026-10-31T05:53:00.2303460Z 
+2026-10-31T05:53:00.2303630Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-31T05:53:00.2304025Z changes and commit them, and you can discard any commits you make in this
+2026-10-31T05:53:00.2304396Z state without impacting any branches by switching back to a branch.
+2026-10-31T05:53:00.2304611Z 
+2026-10-31T05:53:00.2304773Z If you want to create a new branch to retain commits you create, you may
+2026-10-31T05:53:00.2305139Z do so (now or later) by using -c with the switch command. Example:
+2026-10-31T05:53:00.2305332Z 
+2026-10-31T05:53:00.2305448Z   git switch -c <new-branch-name>
+2026-10-31T05:53:00.2305592Z 
+2026-10-31T05:53:00.2305870Z Or undo this operation with:
+2026-10-31T05:53:00.2305996Z 
+2026-10-31T05:53:00.2306066Z   git switch -
+2026-10-31T05:53:00.2306163Z 
+2026-10-31T05:53:00.2306335Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-31T05:53:00.2306597Z 
+2026-10-31T05:53:02.0418478Z Updating files:  60% (9252/15258)
+2026-10-31T05:53:02.1598328Z Updating files:  61% (9308/15258)
+2026-10-31T05:53:02.2649789Z Updating files:  62% (9460/15258)
+2026-10-31T05:53:02.2803320Z Updating files:  62% (9539/15258)
+2026-10-31T05:53:02.2884275Z Updating files:  63% (9613/15258)
+2026-10-31T05:53:02.2982990Z Updating files:  64% (9766/15258)
+2026-10-31T05:53:02.3038390Z Updating files:  65% (9918/15258)
+2026-10-31T05:53:02.3106036Z Updating files:  66% (10071/15258)
+2026-10-31T05:53:02.3183749Z Updating files:  67% (10223/15258)
+2026-10-31T05:53:02.3284790Z Updating files:  68% (10376/15258)
+2026-10-31T05:53:02.3349835Z Updating files:  69% (10529/15258)
+2026-10-31T05:53:02.3424939Z Updating files:  70% (10681/15258)
+2026-10-31T05:53:02.3492921Z Updating files:  71% (10834/15258)
+2026-10-31T05:53:02.3562469Z Updating files:  72% (10986/15258)
+2026-10-31T05:53:02.3625779Z Updating files:  73% (11139/15258)
+2026-10-31T05:53:02.3688237Z Updating files:  74% (11291/15258)
+2026-10-31T05:53:02.3777866Z Updating files:  75% (11444/15258)
+2026-10-31T05:53:02.3884428Z Updating files:  76% (11597/15258)
+2026-10-31T05:53:02.3946068Z Updating files:  77% (11749/15258)
+2026-10-31T05:53:02.4006245Z Updating files:  78% (11902/15258)
+2026-10-31T05:53:02.4072452Z Updating files:  79% (12054/15258)
+2026-10-31T05:53:02.4142159Z Updating files:  80% (12207/15258)
+2026-10-31T05:53:02.4206135Z Updating files:  81% (12359/15258)
+2026-10-31T05:53:02.4274483Z Updating files:  82% (12512/15258)
+2026-10-31T05:53:02.4392475Z Updating files:  83% (12665/15258)
+2026-10-31T05:53:02.4504330Z Updating files:  84% (12817/15258)
+2026-10-31T05:53:02.4569249Z Updating files:  85% (12970/15258)
+2026-10-31T05:53:02.4606424Z Updating files:  86% (13122/15258)
+2026-10-31T05:53:02.4668985Z Updating files:  87% (13275/15258)
+2026-10-31T05:53:02.4711127Z Updating files:  88% (13428/15258)
+2026-10-31T05:53:02.4782528Z Updating files:  89% (13580/15258)
+2026-10-31T05:53:02.4946558Z Updating files:  90% (13733/15258)
+2026-10-31T05:53:02.5039936Z Updating files:  91% (13885/15258)
+2026-10-31T05:53:02.5088558Z Updating files:  92% (14038/15258)
+2026-10-31T05:53:02.5150662Z Updating files:  93% (14190/15258)
+2026-10-31T05:53:02.5305255Z Updating files:  94% (14343/15258)
+2026-10-31T05:53:02.5460294Z Updating files:  95% (14496/15258)
+2026-10-31T05:53:02.5544772Z Updating files:  96% (14648/15258)
+2026-10-31T05:53:02.5607532Z Updating files:  97% (14801/15258)
+2026-10-31T05:53:02.5832505Z Updating files:  98% (14953/15258)
+2026-10-31T05:53:02.6170068Z Updating files:  99% (15106/15258)
+2026-10-31T05:53:02.6170284Z Updating files: 100% (15258/15258)
+2026-10-31T05:53:02.6170444Z Updating files: 100% (15258/15258), done.
+2026-10-31T05:53:02.6396699Z ##[group]Run eval "$BUILD"
+2026-10-31T05:53:02.6396853Z [36;1meval "$BUILD"[0m
+2026-10-31T05:53:02.6414222Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-31T05:53:02.6414400Z env:
+2026-10-31T05:53:02.6414556Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:53:02.6414780Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-10-31T05:53:02.6415000Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:53:02.6415200Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:53:02.6415401Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:53:02.6415600Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-10-31T05:53:02.6415784Z   JIELI_TOOLCHAIN: /home/runner/.jieli/toolchain
+2026-10-31T05:53:02.6415942Z   AC79_SDK: /home/runner/fw-AC79_AIoT_SDK
+2026-10-31T05:53:02.6418330Z   BUILD: rc=0
+bash -euo pipefail > /tmp/l8-build.log 2>&1 <<'EOF' || rc=$?
+# the builder checks out without submodules: fm1-base (base/) and its felucca-bsp (base/bsp/), at the
+# commits this one links (.gitmodules: the forks)
+git submodule update --init --recursive
+# the fonts' OpenType features (base/tools/gen_font.py): Pillow's raqm, which loads the system's FriBiDi
+# (as LOOM-8's own release.yml)
+sudo apt-get install -y -qq libfribidi0
+python3 -c "from PIL import features; assert features.check('raqm'), 'Pillow without raqm'"
+if [[ "$GITHUB_REF" == refs/tags/loom8-v* ]]; then rel=(--release "${GITHUB_REF_NAME#loom8-v}"); else rel=(); fi
+BOARD=smk37 ./build.sh "${rel[@]}"
+BOARD=smk37 MODEL=elite ./build.sh "${rel[@]}"
+BOARD=smk37 MODEL=mke ./build.sh "${rel[@]}"
+# the download: the three packages, the installer and the backup tool, and a note on where to start
+mkdir -p build/loom8
+cp app/build/loom-smk37*.fwsc base/tools/fm1_install.py tools/smk37_backup.py tools/START-HERE.txt \
+  build/loom8/
+EOF
+cat /tmp/l8-build.log
+# the sizes as a note on the run's page (the image against the SMK-37's app slot, 619,520 B; the factory
+# samples), readable where the full log isn't
+grep -E "image [0-9]+ B; RAM|^samples: " /tmp/l8-build.log | while read -r l; do
+  echo "::notice title=Size::$l"
+done || true
+if [ "$rc" != 0 ]; then
+  echo "::error title=Build failed::$(tail -n 60 /tmp/l8-build.log | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"
+  exit "$rc"
+fi
+
+2026-10-31T05:53:02.6420862Z ##[endgroup]
+2026-10-31T05:53:28.6305973Z Submodule 'base' (https://github.com/durutti320/fm1-base) registered for path 'base'
+2026-10-31T05:53:28.6306435Z Cloning into '/home/runner/work/fm1-loom/fm1-loom/base'...
+2026-10-31T05:53:28.6306816Z Submodule path 'base': checked out 'f71a1981e02ff7b4cf86b0c7cf2847dc2b340eb0'
+2026-10-31T05:53:28.6307436Z Submodule 'bsp' (https://github.com/durutti320/felucca-bsp) registered for path 'base/bsp'
+2026-10-31T05:53:28.6307896Z Cloning into '/home/runner/work/fm1-loom/fm1-loom/base/bsp'...
+2026-10-31T05:53:28.6308373Z Submodule path 'base/bsp': checked out '3aa596bb97dd35bc969be0dd84ada5cf018b0c09'
+2026-10-31T05:53:28.6308937Z font T: BarlowSemiCondensed-SemiBold.ttf 10px h 12, digit adv 5, 3600 B
+2026-10-31T05:53:28.6309344Z font XS: BarlowSemiCondensed-SemiBold.ttf 12px h 15, digit adv 6, 7005 B
+2026-10-31T05:53:28.6309745Z font S: BarlowSemiCondensed-Medium.ttf 15px h 16, digit adv 7, 8576 B
+2026-10-31T05:53:28.6310117Z font B: BarlowSemiCondensed-Bold.ttf 15px h 16, digit adv 8, 8752 B
+2026-10-31T05:53:28.6310368Z font M: BarlowSemiCondensed-SemiBold.ttf 23px h 24, digit adv 12, 11832 B
+2026-10-31T05:53:28.6310614Z font L: BarlowSemiCondensed-Bold.ttf 31px h 32, digit adv 16, 19776 B
+2026-10-31T05:53:28.6310809Z font set barlow: 60782 B (approx)
+2026-10-31T05:53:28.6311052Z words: 190 own + 51 common -> /home/runner/work/fm1-loom/fm1-loom/app/web/words/87e98e4522.json (5227 B)
+2026-10-31T05:53:28.6311347Z font XS: BarlowSemiCondensed-SemiBold.ttf 12px h 15, digit adv 6, 2843 B
+2026-10-31T05:53:28.6311885Z font S: BarlowSemiCondensed-Medium.ttf 15px h 16, digit adv 7, 3680 B
+2026-10-31T05:53:28.6312120Z font B: BarlowSemiCondensed-Bold.ttf 15px h 16, digit adv 8, 3913 B
+2026-10-31T05:53:28.6312373Z font M: BarlowSemiCondensed-SemiBold.ttf 23px h 24, digit adv 12, 4244 B (runs)
+2026-10-31T05:53:28.6312645Z font L: BarlowSemiCondensed-Bold.ttf 31px h 32, digit adv 16, 7975 B (runs)
+2026-10-31T05:53:28.6312845Z font set barlow: 22655 B
+2026-10-31T05:53:28.6312992Z loader: image 9784 B at 0x1c0a800, bss end 0x1c122b4
+2026-10-31T05:53:28.6313150Z loader: ota.bin 8441 B
+2026-10-31T05:53:28.6313449Z samples: 16, 88444 B
+2026-10-31T05:53:28.6313663Z size: 585 main-loop functions built for size; 18 in those files reachable from an interrupt keep -Os
+2026-10-31T05:53:28.6313911Z size: dsp/synth.c: 14 functions built for size
+2026-10-31T05:53:28.6314076Z size: dsp/drumline.c: 6 functions built for size
+2026-10-31T05:53:28.6314248Z size: dsp/digisophie.c: 0 functions built for size
+2026-10-31T05:53:28.6314439Z size: dsp/sample.c: 2 functions built for size
+2026-10-31T05:53:28.6314600Z size: dsp/fx.c: 8 functions built for size
+2026-10-31T05:53:28.6314755Z size: dsp/bench.c: 0 functions built for size
+2026-10-31T05:53:28.6314916Z size: seq/pattern.c: 0 functions built for size
+2026-10-31T05:53:28.6315074Z size: seq/seq.c: 15 functions built for size
+2026-10-31T05:53:28.6315228Z   ok    .ram_text: 4977 insns, no calls
+2026-10-31T05:53:28.6315383Z   ok    no 64-bit multiply inlined beside a load
+2026-10-31T05:53:28.6315589Z   ok    own Bluetooth stack: nothing of JieLi's linked, the radio's ramp in RAM
+2026-10-31T05:53:28.6315823Z   ok    no soft-double routines (single-precision FPU only)
+2026-10-31T05:53:28.6316042Z   ok    image 512328 B; RAM .data+.bss 76380 B of 98304; pool 326316 B of 344064
+2026-10-31T05:53:28.6316289Z   ok    register access: felucca-bsp only (device/, include/ and the app clean)
+2026-10-31T05:53:28.6316733Z parts    Bluetooth MIDI, Bluetooth MIDI devices, USB audio in, backup and restore, the second core  (not built in: WiFi, USB audio out, screen mirroring, USB MIDI host, velocity and pressure)
+2026-10-31T05:53:28.6317157Z app      /home/runner/work/fm1-loom/fm1-loom/app/build/loom.bin  512328 B
+2026-10-31T05:53:28.6317402Z loader   /home/runner/work/fm1-loom/fm1-loom/app/build/loader/ota.bin  8441 B
+2026-10-31T05:53:28.6317836Z package  /home/runner/work/fm1-loom/fm1-loom/app/build/loom-smk37.fwsc  652557 B, identity SMK-37 Pro_1000
+2026-10-31T05:53:28.6318150Z font T: BarlowSemiCondensed-SemiBold.ttf 10px h 12, digit adv 5, 3600 B
+2026-10-31T05:53:28.6318563Z font XS: BarlowSemiCondensed-SemiBold.ttf 12px h 15, digit adv 6, 7005 B
+2026-10-31T05:53:28.6318953Z font S: BarlowSemiCondensed-Medium.ttf 15px h 16, digit adv 7, 8576 B
+2026-10-31T05:53:28.6319329Z font B: BarlowSemiCondensed-Bold.ttf 15px h 16, digit adv 8, 8752 B
+2026-10-31T05:53:28.6319712Z font M: BarlowSemiCondensed-SemiBold.ttf 23px h 24, digit adv 12, 11832 B
+2026-10-31T05:53:28.6320113Z font L: BarlowSemiCondensed-Bold.ttf 31px h 32, digit adv 16, 19776 B
+2026-10-31T05:53:28.6320422Z font set barlow: 60782 B (approx)
+2026-10-31T05:53:28.6320780Z words: 190 own + 51 common -> /home/runner/work/fm1-loom/fm1-loom/app/web/words/87e98e4522.json (5227 B)
+2026-10-31T05:53:28.6321242Z font XS: BarlowSemiCondensed-SemiBold.ttf 12px h 15, digit adv 6, 2843 B
+2026-10-31T05:53:28.6321633Z font S: BarlowSemiCondensed-Medium.ttf 15px h 16, digit adv 7, 3680 B
+2026-10-31T05:53:28.6322008Z font B: BarlowSemiCondensed-Bold.ttf 15px h 16, digit adv 8, 3913 B
+2026-10-31T05:53:28.6322290Z font M: BarlowSemiCondensed-SemiBold.ttf 23px h 24, digit adv 12, 4244 B (runs)
+2026-10-31T05:53:28.6322557Z font L: BarlowSemiCondensed-Bold.ttf 31px h 32, digit adv 16, 7975 B (runs)
+2026-10-31T05:53:28.6322759Z font set barlow: 22655 B
+2026-10-31T05:53:28.6322903Z loader: image 9788 B at 0x1c0a800, bss end 0x1c122b4
+2026-10-31T05:53:28.6323061Z loader: ota.bin 8445 B
+2026-10-31T05:53:28.6323177Z samples: 16, 88444 B
+2026-10-31T05:53:28.6323681Z size: 585 main-loop functions built for size; 18 in those files reachable from an interrupt keep -Os
+2026-10-31T05:53:28.6323946Z size: dsp/synth.c: 14 functions built for size
+2026-10-31T05:53:28.6324116Z size: dsp/drumline.c: 6 functions built for size
+2026-10-31T05:53:28.6324287Z size: dsp/digisophie.c: 0 functions built for size
+2026-10-31T05:53:28.6324663Z size: dsp/sample.c: 2 functions built for size
+2026-10-31T05:53:28.6324913Z size: dsp/fx.c: 8 functions built for size
+2026-10-31T05:53:28.6325219Z size: dsp/bench.c: 0 functions built for size
+2026-10-31T05:53:28.6325498Z size: seq/pattern.c: 0 functions built for size
+2026-10-31T05:53:28.6325733Z size: seq/seq.c: 15 functions built for size
+2026-10-31T05:53:28.6325964Z   ok    .ram_text: 4977 insns, no calls
+2026-10-31T05:53:28.6326195Z   ok    no 64-bit multiply inlined beside a load
+2026-10-31T05:53:28.6326511Z   ok    own Bluetooth stack: nothing of JieLi's linked, the radio's ramp in RAM
+2026-10-31T05:53:28.6326747Z   ok    no soft-double routines (single-precision FPU only)
+2026-10-31T05:53:28.6326973Z   ok    image 512328 B; RAM .data+.bss 76380 B of 98304; pool 326316 B of 344064
+2026-10-31T05:53:28.6327219Z   ok    register access: felucca-bsp only (device/, include/ and the app clean)
+2026-10-31T05:53:28.6327660Z parts    Bluetooth MIDI, Bluetooth MIDI devices, USB audio in, backup and restore, the second core  (not built in: WiFi, USB audio out, screen mirroring, USB MIDI host, velocity and pressure)
+2026-10-31T05:53:28.6328102Z app      /home/runner/work/fm1-loom/fm1-loom/app/build/loom.bin  512328 B
+2026-10-31T05:53:28.6328348Z loader   /home/runner/work/fm1-loom/fm1-loom/app/build/loader/ota.bin  8445 B
+2026-10-31T05:53:28.6328680Z package  /home/runner/work/fm1-loom/fm1-loom/app/build/loom-smk37-elite.fwsc  652561 B, identity SMK-37 Elite_1000
+2026-10-31T05:53:28.6329004Z font T: BarlowSemiCondensed-SemiBold.ttf 10px h 12, digit adv 5, 3600 B
+2026-10-31T05:53:28.6329256Z font XS: BarlowSemiCondensed-SemiBold.ttf 12px h 15, digit adv 6, 7005 B
+2026-10-31T05:53:28.6329549Z font S: BarlowSemiCondensed-Medium.ttf 15px h 16, digit adv 7, 8576 B
+2026-10-31T05:53:28.6329788Z font B: BarlowSemiCondensed-Bold.ttf 15px h 16, digit adv 8, 8752 B
+2026-10-31T05:53:28.6330029Z font M: BarlowSemiCondensed-SemiBold.ttf 23px h 24, digit adv 12, 11832 B
+2026-10-31T05:53:28.6330365Z font L: BarlowSemiCondensed-Bold.ttf 31px h 32, digit adv 16, 19776 B
+2026-10-31T05:53:28.6330557Z font set barlow: 60782 B (approx)
+2026-10-31T05:53:28.6330790Z words: 190 own + 51 common -> /home/runner/work/fm1-loom/fm1-loom/app/web/words/87e98e4522.json (5227 B)
+2026-10-31T05:53:28.6331081Z font XS: BarlowSemiCondensed-SemiBold.ttf 12px h 15, digit adv 6, 2843 B
+2026-10-31T05:53:28.6331322Z font S: BarlowSemiCondensed-Medium.ttf 15px h 16, digit adv 7, 3680 B
+2026-10-31T05:53:28.6331554Z font B: BarlowSemiCondensed-Bold.ttf 15px h 16, digit adv 8, 3913 B
+2026-10-31T05:53:28.6331800Z font M: BarlowSemiCondensed-SemiBold.ttf 23px h 24, digit adv 12, 4244 B (runs)
+2026-10-31T05:53:28.6332064Z font L: BarlowSemiCondensed-Bold.ttf 31px h 32, digit adv 16, 7975 B (runs)
+2026-10-31T05:53:28.6332260Z font set barlow: 22655 B
+2026-10-31T05:53:28.6332402Z loader: image 9784 B at 0x1c0a800, bss end 0x1c122b4
+2026-10-31T05:53:28.6332559Z loader: ota.bin 8441 B
+2026-10-31T05:53:28.6332671Z samples: 16, 88444 B
+2026-10-31T05:53:28.6332881Z size: 585 main-loop functions built for size; 18 in those files reachable from an interrupt keep -Os
+2026-10-31T05:53:28.6333126Z size: dsp/synth.c: 14 functions built for size
+2026-10-31T05:53:28.6333435Z size: dsp/drumline.c: 6 functions built for size
+2026-10-31T05:53:28.6333644Z size: dsp/digisophie.c: 0 functions built for size
+2026-10-31T05:53:28.6333812Z size: dsp/sample.c: 2 functions built for size
+2026-10-31T05:53:28.6333968Z size: dsp/fx.c: 8 functions built for size
+2026-10-31T05:53:28.6334122Z size: dsp/bench.c: 0 functions built for size
+2026-10-31T05:53:28.6334282Z size: seq/pattern.c: 0 functions built for size
+2026-10-31T05:53:28.6334443Z size: seq/seq.c: 15 functions built for size
+2026-10-31T05:53:28.6334675Z   ok    .ram_text: 4977 insns, no calls
+2026-10-31T05:53:28.6334825Z   ok    no 64-bit multiply inlined beside a load
+2026-10-31T05:53:28.6335026Z   ok    own Bluetooth stack: nothing of JieLi's linked, the radio's ramp in RAM
+2026-10-31T05:53:28.6335259Z   ok    no soft-double routines (single-precision FPU only)
+2026-10-31T05:53:28.6335474Z   ok    image 512328 B; RAM .data+.bss 76380 B of 98304; pool 326316 B of 344064
+2026-10-31T05:53:28.6335717Z   ok    register access: felucca-bsp only (device/, include/ and the app clean)
+2026-10-31T05:53:28.6336155Z parts    Bluetooth MIDI, Bluetooth MIDI devices, USB audio in, backup and restore, the second core  (not built in: WiFi, USB audio out, screen mirroring, USB MIDI host, velocity and pressure)
+2026-10-31T05:53:28.6336578Z app      /home/runner/work/fm1-loom/fm1-loom/app/build/loom.bin  512328 B
+2026-10-31T05:53:28.6336822Z loader   /home/runner/work/fm1-loom/fm1-loom/app/build/loader/ota.bin  8441 B
+2026-10-31T05:53:28.6337142Z package  /home/runner/work/fm1-loom/fm1-loom/app/build/loom-smk37-mke.fwsc  652557 B, identity MKE-P37_1000
+2026-10-31T05:53:28.6349085Z ##[notice]samples: 16, 88444 B
+2026-10-31T05:53:28.6354406Z ##[notice]ok    image 512328 B; RAM .data+.bss 76380 B of 98304; pool 326316 B of 344064
+2026-10-31T05:53:28.6355095Z ##[notice]samples: 16, 88444 B
+2026-10-31T05:53:28.6355759Z ##[notice]ok    image 512328 B; RAM .data+.bss 76380 B of 98304; pool 326316 B of 344064
+2026-10-31T05:53:28.6356376Z ##[notice]samples: 16, 88444 B
+2026-10-31T05:53:28.6357039Z ##[notice]ok    image 512328 B; RAM .data+.bss 76380 B of 98304; pool 326316 B of 344064
+2026-10-31T05:53:28.6388521Z ##[group]Run eval "$TEST"
+2026-10-31T05:53:28.6388663Z [36;1meval "$TEST"[0m
+2026-10-31T05:53:28.6404321Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-31T05:53:28.6404495Z env:
+2026-10-31T05:53:28.6404634Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:53:28.6404859Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-10-31T05:53:28.6405075Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:53:28.6405273Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:53:28.6405469Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:53:28.6405768Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-10-31T05:53:28.6405955Z   JIELI_TOOLCHAIN: /home/runner/.jieli/toolchain
+2026-10-31T05:53:28.6406112Z   AC79_SDK: /home/runner/fw-AC79_AIoT_SDK
+2026-10-31T05:53:28.6407062Z   TEST: rc=0
+bash -euo pipefail > /tmp/l8-test.log 2>&1 <<'EOF' || rc=$?
+BOARD=smk37 ./build.sh --host
+mkdir -p /tmp/l8-scenarios
+for s in tests/scenarios_smk37/*.xy; do app/build/host/loom-smk37_host "$s" /tmp/l8-scenarios; done
+cc -std=c99 -Wall -Wno-unused-function -o /tmp/smk_daw_test tests/smk_daw_test.c
+/tmp/smk_daw_test
+python3 tests/smk37_backup_test.py
+EOF
+cat /tmp/l8-test.log
+if [ "$rc" != 0 ]; then
+  echo "::error title=Tests failed::$(tail -n 60 /tmp/l8-test.log | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"
+  exit "$rc"
+fi
+
+2026-10-31T05:53:28.6407964Z ##[endgroup]
+2026-10-31T05:53:40.4566421Z In file included from /home/runner/work/fm1-loom/fm1-loom/app/app.c:11,
+2026-10-31T05:53:40.4566876Z                  from /home/runner/work/fm1-loom/fm1-loom/base/host/plat_host.c:715:
+2026-10-31T05:53:40.4567766Z /home/runner/work/fm1-loom/fm1-loom/app/ui.c: In function ‘step_pitch’:
+2026-10-31T05:53:40.4568337Z /home/runner/work/fm1-loom/fm1-loom/app/ui.c:858:68: warning: operand of ‘?:’ changes signedness from ‘int’ to ‘unsigned int’ due to unsignedness of other operand [-Wsign-compare]
+2026-10-31T05:53:40.4568768Z   858 |         pats.lane[ln].val[s] = (uint8_t)(v == TUNE_0 ? LOCK_NONE : v);
+2026-10-31T05:53:40.4568977Z       |                                                                    ^
+2026-10-31T05:53:40.4569187Z In file included from /home/runner/work/fm1-loom/fm1-loom/app/app.c:16:
+2026-10-31T05:53:40.4569472Z /home/runner/work/fm1-loom/fm1-loom/app/samples.c: In function ‘smp_frame’:
+2026-10-31T05:53:40.4569846Z /home/runner/work/fm1-loom/fm1-loom/app/samples.c:241:51: warning: iteration 4 invokes undefined behavior [-Waggressive-loop-optimizations]
+2026-10-31T05:53:40.4570236Z   241 |                 v[nv++] = (uint32_t)trace_worst[0][2u * i] | (uint32_t)trace_worst[0][2u * i + 1u] << 16;
+2026-10-31T05:53:40.4570481Z       |                                     ~~~~~~~~~~~~~~^~~~~~~~
+2026-10-31T05:53:40.4570702Z /home/runner/work/fm1-loom/fm1-loom/app/samples.c:240:27: note: within this loop
+2026-10-31T05:53:40.4570936Z   240 |             for (i = 0; i < TRACE_N * TRACE_K / 2u; i++)
+2026-10-31T05:53:40.4571106Z       |                         ~~^~~~~~~~~~~~~~~~~~~~~~~~
+2026-10-31T05:53:40.4571302Z In file included from /home/runner/work/fm1-loom/fm1-loom/app/app.c:10:
+2026-10-31T05:53:40.4571579Z /home/runner/work/fm1-loom/fm1-loom/app/pages.c: In function ‘draw_steps’:
+2026-10-31T05:53:40.4572102Z /home/runner/work/fm1-loom/fm1-loom/app/pages.c:3194:79: warning: array subscript 10 is above array bounds of ‘volatile uint8_t[10]’ {aka ‘volatile unsigned char[10]’} [-Warray-bounds=]
+2026-10-31T05:53:40.4572543Z  3194 |     int trk = sel_trk(), drum = is_drum(trk), pt = cur_pat(trk), ph = eng_step[trk];
+2026-10-31T05:53:40.4572788Z       |                                                                       ~~~~~~~~^~~~~
+2026-10-31T05:53:40.4573007Z In file included from /home/runner/work/fm1-loom/fm1-loom/app/app.c:8:
+2026-10-31T05:53:40.4573512Z /home/runner/work/fm1-loom/fm1-loom/app/engine.c:36:18: note: while referencing ‘eng_step’
+2026-10-31T05:53:40.4574099Z    36 | volatile uint8_t eng_step[NSEQT];
+2026-10-31T05:53:40.4574308Z       |                  ^~~~~~~~
+2026-10-31T05:53:40.4574572Z font T: BarlowSemiCondensed-SemiBold.ttf 10px h 12, digit adv 5, 3600 B
+2026-10-31T05:53:40.4574977Z font XS: BarlowSemiCondensed-SemiBold.ttf 12px h 15, digit adv 6, 7005 B
+2026-10-31T05:53:40.4575321Z font S: BarlowSemiCondensed-Medium.ttf 15px h 16, digit adv 7, 8576 B
+2026-10-31T05:53:40.4575560Z font B: BarlowSemiCondensed-Bold.ttf 15px h 16, digit adv 8, 8752 B
+2026-10-31T05:53:40.4575802Z font M: BarlowSemiCondensed-SemiBold.ttf 23px h 24, digit adv 12, 11832 B
+2026-10-31T05:53:40.4576046Z font L: BarlowSemiCondensed-Bold.ttf 31px h 32, digit adv 16, 19776 B
+2026-10-31T05:53:40.4576354Z font set barlow: 60782 B (approx)
+2026-10-31T05:53:40.4576592Z words: 190 own + 51 common -> /home/runner/work/fm1-loom/fm1-loom/app/web/words/87e98e4522.json (5227 B)
+2026-10-31T05:53:40.4576889Z font XS: BarlowSemiCondensed-SemiBold.ttf 12px h 15, digit adv 6, 2843 B
+2026-10-31T05:53:40.4577137Z font S: BarlowSemiCondensed-Medium.ttf 15px h 16, digit adv 7, 3680 B
+2026-10-31T05:53:40.4577372Z font B: BarlowSemiCondensed-Bold.ttf 15px h 16, digit adv 8, 3913 B
+2026-10-31T05:53:40.4577623Z font M: BarlowSemiCondensed-SemiBold.ttf 23px h 24, digit adv 12, 4244 B (runs)
+2026-10-31T05:53:40.4577891Z font L: BarlowSemiCondensed-Bold.ttf 31px h 32, digit adv 16, 7975 B (runs)
+2026-10-31T05:53:40.4578094Z font set barlow: 22655 B
+2026-10-31T05:53:40.4578249Z samples: 16, 88444 B
+2026-10-31T05:53:40.4578420Z host     /home/runner/work/fm1-loom/fm1-loom/app/build/host/loom-smk37_host
+2026-10-31T05:53:40.4578609Z   ok trk == 1
+2026-10-31T05:53:40.4578717Z   ok page "Steps"
+2026-10-31T05:53:40.4578825Z   ok note 1 1 1 == 1
+2026-10-31T05:53:40.4578937Z   ok note 1 1 10 == 1
+2026-10-31T05:53:40.4579047Z   ok note 1 1 1 == 0
+2026-10-31T05:53:40.4579282Z   pads: 000000 000000 000000 000000 000000 000000 000000 000000 |000000 371425 000000 000000 000000 000000 000000 000000  lit:
+2026-10-31T05:53:40.4579537Z   ok note 1 1 32 == 1
+2026-10-31T05:53:40.4579647Z   ok drumhits == 0
+2026-10-31T05:53:40.4579751Z   ok drumhits == 2
+2026-10-31T05:53:40.4579985Z   pads: c74887 20a19a c09e2c 5378c7 c76b33 53ab53 8d6bc7 a78b6d |2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d  lit:
+2026-10-31T05:53:40.4580240Z   ok trk == 2
+2026-10-31T05:53:40.4580339Z   ok drumhits == 3
+2026-10-31T05:53:40.4580445Z   ok par1.level == 127
+2026-10-31T05:53:40.4580557Z   ok par1.level == 0
+2026-10-31T05:53:40.4580665Z   ok par1.level == 0
+2026-10-31T05:53:40.4580774Z   ok par5.level == 100
+2026-10-31T05:53:40.4580884Z   ok par1.level == 0
+2026-10-31T05:53:40.4581131Z   pads: c74887 20a19a c09e2c 5378c7 c76b33 53ab53 8d6bc7 a78b6d |2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d  lit: FADERBANK
+2026-10-31T05:53:40.4581407Z   ok voices == 0
+2026-10-31T05:53:40.4581509Z   ok voices == 1
+2026-10-31T05:53:40.4581611Z   ok voices == 0
+2026-10-31T05:53:40.4581711Z   ok voices == 1
+2026-10-31T05:53:40.4581868Z host: 1929 ms simulated, 74 blits, render 0.2% of real time (host CPU)
+2026-10-31T05:53:40.4582047Z   ok trk == 1
+2026-10-31T05:53:40.4582145Z   ok page "Steps"
+2026-10-31T05:53:40.4582248Z   ok bar == 1
+2026-10-31T05:53:40.4582347Z   ok bar == 2
+2026-10-31T05:53:40.4582443Z   ok bar == 1
+2026-10-31T05:53:40.4582542Z   ok pads_drums == 1
+2026-10-31T05:53:40.4582649Z   ok drumhits == 0
+2026-10-31T05:53:40.4582753Z   ok drumhits == 1
+2026-10-31T05:53:40.4582855Z   ok note 1 1 3 == 0
+2026-10-31T05:53:40.4582961Z   ok pads_drums == 0
+2026-10-31T05:53:40.4583066Z   ok note 1 1 3 == 3
+2026-10-31T05:53:40.4583169Z   ok note 1 1 3 == 0
+2026-10-31T05:53:40.4583447Z   ok page "Arrange"
+2026-10-31T05:53:40.4583557Z   ok page "Steps"
+2026-10-31T05:53:40.4583661Z   ok trk == 2
+2026-10-31T05:53:40.4583769Z   ok par2.cut == 127 (>120)
+2026-10-31T05:53:40.4583894Z   ok par2.cut == 30 (<40)
+2026-10-31T05:53:40.4584010Z   ok daw == 1
+2026-10-31T05:53:40.4584112Z   out 90 2A 5A -> USB
+2026-10-31T05:53:40.4584224Z   out 80 2A 00 -> USB
+2026-10-31T05:53:40.4584440Z   ok out 90 35 64 -> USB
+2026-10-31T05:53:40.4584560Z   ok out 80 35 00 -> USB
+2026-10-31T05:53:40.4584675Z   ok out 90 30 5A -> USB
+2026-10-31T05:53:40.4584790Z   ok out 90 41 64 -> USB
+2026-10-31T05:53:40.4584904Z   ok out B0 4A 03 -> USB
+2026-10-31T05:53:40.4585017Z   ok out B0 46 02 -> USB
+2026-10-31T05:53:40.4585133Z   ok out B0 6A 01 -> USB
+2026-10-31T05:53:40.4585244Z   ok out B0 15 64 -> USB
+2026-10-31T05:53:40.4585355Z   ok out 99 24 64 -> USB
+2026-10-31T05:53:40.4585466Z   ok out 89 24 00 -> USB
+2026-10-31T05:53:40.4585696Z   pads: 06122f 06122f 06122f 06122f 06122f 06122f 06122f 06122f |06122f 06122f 06122f 06122f 06122f 06122f 06122f 06122f  lit:
+2026-10-31T05:53:40.4586031Z   ok out B0 70 7F -> USB
+2026-10-31T05:53:40.4586144Z   ok out B0 70 00 -> USB
+2026-10-31T05:53:40.4586257Z   ok out B0 6F 7F -> USB
+2026-10-31T05:53:40.4586369Z   ok out B0 6F 00 -> USB
+2026-10-31T05:53:40.4586481Z   ok out E0 7F 7F -> USB
+2026-10-31T05:53:40.4586596Z   ok out B0 01 40 -> USB
+2026-10-31T05:53:40.4586709Z   ok daw == 1
+2026-10-31T05:53:40.4586807Z   ok local == 0
+2026-10-31T05:53:40.4586909Z   ok voices == 0
+2026-10-31T05:53:40.4587012Z   ok local == 1
+2026-10-31T05:53:40.4587113Z   ok voices == 1
+2026-10-31T05:53:40.4587210Z   ok dawch == 2
+2026-10-31T05:53:40.4587308Z   ok local == 1
+2026-10-31T05:53:40.4587409Z   ok out 91 35 64 -> USB
+2026-10-31T05:53:40.4587520Z   ok dawuser == 1
+2026-10-31T05:53:40.4587624Z   out 90 35 64 -> USB
+2026-10-31T05:53:40.4587733Z   out 80 35 00 -> USB
+2026-10-31T05:53:40.4587840Z   out 90 30 5A -> USB
+2026-10-31T05:53:40.4587946Z   out 80 30 00 -> USB
+2026-10-31T05:53:40.4588050Z   out 90 41 64 -> USB
+2026-10-31T05:53:40.4588159Z   out 80 41 00 -> USB
+2026-10-31T05:53:40.4588263Z   out B0 4A 03 -> USB
+2026-10-31T05:53:40.4588367Z   out B0 46 02 -> USB
+2026-10-31T05:53:40.4588471Z   out B0 6A 01 -> USB
+2026-10-31T05:53:40.4588577Z   out B0 15 64 -> USB
+2026-10-31T05:53:40.4588681Z   out 99 24 64 -> USB
+2026-10-31T05:53:40.4588786Z   out 89 24 00 -> USB
+2026-10-31T05:53:40.4588892Z   out B0 70 7F -> USB
+2026-10-31T05:53:40.4589000Z   out B0 70 00 -> USB
+2026-10-31T05:53:40.4589105Z   out B0 6F 7F -> USB
+2026-10-31T05:53:40.4589213Z   out B0 6F 00 -> USB
+2026-10-31T05:53:40.4589318Z   out E0 7F 7F -> USB
+2026-10-31T05:53:40.4589423Z   out E0 00 40 -> USB
+2026-10-31T05:53:40.4589528Z   out B0 01 40 -> USB
+2026-10-31T05:53:40.4589632Z   out B0 01 00 -> USB
+2026-10-31T05:53:40.4589737Z   out 90 3A 64 -> USB
+2026-10-31T05:53:40.4589878Z   out 91 3A 64 -> USB
+2026-10-31T05:53:40.4589985Z   out 80 3A 00 -> USB
+2026-10-31T05:53:40.4590089Z   out 81 3A 00 -> USB
+2026-10-31T05:53:40.4590193Z   out 91 35 64 -> USB
+2026-10-31T05:53:40.4590299Z   out 91 35 64 -> USB
+2026-10-31T05:53:40.4590404Z   out 81 35 00 -> USB
+2026-10-31T05:53:40.4590509Z   out 81 35 00 -> USB
+2026-10-31T05:53:40.4590616Z   ok out B1 1A 5A -> USB
+2026-10-31T05:53:40.4590731Z   ok dawobj == 702
+2026-10-31T05:53:40.4590833Z   ok daw == 1
+2026-10-31T05:53:40.4590932Z   ok dawch == 2
+2026-10-31T05:53:40.4591036Z   ok dawuser == 1
+2026-10-31T05:53:40.4591138Z   ok local == 1
+2026-10-31T05:53:40.4591237Z   ok daw == 0
+2026-10-31T05:53:40.4591336Z   ok dawobj == 602
+2026-10-31T05:53:40.4591437Z   ok daw == 0
+2026-10-31T05:53:40.4591589Z host: 8279 ms simulated, 146 blits, render 0.2% of real time (host CPU)
+2026-10-31T05:53:40.4591773Z   ok page "Arrange"
+2026-10-31T05:53:40.4591876Z   ok trk == 1
+2026-10-31T05:53:40.4591972Z   ok trk == 2
+2026-10-31T05:53:40.4592071Z   ok drumhits == 0
+2026-10-31T05:53:40.4592173Z   ok drumhits == 1
+2026-10-31T05:53:40.4592274Z   ok drumhits == 2
+2026-10-31T05:53:40.4592503Z   pads: c74887 20a19a c09e2c 5378c7 c76b33 53ab53 8d6bc7 a78b6d |2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d  lit:
+2026-10-31T05:53:40.4592763Z   ok page "Arrange"
+2026-10-31T05:53:40.4592994Z   pads: c74887 20a19a c09e2c 5378c7 c76b33 53ab53 8d6bc7 a78b6d |ff5dad 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d  lit:
+2026-10-31T05:53:40.4593383Z   ok drumhits == 7
+2026-10-31T05:53:40.4593725Z   pads: 261f08 261f08 261f08 e7be35 261f08 261f08 261f08 261f08 |2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d  lit:
+2026-10-31T05:53:40.4593982Z   ok page "Arrange"
+2026-10-31T05:53:40.4594087Z   ok drumhits == 16
+2026-10-31T05:53:40.4594214Z   ok drumhits == 17
+2026-10-31T05:53:40.4594568Z   ok playing == 1
+2026-10-31T05:53:40.4594751Z   ok playing == 0
+2026-10-31T05:53:40.4594952Z   ok note 1 1 1 == 0
+2026-10-31T05:53:40.4595176Z   ok note 1 1 2 == 2
+2026-10-31T05:53:40.4595348Z   ok note 1 1 3 == 2
+2026-10-31T05:53:40.4595604Z   ok note 1 1 4 == 2
+2026-10-31T05:53:40.4595787Z   ok note 1 1 5 == 2
+2026-10-31T05:53:40.4595987Z   ok note 1 1 6 == 0
+2026-10-31T05:53:40.4596260Z   ok trk == 2
+2026-10-31T05:53:40.4596436Z   ok page "LFO"
+2026-10-31T05:53:40.4596675Z   ok page "Steps"
+2026-10-31T05:53:40.4596854Z   ok trk == 1
+2026-10-31T05:53:40.4597024Z   ok pads_drums == 1
+2026-10-31T05:53:40.4597278Z   ok note 1 1 13 == 0
+2026-10-31T05:53:40.4608201Z   pads: c74887 20a19a c09e2c 5378c7 c76b33 53ab53 8d6bc7 a78b6d |2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d  lit: KNOBBANK
+2026-10-31T05:53:40.4608570Z host: 4924 ms simulated, 70 blits, render 0.2% of real time (host CPU)
+2026-10-31T05:53:40.4608837Z smk_daw: the DEFAULT map: every entry valid for its control                               ok
+2026-10-31T05:53:40.4609222Z smk_daw: DEFAULT CCs: none with a fixed meaning (bank, data entry, RPN, volume, pan, pedals, mode), each once ok
+2026-10-31T05:53:40.4609549Z smk_daw: knobs K1..K8 CC 70..77, bank B CC 102..109                                       ok
+2026-10-31T05:53:40.4609805Z smk_daw: faders CC 20..23, bank B CC 24..27                                               ok
+2026-10-31T05:53:40.4610073Z smk_daw: PAD 9 (bottom left): note 36 (C2) on channel 10                                  ok
+2026-10-31T05:53:40.4610340Z smk_daw: the bottom row 36..43, the top row 44..51 (PAD 1 = 44)                           ok
+2026-10-31T05:53:40.4610616Z smk_daw: pad bank B: 16 notes higher (52..67)                                             ok
+2026-10-31T05:53:40.4610879Z smk_daw: SEQ PLAY CC 115, SEQ REC CC 117, < CC 110, BT CC 88                              ok
+2026-10-31T05:53:40.4611150Z smk_daw: pitch wheel: pitch bend; mod wheel: CC 1                                         ok
+2026-10-31T05:53:40.4611431Z smk_daw: channel: MAIN (the menu's CHANNEL) for all but the pads (10)                     ok
+2026-10-31T05:53:40.4611708Z smk_daw: NOTE: pads and buttons, not knobs or faders                                      ok
+2026-10-31T05:53:40.4611965Z smk_daw: MMC: buttons only                                                                ok
+2026-10-31T05:53:40.4612211Z smk_daw: MMC command 0: refused                                                           ok
+2026-10-31T05:53:40.4612466Z smk_daw: PITCH BEND: the pitch wheel only                                                 ok
+2026-10-31T05:53:40.4612729Z smk_daw: a number past 127: refused                                                       ok
+2026-10-31T05:53:40.4612988Z smk_daw: a channel past 16: refused                                                       ok
+2026-10-31T05:53:40.4613491Z smk_daw: a pad's types round: OFF CC TOGGLE NOTE                                          ok
+2026-10-31T05:53:40.4613753Z smk_daw: a knob: CC <-> OFF, both ways                                                    ok
+2026-10-31T05:53:40.4613995Z smk_daw: a button to MMC: PLAY                                                            ok
+2026-10-31T05:53:40.4614244Z smk_daw: back to CC: the default number                                                   ok
+2026-10-31T05:53:40.4614495Z smk_daw: K3 at 99: B2 48 63 (CC 72 on channel 3 = MAIN)                                   ok
+2026-10-31T05:53:40.4614756Z smk_daw: a fixed channel 16, a value clamped to 127                                       ok
+2026-10-31T05:53:40.4615020Z smk_daw: PAD 9 hit at 100: 99 24 64 (note on, channel 10)                                 ok
+2026-10-31T05:53:40.4615388Z smk_daw: PAD 9 let go: 89 24 00 (note off)                                                ok
+2026-10-31T05:53:40.4615636Z smk_daw: pitch wheel at rest: E2 00 40                                                    ok
+2026-10-31T05:53:40.4615886Z smk_daw: full up E2 7F 7F, full down E2 00 00                                             ok
+2026-10-31T05:53:40.4616138Z smk_daw: MMC PLAY: F0 7F 7F 06 02 F7 in two packets (CIN 4, 7)                            ok
+2026-10-31T05:53:40.4616379Z smk_daw: OFF: nothing                                                                     ok
+2026-10-31T05:53:40.4616626Z smk_daw: ABSOLUTE: 0..127, stops at the ends                                              ok
+2026-10-31T05:53:40.4617004Z smk_daw: RELATIVE: 64 + detents (1..127), the value untouched                             ok
+2026-10-31T05:53:40.4617273Z smk_daw: a toggle: on at the first press                                                  ok
+2026-10-31T05:53:40.4617546Z smk_daw: a second press 100 ms later (a wobbling pad): nothing                            ok
+2026-10-31T05:53:40.4617803Z smk_daw: 180 ms later: off                                                                ok
+2026-10-31T05:53:40.4618029Z smk_daw: at ms 0 too                                                                      ok
+2026-10-31T05:53:40.4618260Z smk_daw: a value never sent: due                                                          ok
+2026-10-31T05:53:40.4618514Z smk_daw: a new value, nothing sent yet: due                                               ok
+2026-10-31T05:53:40.4618778Z smk_daw: the next one waits DAW_RATE_MS (8 ms)                                            ok
+2026-10-31T05:53:40.4619034Z smk_daw: unchanged: never                                                                 ok
+2026-10-31T05:53:40.4619303Z smk_daw: RELATIVE: no detents, nothing (whatever the value)                               ok
+2026-10-31T05:53:40.4619570Z smk_daw: RELATIVE: detents to send                                                        ok
+2026-10-31T05:53:40.4619835Z smk_daw: the USER map starts as the DEFAULT                                               ok
+2026-10-31T05:53:40.4620092Z smk_daw: two entries changed                                                              ok
+2026-10-31T05:53:40.4620354Z smk_daw: the object: the same bytes each time (padding too), small                        ok
+2026-10-31T05:53:40.4620639Z smk_daw: round trip: MODE, CHANNEL, LOCAL, CC MAP, KNOBS, the USER map                    ok
+2026-10-31T05:53:40.4620925Z smk_daw: an entry out of range: its default (the others kept)                             ok
+2026-10-31T05:53:40.4621204Z smk_daw: an older map (60 entries): the rest the defaults                                 ok
+2026-10-31T05:53:40.4621483Z smk_daw: cut short: what is there, the rest the defaults                                  ok
+2026-10-31T05:53:40.4621763Z smk_daw: a bad magic (another format): not taken, nothing changes                         ok
+2026-10-31T05:53:40.4622029Z smk_daw: too short: not taken                                                             ok
+2026-10-31T05:53:40.4622276Z smk_daw: a channel out of range: 1                                                        ok
+2026-10-31T05:53:40.4622573Z smk_daw: names for the screen (K3, PAD 12, FADER 2, SEQ PLAY, PITCH WHEEL), their banks   ok
+2026-10-31T05:53:40.4622790Z smk_daw: ok
+2026-10-31T05:53:40.4622971Z factory firmware: the update's check step only (its reads served, no write)          ok
+2026-10-31T05:53:40.4623397Z the UBOOT key went to LOOM-8's loader, and only to it                                ok
+2026-10-31T05:53:40.4623667Z one backup file kept, the two reads folded into it                                   ok
+2026-10-31T05:53:40.4623926Z the backup is the flash read                                                         ok
+2026-10-31T05:53:40.4624180Z its SHA-256 written beside it, with the flash ID                                     ok
+2026-10-31T05:53:40.4624536Z says it is done, and to switch the keyboard off and on                               ok
+2026-10-31T05:53:40.4624804Z LOOM-8 running: the key straight to it, no update step                               ok
+2026-10-31T05:53:40.4625075Z already in LOOM-8's update mode: the key to the loader                               ok
+2026-10-31T05:53:40.4625339Z the disk search: the WL82 UBOOT disk, by an inquiry only                             ok
+2026-10-31T05:53:40.4625607Z no UBOOT disk, one refused: noted (run as administrator)                             ok
+2026-10-31T05:53:40.4625878Z a UBOOT disk already: nothing over MIDI, two reads                                   ok
+2026-10-31T05:53:40.4626149Z refused, nothing sent: an SMK-37 Elite with the Pro package                          ok
+2026-10-31T05:53:40.4626497Z refused, nothing sent: an FM-1 with the SMK package                                  ok
+2026-10-31T05:53:40.4626767Z M-VAVE's own update mode: refused, nothing sent                                      ok
+2026-10-31T05:53:40.4627026Z answered no: nothing sent                                                            ok
+2026-10-31T05:53:40.4627283Z another loader after the check step: no key, stops                                   ok
+2026-10-31T05:53:40.4627553Z the key not taken (still on MIDI): stops, no reads                                   ok
+2026-10-31T05:53:40.4627816Z not an administrator: stops before MIDI                                              ok
+2026-10-31T05:53:40.4628074Z an FM-1 package: stops before MIDI                                                   ok
+2026-10-31T05:53:40.4628330Z no jl-uboot-tool: stops before MIDI                                                  ok
+2026-10-31T05:53:40.4628595Z two reads that differ: no backup, both left to see                                   ok
+2026-10-31T05:53:40.4628869Z no calibration mark at 0xC1224: no backup                                            ok
+2026-10-31T05:53:40.4629129Z a read that wrote nothing: no backup                                                 ok
+2026-10-31T05:53:40.4629375Z --check: two good copies                                                             ok
+2026-10-31T05:53:40.4629609Z --check: one short copy                                                              ok
+2026-10-31T05:53:40.4629863Z jl-uboot-tool asked for one thing: read 0 0x100000, the WL82, that disk              ok
+2026-10-31T05:53:40.4630127Z its flash ID taken from what it printed                                              ok
+2026-10-31T05:53:40.4630388Z the tool holds no erase or write command for the keyboard                            ok
+2026-10-31T05:53:40.4630599Z smk37 backup tests passed
+2026-10-31T05:53:40.4651112Z ##[group]Run shopt -s nullglob
+2026-10-31T05:53:40.4651294Z [36;1mshopt -s nullglob[0m
+2026-10-31T05:53:40.4651422Z [36;1mfiles=($PACKAGES)[0m
+2026-10-31T05:53:40.4651602Z [36;1m[ ${#files[@]} -gt 0 ] || { echo "no package matches: $PACKAGES"; exit 1; }[0m
+2026-10-31T05:53:40.4651812Z [36;1msha256sum "${files[@]}" | tee SHA256SUMS[0m
+2026-10-31T05:53:40.4667585Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-31T05:53:40.4667757Z env:
+2026-10-31T05:53:40.4667899Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:53:40.4668121Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-10-31T05:53:40.4668341Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:53:40.4668539Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:53:40.4668740Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:53:40.4668958Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-10-31T05:53:40.4669145Z   JIELI_TOOLCHAIN: /home/runner/.jieli/toolchain
+2026-10-31T05:53:40.4669307Z   AC79_SDK: /home/runner/fw-AC79_AIoT_SDK
+2026-10-31T05:53:40.4669450Z   PACKAGES: build/loom8/*
+2026-10-31T05:53:40.4669570Z ##[endgroup]
+2026-10-31T05:53:40.4714994Z 3bc98117afebf768e332bb80fd20019707a55b31bd7966151dac9115a04508c0  build/loom8/START-HERE.txt
+2026-10-31T05:53:40.4715367Z e5da414f83a876c09060e0760c586b712f41493ecc1b98ba9f8c7df94f1b6fdd  build/loom8/fm1_install.py
+2026-10-31T05:53:40.4718518Z 579fe339e7fa0917dc116e3cefeec361e8f11904aa0087fe6bf1e810fb915e4e  build/loom8/loom-smk37-elite.fwsc
+2026-10-31T05:53:40.4721825Z 88b061afd8a4b40960b920a59150435378f72c7063e39f92e36d7d6be6f08713  build/loom8/loom-smk37-mke.fwsc
+2026-10-31T05:53:40.4725333Z f83829536ecf2c3c40b09bdcfcdf56f7684ed49f53847099bd9ed182fad11d4b  build/loom8/loom-smk37.fwsc
+2026-10-31T05:53:40.4725929Z 7f03f597cd8761050fa8252607240e46c7aad52249f58b1791d683d4a3389dfe  build/loom8/smk37_backup.py
+2026-10-31T05:53:40.4778356Z ##[group]Run actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be
+2026-10-31T05:53:40.4778697Z with:
+2026-10-31T05:53:40.4778807Z   subject-path: build/loom8/*
+2026-10-31T05:53:40.4778940Z   push-to-registry: false
+2026-10-31T05:53:40.4779056Z   show-summary: true
+2026-10-31T05:53:40.4780461Z   github-token: ***
+2026-10-31T05:53:40.4780565Z env:
+2026-10-31T05:53:40.4780699Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:53:40.4780921Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-10-31T05:53:40.4781139Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:53:40.4781339Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:53:40.4781535Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:53:40.4781733Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-10-31T05:53:40.4781917Z   JIELI_TOOLCHAIN: /home/runner/.jieli/toolchain
+2026-10-31T05:53:40.4782095Z   AC79_SDK: /home/runner/fw-AC79_AIoT_SDK
+2026-10-31T05:53:40.4782234Z ##[endgroup]
+2026-10-31T05:53:40.4821024Z ##[start-action display=Run actions/attest-build-provenance/predicate@1176ef556905f349f669722abf30bce1a6e16e01;id=__actions_attest-build-provenance.generate-build-provenance-predicate]
+2026-10-31T05:53:40.4841044Z ##[group]Run actions/attest-build-provenance/predicate@1176ef556905f349f669722abf30bce1a6e16e01
+2026-10-31T05:53:40.4841304Z env:
+2026-10-31T05:53:40.4841511Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:53:40.4841863Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-10-31T05:53:40.4842197Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:53:40.4842397Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:53:40.4842592Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:53:40.4842915Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-10-31T05:53:40.4843330Z   JIELI_TOOLCHAIN: /home/runner/.jieli/toolchain
+2026-10-31T05:53:40.4843574Z   AC79_SDK: /home/runner/fw-AC79_AIoT_SDK
+2026-10-31T05:53:40.4843712Z ##[endgroup]
+2026-10-31T05:53:41.1302956Z ##[end-action id=__actions_attest-build-provenance.generate-build-provenance-predicate;outcome=success;conclusion=success;duration_ms=648]
+2026-10-31T05:53:41.1305277Z ##[start-action display=Run actions/attest@ce27ba3b4a9a139d9a20a4a07d69fabb52f1e5bc;id=__actions_attest-build-provenance.attest]
+2026-10-31T05:53:41.1328516Z ##[group]Run actions/attest@ce27ba3b4a9a139d9a20a4a07d69fabb52f1e5bc
+2026-10-31T05:53:41.1328716Z with:
+2026-10-31T05:53:41.1328830Z   subject-path: build/loom8/*
+2026-10-31T05:53:41.1328993Z   predicate-type: https://slsa.dev/provenance/v1
+2026-10-31T05:53:41.1330440Z   predicate: {"buildDefinition":{"buildType":"https://actions.github.io/buildtypes/workflow/v1","externalParameters":{"workflow":{"ref":"refs/heads/loom8-smk37","repository":"https://github.com/durutti320/fm1-loom","path":".github/workflows/loom8-smk37.yml"}},"internalParameters":{"github":{"event_name":"push","repository_id":"1428932500","repository_owner_id":"292760006","runner_environment":"github-hosted"}},"resolvedDependencies":[{"uri":"git+https://github.com/durutti320/fm1-loom@refs/heads/loom8-smk37","digest":{"gitCommit":"10ef682af2680afb0118ea5d12cee196593da9b5"}}]},"runDetails":{"builder":{"id":"https://github.com/zvenson/fm1-build/.github/workflows/build.yml@refs/tags/v1"},"metadata":{"invocationId":"https://github.com/durutti320/fm1-loom/actions/runs/41174277486/attempts/1"}}}
+2026-10-31T05:53:41.1331816Z   push-to-registry: false
+2026-10-31T05:53:41.1331940Z   show-summary: true
+2026-10-31T05:53:41.1333560Z   github-token: ***
+2026-10-31T05:53:41.1333672Z env:
+2026-10-31T05:53:41.1333811Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:53:41.1334037Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-10-31T05:53:41.1334466Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:53:41.1334669Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:53:41.1334969Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:53:41.1335172Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-10-31T05:53:41.1335359Z   JIELI_TOOLCHAIN: /home/runner/.jieli/toolchain
+2026-10-31T05:53:41.1335524Z   AC79_SDK: /home/runner/fw-AC79_AIoT_SDK
+2026-10-31T05:53:41.1335671Z ##[endgroup]
+2026-10-31T05:53:47.9321636Z Attestation created for 6 subjects
+2026-10-31T05:53:47.9324395Z ##[group][36mAttestation signed using certificate from Public Good Sigstore instance[39m
+2026-10-31T05:53:47.9325073Z -----BEGIN CERTIFICATE-----
+2026-10-31T05:53:47.9325608Z MIIHCjCCBo+gAwIBAgIUCa1Vw5isbWY1UTm019b8lkhT8mkwCgYIKoZIzj0EAwMw
+2026-10-31T05:53:47.9326391Z NzEVMBMGA1UEChMMc2lnc3RvcmUuZGV2MR4wHAYDVQQDExVzaWdzdG9yZS1pbnRl
+2026-10-31T05:53:47.9326792Z cm1lZGlhdGUwHhcNMjYxMDMxMDU1MzQxWhcNMjYxMDMxMDYwMzQxWjAAMFkwEwYH
+2026-10-31T05:53:47.9327143Z KoZIzj0CAQYIKoZIzj0DAQcDQgAE/swQzkQFDoAp44tTOocyflzN2Kbz+FPR3r4u
+2026-10-31T05:53:47.9327546Z VGHnHd2QTIW/TNbcG4BSbWHgqA0tuzJ5qD8eKdmMaAvbRwj/fqOCBa4wggWqMA4G
+2026-10-31T05:53:47.9327937Z A1UdDwEB/wQEAwIHgDATBgNVHSUEDDAKBggrBgEFBQcDAzAfBgNVHSMEGDAWgBTf
+2026-10-31T05:53:47.9328345Z 0+nPViQRlvmo2OkoVaLGLhhkPzBbBgNVHREBAf8EUTBPhk1odHRwczovL2dpdGh1
+2026-10-31T05:53:47.9328742Z Yi5jb20venZlbnNvbi9mbTEtYnVpbGQvLmdpdGh1Yi93b3JrZmxvd3MvYnVpbGQu
+2026-10-31T05:53:47.9329044Z eW1sQHJlZnMvdGFncy92MTA5BgorBgEEAYO/MAEBBCtodHRwczovL3Rva2VuLmFj
+2026-10-31T05:53:47.9329361Z dGlvbnMuZ2l0aHVidXNlcmNvbnRlbnQuY29tMBIGCisGAQQBg78wAQIEBHB1c2gw
+2026-10-31T05:53:47.9329626Z NgYKKwYBBAGDvzABAwQoMTBlZjY4MmFmMjY4MGFmYjAxMThlYTVkMTJjZWUxOTY1
+2026-10-31T05:53:47.9329879Z OTNkYTliNTAkBgorBgEEAYO/MAEEBBZMT09NLTggU01LLTM3IGZpcm13YXJlMCEG
+2026-10-31T05:53:47.9330124Z CisGAQQBg78wAQUEE2R1cnV0dGkzMjAvZm0xLWxvb20wJAYKKwYBBAGDvzABBgQW
+2026-10-31T05:53:47.9330375Z cmVmcy9oZWFkcy9sb29tOC1zbWszNzA7BgorBgEEAYO/MAEIBC0MK2h0dHBzOi8v
+2026-10-31T05:53:47.9330622Z dG9rZW4uYWN0aW9ucy5naXRodWJ1c2VyY29udGVudC5jb20wXQYKKwYBBAGDvzAB
+2026-10-31T05:53:47.9330886Z CQRPDE1odHRwczovL2dpdGh1Yi5jb20venZlbnNvbi9mbTEtYnVpbGQvLmdpdGh1
+2026-10-31T05:53:47.9331236Z Yi93b3JrZmxvd3MvYnVpbGQueW1sQHJlZnMvdGFncy92MTA4BgorBgEEAYO/MAEK
+2026-10-31T05:53:47.9331535Z BCoMKDViYThjMzU5YjE3NDRjYzUzYzQ1MzBiMTVlZmY1MmQwZDVjMTI1NWIwHQYK
+2026-10-31T05:53:47.9331799Z KwYBBAGDvzABCwQPDA1naXRodWItaG9zdGVkMDYGCisGAQQBg78wAQwEKAwmaHR0
+2026-10-31T05:53:47.9332062Z cHM6Ly9naXRodWIuY29tL2R1cnV0dGkzMjAvZm0xLWxvb20wOAYKKwYBBAGDvzAB
+2026-10-31T05:53:47.9332322Z DQQqDCgxMGVmNjgyYWYyNjgwYWZiMDExOGVhNWQxMmNlZTE5NjU5M2RhOWI1MCYG
+2026-10-31T05:53:47.9332587Z CisGAQQBg78wAQ4EGAwWcmVmcy9oZWFkcy9sb29tOC1zbWszNzAaBgorBgEEAYO/
+2026-10-31T05:53:47.9332946Z MAEPBAwMCjE0Mjg5MzI1MDAwLQYKKwYBBAGDvzABEAQfDB1odHRwczovL2dpdGh1
+2026-10-31T05:53:47.9333311Z Yi5jb20vZHVydXR0aTMyMDAZBgorBgEEAYO/MAERBAsMCTI5Mjc2MDAwNjBvBgor
+2026-10-31T05:53:47.9333580Z BgEEAYO/MAESBGEMX2h0dHBzOi8vZ2l0aHViLmNvbS9kdXJ1dHRpMzIwL2ZtMS1s
+2026-10-31T05:53:47.9333832Z b29tLy5naXRodWIvd29ya2Zsb3dzL2xvb204LXNtazM3LnltbEByZWZzL2hlYWRz
+2026-10-31T05:53:47.9334091Z L2xvb204LXNtazM3MDgGCisGAQQBg78wARMEKgwoMTBlZjY4MmFmMjY4MGFmYjAx
+2026-10-31T05:53:47.9334343Z MThlYTVkMTJjZWUxOTY1OTNkYTliNTAUBgorBgEEAYO/MAEUBAYMBHB1c2gwWgYK
+2026-10-31T05:53:47.9334596Z KwYBBAGDvzABFQRMDEpodHRwczovL2dpdGh1Yi5jb20vZHVydXR0aTMyMC9mbTEt
+2026-10-31T05:53:47.9334854Z bG9vbS9hY3Rpb25zL3J1bnMvNDExNzQyNzc0ODYvYXR0ZW1wdHMvMTAWBgorBgEE
+2026-10-31T05:53:47.9335101Z AYO/MAEWBAgMBnB1YmxpYzBYBgorBgEEAYO/MAEYBEoMSHJlcG86ZHVydXR0aTMy
+2026-10-31T05:53:47.9335362Z MEAyOTI3NjAwMDYvZm0xLWxvb21AMTQyODkzMjUwMDpyZWY6cmVmcy9oZWFkcy9s
+2026-10-31T05:53:47.9335627Z b29tOC1zbWszNzCBigYKKwYBBAHWeQIEAgR8BHoAeAB2AN09MGrGxxEyYxkeHJln
+2026-10-31T05:53:47.9335901Z NwKiSl643jyt/4eKcoAvKe6OAAABoZCFXLgAAAQDAEcwRQIhALibej4bPMAUNoEA
+2026-10-31T05:53:47.9336158Z HCPYzG2MvYaeE39fa1GaiRyZAz7aAiBRQ2MNnkoDk5zYiptxZoSqc2n5sD9wKwfT
+2026-10-31T05:53:47.9336588Z QHwIbZiVCDAKBggqhkjOPQQDAwNpADBmAjEAjTLcrTDCOFDv00SCcpd0LQ1OEsVb
+2026-10-31T05:53:47.9336856Z Qvytt9HhI5jYXKVvkYHhxB7Y5V1OdgWo8gESAjEAnZJXFtLUAq3L/ZK+3hJSsdOF
+2026-10-31T05:53:47.9337209Z 82gPELVQYqLiWIIHiwPEgKIzwzI6iNsujCFtf1pe
+2026-10-31T05:53:47.9337370Z -----END CERTIFICATE-----
+2026-10-31T05:53:47.9337457Z 
+2026-10-31T05:53:47.9337657Z ##[endgroup]
+2026-10-31T05:53:47.9337919Z [36mAttestation signature uploaded to Rekor transparency log[39m
+2026-10-31T05:53:47.9338169Z https://search.sigstore.dev?logIndex=3610785440
+2026-10-31T05:53:47.9338388Z [36mAttestation uploaded to repository[39m
+2026-10-31T05:53:47.9338582Z https://github.com/durutti320/fm1-loom/attestations/62051293
+2026-10-31T05:53:47.9699875Z ##[end-action id=__actions_attest-build-provenance.attest;outcome=success;conclusion=success;duration_ms=6839]
+2026-10-31T05:53:47.9757757Z ##[group]Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+2026-10-31T05:53:47.9757968Z with:
+2026-10-31T05:53:47.9758072Z   name: packages
+2026-10-31T05:53:47.9758189Z   path: build/loom8/*
+SHA256SUMS
+
+2026-10-31T05:53:47.9758329Z   if-no-files-found: error
+2026-10-31T05:53:47.9758467Z   compression-level: 6
+2026-10-31T05:53:47.9758581Z   overwrite: false
+2026-10-31T05:53:47.9758694Z   include-hidden-files: false
+2026-10-31T05:53:47.9758817Z env:
+2026-10-31T05:53:47.9758950Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:53:47.9759172Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+2026-10-31T05:53:47.9759466Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:53:47.9759839Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:53:47.9760115Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+2026-10-31T05:53:47.9760534Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+2026-10-31T05:53:47.9760801Z   JIELI_TOOLCHAIN: /home/runner/.jieli/toolchain
+2026-10-31T05:53:47.9761060Z   AC79_SDK: /home/runner/fw-AC79_AIoT_SDK
+2026-10-31T05:53:47.9761295Z ##[endgroup]
+2026-10-31T05:53:48.0806382Z (node:2696) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-31T05:53:48.0806794Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-31T05:53:48.0856263Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-10-31T05:53:48.0857069Z The least common ancestor is /home/runner/work/fm1-loom/fm1-loom. This will be the root directory of the artifact
+2026-10-31T05:53:48.0857372Z With the provided path, there will be 7 files uploaded
+2026-10-31T05:53:48.0857688Z Artifact name is valid!
+2026-10-31T05:53:48.0857816Z Root directory input is valid!
+2026-10-31T05:53:48.3975924Z Beginning upload of artifact content to blob storage
+2026-10-31T05:53:48.4560790Z (node:2696) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-10-31T05:53:48.8416438Z Uploaded bytes 1710576
+2026-10-31T05:53:48.8826298Z Finished uploading artifact content to blob storage!
+2026-10-31T05:53:48.8826797Z SHA256 digest of uploaded artifact zip is 4441d07b894d78bfab73106874690c9b2fe07722c32e47a391f0c1b4c914dc9b
+2026-10-31T05:53:48.8827981Z Finalizing artifact upload
+2026-10-31T05:53:49.3058377Z Artifact packages.zip successfully finalized. Artifact ID 13032203568
+2026-10-31T05:53:49.3058748Z Artifact packages has been successfully uploaded! Final size is 1710576 bytes. Artifact ID is 13032203568
+2026-10-31T05:53:49.3062276Z Artifact download URL: https://github.com/durutti320/fm1-loom/actions/runs/41174277486/artifacts/13032203568
+2026-10-31T05:53:49.3213663Z Post job cleanup.
+2026-10-31T05:53:49.3930061Z (node:2708) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-31T05:53:49.3930516Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-31T05:53:49.4092534Z Post job cleanup.
+2026-10-31T05:53:49.4634586Z [command]/usr/bin/git version
+2026-10-31T05:53:49.4662884Z git version 2.56.0
+2026-10-31T05:53:49.4688196Z Temporarily overriding HOME='/home/runner/work/_temp/0516aac2-048b-41f6-bcd2-0cd10131b291' before making global git config changes
+2026-10-31T05:53:49.4688883Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-31T05:53:49.4690423Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/fm1-loom/fm1-loom
+2026-10-31T05:53:49.4720809Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-31T05:53:49.4748055Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-31T05:53:49.4934069Z Entering 'base'
+2026-10-31T05:53:49.4972527Z Entering 'base/bsp'
+2026-10-31T05:53:49.5028721Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-31T05:53:49.5058118Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-31T05:53:49.5272726Z Entering 'base'
+2026-10-31T05:53:49.5309930Z Entering 'base/bsp'
+2026-10-31T05:53:49.5468355Z Cleaning up orphan processes
+2026-10-31T05:53:49.5671383Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/attest-build-provenance/predicate@1176ef556905f349f669722abf30bce1a6e16e01, actions/attest@ce27ba3b4a9a139d9a20a4a07d69fabb52f1e5bc, actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683, actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065, actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
