@@ -1,0 +1,12 @@
+  echo "::error title=Build failed::$(tail -n 60 /tmp/l8-build.log | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"
+  echo "::error title=Tests failed::$(tail -n 60 /tmp/l8-test.log | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"
+  echo "::error title=Build failed::$(tail -n 60 /tmp/l8-build.log | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"
+2026-10-31T05:53:59.9268246Z   ok    image 515256 B; RAM .data+.bss 76380 B of 98304; pool 326316 B of 344064
+2026-10-31T05:53:59.9287639Z   ok    image 515272 B; RAM .data+.bss 76380 B of 98304; pool 326316 B of 344064
+2026-10-31T05:53:59.9305670Z   ok    image 515256 B; RAM .data+.bss 76380 B of 98304; pool 326316 B of 344064
+2026-10-31T05:53:59.9339932Z ##[notice]ok    image 515256 B; RAM .data+.bss 76380 B of 98304; pool 326316 B of 344064
+2026-10-31T05:53:59.9342484Z ##[notice]ok    image 515272 B; RAM .data+.bss 76380 B of 98304; pool 326316 B of 344064
+2026-10-31T05:53:59.9345550Z ##[notice]ok    image 515256 B; RAM .data+.bss 76380 B of 98304; pool 326316 B of 344064
+  echo "::error title=Tests failed::$(tail -n 60 /tmp/l8-test.log | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"
+2026-10-31T05:54:26.8357933Z   if-no-files-found: error
+2026-10-31T05:54:27.3410976Z (node:2934) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
