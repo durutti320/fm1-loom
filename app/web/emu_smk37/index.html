@@ -177,7 +177,8 @@ body.learn [data-learn] { cursor: crosshair; }
         <button id="panic" type="button" hidden>Let go of everything</button>
       </div>
       <p id="midiState">Its keys play the keys, the wheels the wheels; pads sending notes 36–51 on channel 10 play the pads (36–43
-        the drums); from M-VAVE's SMK OPEN, choose <b>Pads: SMK OPEN</b> (its pads 1–11 play, 12–16 send nothing). For the rest, <b>Learn a control</b>: click a knob, fader, pad or button here, then move or press yours.</p>
+        the drums); from M-VAVE's SMK OPEN, choose <b>Pads: SMK OPEN</b> (its pads 1–11 play, 12–16 send nothing; only
+        channels 1 and 10 play, so its own sequencer, if running, does not). For the rest, <b>Learn a control</b>: click a knob, fader, pad or button here, then move or press yours.</p>
       <p class="heard" id="heard"></p>
     </section>
     <section>
@@ -594,6 +595,8 @@ function onMidi(data) {
      ty === 0xD0 ? `aftertouch ${d1} (ignored)` : ty === 0xA0 ? `poly aftertouch ${d1} ${d2} (ignored)` :
      ty === 0xC0 ? `program ${d1} (ignored)` : ""));
   if (ty === 0xB0 && (d1 === 120 || d1 === 123)) return letGo();  // (all sound off, all notes off)
+  if ((ty === 0x90 || ty === 0x80) && padMap.value === "open" && ch !== 0 && ch !== 9 && !midiMap[`n${ch}:${d1}`])
+    return inTo("nothing (SMK OPEN's own sequencer? only channels 1 and 10 play)");
   if (ty === 0x90 || ty === 0x80) {
     const on = ty === 0x90 && d2 > 0, key = `n${ch}:${d1}`, id = "m" + key;
     if (on && learnEl && learnTake(key, true, d2)) return;
