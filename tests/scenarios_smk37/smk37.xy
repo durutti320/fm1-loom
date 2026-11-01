@@ -1,6 +1,7 @@
 # LOOM-8 on the M-VAVE SMK-37 (BOARD=smk37, app/smk37.c): the pads on Steps are the bar's cells (pads 1-8 the top
 # row), every other page mutes (1-8) and drum pads (9-16); the faders the levels of T1-T4 / T5-T8 (FADER BANK); the outer keys more notes
 wait 300
+listen
 expect trk 1
 tap SEQ
 expect page Steps
@@ -11,9 +12,19 @@ expect note 1 1 10 1
 tappad 0
 expect note 1 1 1 0
 pads
-tap OCT+
+smktap >
+wait 40
+expect bar 2
 tappad 15
 expect note 1 1 32 1
+smktap <
+wait 40
+expect bar 1
+# OCT- / OCT+ on Steps: the keys' octave, not the bar (< > have the bar on the SMK)
+tap OCT+
+wait 40
+expect bar 1
+said OCTAVE
 tap OCT-
 wait 40
 shot smk_steps.png

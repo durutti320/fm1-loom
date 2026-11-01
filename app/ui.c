@@ -1889,6 +1889,8 @@ static void button_up(int b)
             say("SCENES", ui.scene_pg ? "17 to 32" : "1 to 16");
             break;
         }
+#if !BOARD_SMK37                                    /* (the SMK: < > step the bar on every page; its OCT- / OCT+
+                                                     * the keys' octave on Steps too) */
         if ((steps_page(ui.page) && !(ui.btn >> B_SEQ & 1u)) || (ui.page == P_WEAVE && wv_from(sel_trk()))) {
             ui.bar = (uint8_t)clampi(ui.bar + d, 0, NBAR - 1);   /* (SEQ held: the keyboard's octave, below; Weave:
                                                                   * the bar its rows show) */
@@ -1896,6 +1898,7 @@ static void button_up(int b)
             say("BAR", t);
             break;
         }
+#endif
         ui.oct = (int8_t)clampi(ui.oct + d, -4, 4);
         t[0] = ui.oct < 0 ? '-' : '+';
         t[1] = (char)('0' + (ui.oct < 0 ? -ui.oct : ui.oct));

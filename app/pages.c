@@ -2257,8 +2257,8 @@ static const struct { uint8_t btn; uint32_t pages; const char *title, *l1, *l2; 
      "+ PLAY: live. Held: click, count-in, mode."},
     {B_PLAY, PG(P_SONG), "Play", "Plays the song from the slot picked.", "Again: stops."},
     {B_PLAY, PG_ANY, "Play", "Starts and stops. Twice quickly: from the top.", "PATCH + PLAY redoes."},
-    {B_OCTDN, PG_STEPS, "Bar", "The bar before. A step's pad held: earlier.", 0},
-    {B_OCTUP, PG_STEPS, "Bar", "The next bar. A step's pad held: later.", 0},
+    {B_OCTDN, PG_STEPS, "Octave", "The keys an octave down. A step's pad held: earlier.", "< > the bar."},
+    {B_OCTUP, PG_STEPS, "Octave", "The keys an octave up. A step's pad held: later.", "< > the bar."},
     {B_OCTDN, PG_ANY, "Octave", "The keys an octave down.", 0},
     {B_OCTUP, PG_ANY, "Octave", "The keys an octave up.", 0},
 #endif
