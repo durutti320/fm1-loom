@@ -113,6 +113,19 @@ static int ordinal(const uint8_t *t, int n, int k)
     return -1;
 }
 static int key_note(int k) { return KEY_BASE + k + ui.oct * 12; }
+#if BOARD_SMK37                                  /* the M-VAVE SMK-37's panel (smk37.c, after this file) */
+#define KEY_VEL(k) ((int)plat_key_vel(k))       /* its keys' velocity, from the unit's own curves */
+static void lsmk_poll(void);
+static uint32_t lsmk_pad_keys(void);
+static uint32_t lsmk_padk;                       /* the white keys this pass that are pads (Steps' cells), not the keybed */
+static void lsmk_lights(void);
+static int lsmk_daw_frame(void);
+static int lsmk_nr_release(uint32_t held_ms);
+static int lsmk_nr_lit(void);
+#include "smk_daw.h"                             /* DAW mode's map and messages (daw_on: smk37.c's frame instead) */
+#else
+#define KEY_VEL(k) 127
+#endif
 /* a drum track's keys: the 11 keys on the black keys, spread over the white keys too (a key is note 1..11,
  * as the steps hold it) */
 static int key_sound(int k)
@@ -731,7 +744,11 @@ static void step_toggle(int i)
         uint8_t one = 0;
         if (trk == AUX_PUNCH) {
             if (!ui.rem_fx) {
+#if BOARD_SMK37
+                say_no("NO EFFECT YET", "play a key on PARA");
+#else
                 say_no("NO EFFECT YET", "play a key on EDIT");
+#endif
                 return;
             }
             one = ui.rem_fx;
@@ -1344,7 +1361,7 @@ static void keyboard_down(int k)
         int note = is_drum(trk) ? key_sound(k) : key_note(k);
         ui.kmode[k] = KM_PLAY;
         ui.knote[k] = (uint8_t)note;
-        engine_key(trk, note, 1, 127);
+        engine_key(trk, note, 1, KEY_VEL(k));
         chord_add(note);
         if (is_drum(trk)) {                      /* a drum key: its sound is the one shown (Steps with SEQ held; a
                                                   * black key on the sound pages picks the key the knobs edit) */
@@ -1540,6 +1557,13 @@ static void key_down(int k)
         return;
     }
     if (steps_page(p)) {                         /* Steps and Bar */
+#if BOARD_SMK37
+        if (!(lsmk_padk >> k & 1u) && !(ui.held && is_drum(trk) && b >= 0)) {   /* the SMK: the pads are the cells, the
+                                                  * keybed plays (a step's pad held on a kit: black keys its sounds) */
+            keyboard_down(k);
+            return;
+        }
+#endif
         if (!is_seqt(trk))
             return;
         if (p == P_STEPS && ui.chordmode && !is_drum(trk)) {   /* chord mode: a key writes the chord */
@@ -1603,7 +1627,7 @@ static void key_down(int k)
             ui.dsound = (uint8_t)b;
             ui.knote[k] = (uint8_t)(b + 1);
             if (!playing())
-                engine_key(trk, b + 1, 1, 127);
+                engine_key(trk, b + 1, 1, KEY_VEL(k));
             return;
         }
         ui.kmode[k] = KM_IDLE;                   /* (the other tracks' black keys: nothing, ALGORITHM picks a track) */
@@ -1926,6 +1950,8 @@ static void button_up(int b)
             say("SCENES", ui.scene_pg ? "17 to 32" : "1 to 16");
             break;
         }
+#if !BOARD_SMK37                                    /* (the SMK: < > step the bar on every page; its OCT- / OCT+
+                                                     * the keys' octave on Steps too) */
         if ((steps_page(ui.page) && !(ui.btn >> B_SEQ & 1u)) || (ui.page == P_WEAVE && wv_from(sel_trk()))) {
             ui.bar = (uint8_t)clampi(ui.bar + d, 0, NBAR - 1);   /* (SEQ held: the keyboard's octave, below; Weave:
                                                                   * the bar its rows show) */
@@ -1933,6 +1959,7 @@ static void button_up(int b)
             say("BAR", t);
             break;
         }
+#endif
         ui.oct = (int8_t)clampi(ui.oct + d, -4, 4);
         t[0] = ui.oct < 0 ? '-' : '+';
         t[1] = (char)('0' + (ui.oct < 0 ? -ui.oct : ui.oct));
@@ -1951,6 +1978,9 @@ static void holds(void)
     uint32_t now = plat_ms();
     for (int b = 0; b < NB; b++)
         if (ui.btn == 1u << b && !ui.keys && b != B_HOME && !(ui.btn_used >> b & 1u) &&
+#if BOARD_SMK37
+            b != B_LFO &&                           /* (NOTE REPEAT: held and let go, the LFO page: smk37.c) */
+#endif
             now - ui.btn_t[b] >= CARD_MS) {
             ui.card = (uint8_t)(b + 1);
             ui.btn_used |= 1u << b;
@@ -3800,14 +3830,24 @@ static void save_key(int k)
         return;
     }
     if (w >= NPROJ) {
+#if BOARD_SMK37
+        say_no("TWO SLOTS", "white keys 1 to 2");  /* (the SMK-37: two project slots, app.h) */
+#else
         say_no("THREE SLOTS", "white keys 1 to 3");
+#endif
         return;
     }
     act_save_slot(w);
 }
 static void input(void)
 {
+#if BOARD_SMK37
+    lsmk_poll();                                  /* the SMK's pads, outer keys, faders and wheels first */
+    uint32_t padk = lsmk_pad_keys(), btn = plat_buttons(), keys = plat_keys() | padk, ch, i;   /* (the pads on Steps: its cells) */
+    lsmk_padk = padk;
+#else
     uint32_t btn = plat_buttons(), keys = plat_keys(), ch, i;
+#endif
     int32_t e, ev[NE];
     ch = btn ^ ui.btn;
     ui.btn = btn;
@@ -3891,6 +3931,10 @@ static void input(void)
                 rec_up();
                 continue;
             }
+#if BOARD_SMK37
+            if (i == B_LFO && !(ui.btn_used & m) && lsmk_nr_release(plat_ms() - ui.btn_t[i]))
+                continue;                           /* (NOTE REPEAT tapped: note repeat on / off; held: LFO, below) */
+#endif
             if (hold && !(ui.btn_used & m))
                 button_up((int)i);
         }
@@ -4050,8 +4094,15 @@ static void leds(void)
             }
         }
     }
+#if BOARD_SMK37
+    if (lsmk_nr_lit())
+        b |= 1u << B_LFO;                           /* (NOTE REPEAT on) */
+#endif
     loom_lights(b, k, proj.lights == 1, (dim | mid) & ~k, rec);
     plat_lights_mid(0, mid & ~k);
+#if BOARD_SMK37
+    lsmk_lights();
+#endif
 }
 
 /* ------------------------------------------------------ screen reader --- */
@@ -4728,6 +4779,10 @@ static void autosave(void)
 }
 void ui_frame(void)
 {
+#if BOARD_SMK37
+    if (lsmk_daw_frame())                        /* DAW mode: the SMK is a MIDI controller (smk37.c), LOOM-8 left alone */
+        return;
+#endif
     input();
     bt_poll();
     if (ui.chordmode && (ui.page != P_STEPS || !is_seqt(sel_trk()) || is_drum(sel_trk()) ||
@@ -4779,7 +4834,14 @@ void ui_frame(void)
     ui.frame++;
 }
 
-void ui_input_only(void) { input(); }
+void ui_input_only(void)
+{
+#if BOARD_SMK37
+    if (daw_on)                                  /* (DAW mode: its controls are smk37.c's, at the next frame) */
+        return;
+#endif
+    input();
+}
 void ui_redraw(void)                             /* every band drawn again at the next frame (their signatures forgotten) */
 {
     for (uint32_t i = 0; i < sizeof ui.sig / sizeof ui.sig[0]; i++)

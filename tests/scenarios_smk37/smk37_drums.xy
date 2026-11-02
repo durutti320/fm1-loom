@@ -1,0 +1,96 @@
+# SPIDER's drum pads and note repeat (app/smk37.c; seq.c rp_*): pads 9-16 the kit's first eight sounds whatever track
+# is selected; NOTE REPEAT (the FM-1's LFO button) tapped: repeat on / off (the page stays); held + a top pad: its
+# rate (and on); held alone and let go: the LFO page. A drum pad held repeats (stopped: from the hit, every period; at
+# 120 BPM a sixteenth is 125 ms); while recording the repeats are recorded into the kit, whatever track is selected
+wait 300
+tap HOME
+expect page Arrange
+expect trk 1
+spin ALGO 1
+expect trk 2
+# a synth selected (T2): pads 9 and 10 play the kit (T1): its kick and snare
+expect drumhits 0
+tappad 8 90
+expect drumhits 1
+tappad 9 90
+expect drumhits 2
+pads
+# NOTE REPEAT tapped: on, the page stays; a pad held 520 ms: its hit and four sixteenths
+bpm 120
+tap LFO
+wait 40
+expect page Arrange
+pad 8 100
+wait 40
+pads
+wait 480
+pad 8 0
+wait 40
+expect drumhits 7
+# held + pad 6 (the top row's sixth): 1/32, on; let go: no tap, no LFO page; 520 ms: a hit and eight
+press LFO
+wait 40
+pads
+tappad 5
+wait 40
+release LFO
+wait 40
+expect page Arrange
+pad 9 100
+wait 520
+pad 9 0
+wait 40
+expect drumhits 16
+# tapped again: off; a pad held is one hit
+tap LFO
+wait 40
+pad 10 100
+wait 520
+pad 10 0
+wait 40
+expect drumhits 17
+# recording (REC + PLAY), repeat on at 1/16, T2 still selected: the snare held lands on the kit's steps in a row (the
+# hit just past step 1's middle: quantised onto step 2; the repeats on the grid after it)
+tap LFO
+wait 40
+press LFO
+tappad 3
+release LFO
+wait 40
+press REC
+tap PLAY
+release REC
+expect playing 1
+wait 20
+pad 9 100
+wait 470
+pad 9 0
+wait 300
+tap PLAY
+expect playing 0
+expect note 1 1 1 0
+expect note 1 1 2 2
+expect note 1 1 3 2
+expect note 1 1 4 2
+expect note 1 1 5 2
+expect note 1 1 6 0
+expect trk 2
+# held alone and let go: the LFO page
+tap LFO
+wait 40
+press LFO
+wait 600
+release LFO
+wait 40
+expect page LFO
+# on Steps (SEQ), KNOB BANK: live pads, the drums (no step written by a pad)
+tap SEQ
+expect page Steps
+spin ALGO -1
+expect trk 1
+smktap KNOBBANK
+wait 40
+expect pads_drums 1
+tappad 12 100
+expect note 1 1 13 0
+pads

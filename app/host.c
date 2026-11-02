@@ -497,6 +497,24 @@ int app_expect(const char *what, int *got)
         *got = proj.trk_sel + 1;
     else if (!strncmp(what, "name", 4) && what[4])  /* nameT: track T's name, its first letter's code */
         *got = (uint8_t)proj.trk[(atoi(what + 4) - 1 + NALLTRK) % NALLTRK].name[0];
+#if BOARD_SMK37
+    else if (!strcmp(what, "bar"))                  /* the bar Steps shows (1..) */
+        *got = ui.bar + 1;
+    else if (!strcmp(what, "daw"))                  /* the SMK-37's DAW mode, its LOCAL, CHANNEL, CC MAP USER */
+        *got = daw_on;
+    else if (!strcmp(what, "local"))
+        *got = daw_local;
+    else if (!strcmp(what, "dawch"))
+        *got = daw_ch;
+    else if (!strcmp(what, "dawuser"))
+        *got = daw_user;
+    else if (!strcmp(what, "pads_drums"))           /* KNOB BANK: the pads drum pads on Steps */
+        *got = lsmk.pad_drums;
+    else if (!strcmp(what, "dawobj")) {             /* OBJ_DAW as stored: its CHANNEL + 100 x its flags (-1 none) */
+        daw_store_t s;
+        *got = plat_store_load(OBJ_DAW, &s, sizeof s) > 0 && s.magic == DAW_MAGIC ? s.ch + 100 * s.flags : -1;
+    }
+#endif
     else if (!strcmp(what, "user"))                 /* the user bank: its samples, its data's bytes, user N's rate */
         *got = smp_user_slots();
     else if (!strcmp(what, "userbytes"))
