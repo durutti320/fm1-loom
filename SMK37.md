@@ -22,6 +22,9 @@ factory package later. The installers take a package only for exactly the connec
 
 The manual still applies: the FM-1's controls are where the SMK-37 prints the same job.
 
+**On one page:** [the cheat sheet](docs/SMK37-QRG.pdf) (A4 landscape, to print), also on the emulator's site as
+`qrg.html` (the emulator's **Cheat sheet** button).
+
 | SMK-37 | LOOM-8 |
 | --- | --- |
 | Keys F3..G5 (the middle 27) | the FM-1's 27 keys, **with velocity** (the unit's own factory curves). On Steps and Bar they play the track (the pads are the cells there); a step's pad held on a kit: the black keys its sounds |

@@ -25,9 +25,11 @@ header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; }
 h1 { font: 400 2.6rem/1 var(--display); letter-spacing: .02em; margin: 0; color: var(--bone); text-shadow: 2px 2px 0 var(--blood); }
 header p { margin: 0; color: var(--muted); font: 500 1rem var(--ui); }
 .hdr-actions { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; }
-button { font: 600 .95rem var(--ui); letter-spacing: .04em; color: var(--bone); background: var(--body); border: 1px solid var(--rule);
+button, .hdr-actions a { font: 600 .95rem var(--ui); letter-spacing: .04em; color: var(--bone); background: var(--body); border: 1px solid var(--rule);
          border-radius: 8px; padding: .4em .9em; cursor: pointer; }
-button:focus-visible, .ctl:focus-visible, input:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.hdr-actions a { text-decoration: none; line-height: normal; }
+.hdr-actions a:hover { border-color: var(--muted); }
+button:focus-visible, .ctl:focus-visible, input:focus-visible, .hdr-actions a:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 button.primary { background: var(--blood); border-color: var(--blood); color: #fff; }
 button:disabled { opacity: .55; cursor: progress; }
 .status { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--muted); font: 500 .95rem var(--ui); font-variant-numeric: tabular-nums; }
@@ -127,6 +129,7 @@ body.learn [data-learn] { cursor: crosshair; }
     <h1>LOOM-8 · SMK-37</h1>
     <p>the firmware for the M-VAVE SMK-37, running in your browser: the same code the keyboard runs</p>
     <div class="hdr-actions">
+      <a href="qrg.html" title="The controls on one page, to print (A4 landscape)">Cheat sheet</a>
       <button id="boot" type="button" hidden disabled title="Play the boot animation and its sound again">Boot again</button>
       <button id="reset" type="button" title="Forget the projects saved in this browser and start from the factory settings">Factory reset</button>
     </div>
