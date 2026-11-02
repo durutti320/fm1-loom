@@ -1,0 +1,87 @@
+# smk37-port.yaml: every decision for the SMK-37 port of LOOM-8 (charlesvestal/fm1-loom), in one place.
+# Template and patterns: github.com/genkigenki/fm1-to-smk37 (smk37-port.yaml, docs/06-mapping-patterns.md).
+
+firmware:
+  name: "LOOM-8"
+  upstream: "https://github.com/charlesvestal/fm1-loom"
+  base: "6e202b5"            # fm1-loom main, 2026-10-19; fm1-base e35f7e2; felucca-bsp 33cac69
+  family: other              # an app on fm1-base / felucca-bsp (Felucca's platform as a library), not a Felucca fork
+  board_layer: by_hand       # felucca-bsp boards/smk37 + fm1-base's SMK target, from genkigenki's Felucca layer
+  lost_on_smk:
+    - TRS MIDI IN (PH8 is a key-matrix row on the SMK)
+    - one project slot and 72 KB of user samples (storage below)
+  priorities:
+    - the pads as drum pads and as the Steps cells
+    - the 8 tracks' levels on the faders
+    - velocity on keys and pads
+    - DAW mode (a USB MIDI controller), as Snoop37's
+
+licence:
+  route: "the owner's fork, GPL, now"   # genkigenki's SMK files are GPL-3.0-only; felucca-bsp and fm1-base are MPL-2.0
+                                         # file by file: his files stay apart (boards/smk37, chip/fm1_flash_smk37.h,
+                                         # device/smk37_io.c), the MPL files carry only small BOARD_SMK37 switches.
+                                         # An upstream PR to felucca-bsp / fm1-base needs his OK for MPL-2.0 first
+  ask: "genkigenki: MPL-2.0 for boards/smk37, fm1_flash_smk37.h and smk37_io.c"
+
+delivery:
+  mode: own_fork             # the owner's forks of fm1-loom, fm1-base and felucca-bsp, branch smk37 in each
+  package: "loom-smk37.fwsc, loom-smk37-elite.fwsc, loom-smk37-mke.fwsc"
+  usb_name: "LOOM-8 SMK-37"  # (fm1.toml usb_product with SMK-37 for FM-1)
+  identity: "SMK-37 Pro_1000 (dev), SMK-37 Pro_10XXYYZZ (release); Elite releases drop the patch digits (20 chars)"
+
+models: [pro, elite, mke]
+
+keys:
+  middle: fm1                # the FM-1's 27 keys, velocity from the unit's factory curves (KEY_VEL)
+  outer: extend              # more notes on the track the keys play; on a kit its keys (i % 11 + 1)
+  velocity: factory
+
+pads:
+  pattern: custom            # "drum pads and step sequencer"
+  steps: "on Steps and Bar: the bar's 16 cells as the white keys (pads 1-8 top row); every white-key gesture"
+  drums: "every other page: pads 1-11 the kit's 11 keys with velocity (the kit selected, else the last), recorded
+          while recording; pads 12-16 dark"
+  colours: "the track's ink (theme): steps dim, the playhead bright, held white; drum pads dim, hit bright"
+
+faders:
+  pattern: banks
+  takeover: soft
+  bank_button: FADER BANK    # lit on T5-T8
+  banks:
+    A: [level T1, level T2, level T3, level T4]
+    B: [level T5, level T6, level T7, level T8]
+
+wheels:
+  pitch: {target: bend, range_semitones: 2, applies_to: "the track the keys play"}
+  mod: {target: filter, applies_to: "the track the keys play", param: "cutoff (DYNAMIC: hi cut)", takeover: pickup}
+
+knobs:
+  layout: fm1                # K1 volume, K2 SELECT, K3 ALGORITHM, K4 PRESETS, K5..K8 KNOB 1..4 (help cards say K5..K8)
+
+buttons:
+  map: printed
+  extra:
+    KNOB BANK: "the pads: cells <-> drum pads on Steps (lit: drums); elsewhere opens Steps, its cells on the pads"
+    FADER BANK: "the faders' bank: T1-T4 / T5-T8"
+    "<": "the bar before (when let go)"
+    ">": "the bar after (when let go)"
+    "< + >": "DAW mode"
+
+daw_mode:                    # ported from Snoop37 (genkigenki/sloop-fm1 snoop37) by way of the Loom FM-1 port
+  toggle: "< + >"
+  map: "smk_daw.h daw_default (SMK37.md); a USER map edited on the device (PATCH held + OCT+)"
+  local: "PATCH tapped"
+  settings: "PATCH held: K5 CHANNEL, K6 CC MAP, K7 KNOBS ABSOLUTE / RELATIVE"
+  k1: "a knob in DAW mode (fm1-base plat_k1_raw); the volume stays where it was"
+  kept: "OBJ_DAW at 0xE8000 (USRFLASH): the mode, the settings, the USER map"
+  not_ported: [TRS MIDI out, the web editor's DAW map tab, RESET MAP]
+
+storage:                     # chosen: two slots
+  project_slots: 2           # FM-1: 3
+  sample_bank_kb: 144        # FM-1: 216; in USRFLASH 0xC4000..0xE7FFF
+  store: "PRESETS + 2 x 7 project objects in the VM 0x9D000..0xBAFFF; the panel calibration at USRFLASH 0xC2000;
+          DAW mode's at 0xE8000"
+  alternatives: {one_slot: "~192 KB of samples", three_slots: "~88 KB of samples"}
+
+open_questions:
+  - TRS jack as MIDI OUT?

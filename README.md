@@ -19,6 +19,9 @@ discipline and Polly's menu paradigm.
 Installing is at your own risk, though it's hard to get stuck: the web installer can put M-VAVE's
 firmware back, and an FM-1 that keeps crashing starts in a safe mode.
 
+It also builds for the M-VAVE SMK-37 (Pro, Elite, MKE-P37), with its pads, faders and wheels: see
+[SMK37.md](SMK37.md) (beta).
+
 The design is in `docs/superpowers/specs/2026-10-15-xy1-design.md`.
 
 Your projects and presets can be backed up to a computer and put back (the site's Backup page); your own

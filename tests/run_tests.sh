@@ -79,6 +79,18 @@ for s in tests/scenarios/*.xy; do
     rm -rf "$B/scenarios/$n" && mkdir -p "$B/scenarios/$n"
     run "scenario-$n" $B/host/loom_host "$s" "$B/scenarios/$n"
 done
+# the M-VAVE SMK-37 build (BOARD=smk37: fm1-base's SMK target, app/smk37.c) in its own simulator: its pads, faders,
+# outer keys and wheels (tests/scenarios_smk37/*.xy); the FM-1 simulator built again after it (the layout sweep uses it)
+run host-build-smk37 sh -c "BOARD=smk37 sh build.sh --host"
+for s in tests/scenarios_smk37/*.xy; do
+    n=$(basename "$s" .xy)
+    rm -rf "$B/scenarios/$n" && mkdir -p "$B/scenarios/$n"
+    run "scenario-$n" $B/host/loom-smk37_host "$s" "$B/scenarios/$n"
+done
+$CC -std=c99 -Wall -Wno-unused-function -o "$OUT/smk_daw_test" tests/smk_daw_test.c
+run smk-daw-map "$OUT/smk_daw_test"            # DAW mode's map and messages (app/smk_daw.h, from Snoop37)
+run sample-bank-smk37 sh -c "'$PY' tools/loom_samples.py build --board=smk37 build/gen/user_bank_smk37.bin \
+    'piano two=build/gen/wav/piano.wav:60%16k' flute=build/gen/wav/flute.wav:72"
 # every page, engine and type, through the layout audit (tools/layout_sweep.py)
 "$PY" tools/layout_sweep.py build/gen/layout_sweep.xy
 rm -rf "$B/scenarios/layout_sweep" && mkdir -p "$B/scenarios/layout_sweep"
