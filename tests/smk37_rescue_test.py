@@ -215,5 +215,56 @@ chip = Chip(broken)
 rc, txt, _ = go(back, chip, "--write", disks=Disks(there=False))
 ok(rc == R.EXIT["nodisk"] and not chip.writes, "no disk appearing: stops, nothing written")
 
+# --stock: back to the factory firmware: the package's app area, the update area blank, the rest the backup's
+import fm1pkg_make as PK  # noqa: E402 (base/tools, on the path through smk37_backup)
+
+factory = image(7)                                     # the keyboard as it came: factory head and firmware
+pkg_flash = bytes(factory[:R.APP_END])
+back_s = bytearray(factory)
+back_s[R.OTA_AREA:R.OTA_END] = image(8)[R.OTA_AREA:R.OTA_END]   # LOOM-8's update program, staged before the backup
+loom = bytearray(back_s)
+loom[R.HEAD:R.APP_END] = image(9)[R.HEAD:R.APP_END]   # LOOM-8 installed: its app, its store, its update area
+loom[R.APP_END:R.OTA_AREA] = image(10)[R.APP_END:R.OTA_AREA]
+loom[R.OTA_AREA:R.OTA_END] = b"\xff" * (R.OTA_END - R.OTA_AREA)
+want_s = bytearray(back_s)
+want_s[R.OTA_AREA:R.OTA_END] = b"\xff" * (R.OTA_END - R.OTA_AREA)
+
+
+def pkg(flash, product="SMK-37 Pro_016"):
+    d = Path(tempfile.mkdtemp())
+    f = d / (product.replace(" ", "-") + ".fwsc")
+    f.write_bytes(PK.ufw(flash, bytes(range(256)) * 20, product))
+    return str(f)
+
+
+chip = Chip(loom)
+rc, txt, _ = go(back_s, chip, "--stock", pkg(pkg_flash), "--write")
+ok(rc == 0 and bytes(chip.data) == bytes(want_s) and "byte for byte" in txt,
+   "--stock: the factory firmware, the update area blank, the store as backed up")
+ok(all(a >= R.HEAD for a, _ in chip.writes), "  the boot head never written")
+ok(bytes(chip.data[R.CAL:R.CAL + R.SECTOR]) == bytes(back_s[R.CAL:R.CAL + R.SECTOR]), "  the calibration kept")
+chip = Chip(loom)
+rc, txt, _ = go(back_s, chip, "--stock", pkg(pkg_flash))
+ok(rc == 0 and not chip.writes and "nothing was written" in txt, "--stock without --write: nothing written")
+other = bytearray(pkg_flash)
+other[0x2000:0x2010] = bytes(16)
+chip = Chip(loom)
+rc, txt, _ = go(back_s, chip, "--stock", pkg(bytes(other)), "--write")
+ok(rc == R.EXIT["refused"] and not chip.writes, "--stock with another boot head: refused, nothing written")
+chip = Chip(loom)
+rc, txt, _ = go(back_s, chip, "--stock", pkg(pkg_flash, "FM-1_016"), "--write")
+ok(rc == R.EXIT["badpkg"] and not chip.writes, "--stock with the FM-1's firmware: refused, nothing written")
+chip = Chip(loom)
+rc, txt, _ = go(back_s, chip, "--stock", pkg(pkg_flash[:0x90000]), "--write")
+ok(rc == R.EXIT["badpkg"] and not chip.writes, "--stock with a flash image of another size: refused")
+newer = bytearray(pkg_flash)
+newer[0x50000:0x51000] = image(11)[0x50000:0x51000]
+chip = Chip(loom)
+rc, txt, _ = go(back_s, chip, "--stock", pkg(bytes(newer)), "--write")
+exp = bytearray(want_s)
+exp[R.HEAD:R.APP_END] = newer[R.HEAD:R.APP_END]
+ok(rc == 0 and bytes(chip.data) == bytes(exp) and "differs from the backup's in 1 sectors" in txt,
+   "--stock with another version: its firmware put back, said so")
+
 print("smk37 rescue tests " + ("FAILED" if failed else "passed"))
 sys.exit(1 if failed else 0)

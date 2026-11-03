@@ -36,3 +36,8 @@ If the keyboard ever stops starting (and fm1_install.py cannot reach it)
     py -3.12 smk37_rescue.py smk37-backup-(date).bin            checks, writes nothing
     py -3.12 smk37_rescue.py smk37-backup-(date).bin --write    puts back what differs
   It never writes the chip's boot head. Ask for help before --write if you can.
+
+Back to the factory firmware (the way back from LOOM-8), administrator terminal, this folder:
+    py -3.12 smk37_rescue.py smk37-backup-(date).bin --stock "SMK-37 Pro_016.fwsc"            checks
+    py -3.12 smk37_rescue.py smk37-backup-(date).bin --stock "SMK-37 Pro_016.fwsc" --write    puts it back
+  (M-VAVE's SMK package cannot be installed over LOOM-8 with fm1_install.py: its update program is of another kind)
