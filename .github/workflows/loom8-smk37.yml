@@ -96,6 +96,9 @@ jobs:
         # the Pro image's functions by address, into the log (the ci-log branch keeps it): a crash's pc and rets
         # (fm1_remote.py log) looked up against the build that crashed
         python3 tools/elf_funcs.py app/build/loom.elf || true
+        # no radio on the SMK-37 yet: a build with Bluetooth in it stops here
+        if grep -E '^parts ' /tmp/l8-build.log | tail -1 | sed 's/(not built in.*//' | grep -q Bluetooth; then
+          echo "the SMK-37 build has Bluetooth in it: it must not"; exit 1; fi
         BOARD=smk37 MODEL=elite ./build.sh "${rel[@]}"
         BOARD=smk37 MODEL=mke ./build.sh "${rel[@]}"
         # the download: the three packages, the installer and the backup tool, and a note on where to start
