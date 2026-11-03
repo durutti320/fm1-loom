@@ -9,6 +9,7 @@ In this folder
   fm1_install.py            puts LOOM-8 on the keyboard
   fm1ports.py               finds the keyboard's MIDI ports (the tools need it beside them)
   smk37_rescue.py           the last resort: puts your backup back if the keyboard ever stops starting
+  fm1_remote.py             after a crash: py -3.12 fm1_remote.py log  (the last crash, for whoever helps you)
 
 Backup first, then install. Use your model's .fwsc file in both commands.
 
