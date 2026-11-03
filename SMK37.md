@@ -136,7 +136,13 @@ MIDI out byte by byte).
    the Windows steps), or by hand: fm1-to-smk37 `docs/02-update-and-recovery.md`, section 3. Then switch the keyboard
    off and on.
 2. `python3 base/tools/fm1_install.py app/build/loom-smk37.fwsc` (the package for your model).
-3. The way back: M-VAVE's updater with the stock package for your model.
+3. The way back: M-VAVE's updater with the stock package for your model (or `fm1_install.py` with it: LOOM-8
+   takes M-VAVE's own SMK package).
+4. The last resort, a keyboard that no longer starts: `tools/smk37_rescue.py BACKUP.bin` (an administrator
+   terminal, jl-uboot-tool beside it, as the backup) reads the flash through the chip's boot ROM and lists what
+   differs from the backup; `--write` puts those sectors back, never the boot head [0, 0x4000), and refuses
+   another keyboard's backup (its calibration differs). Tested against a simulated flash
+   (`tests/smk37_rescue_test.py`).
 
 The first start clears the stock firmware's settings in the store area. Before LOOM-8 first writes into USRFLASH it
 erases the stock firmware's marker there, so a return to stock rebuilds its factory key mapping.

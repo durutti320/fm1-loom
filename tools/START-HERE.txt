@@ -7,7 +7,8 @@ In this folder
   loom-smk37-mke.fwsc     LOOM-8 for the MKE-P37
   smk37_backup.py          makes a full copy of the keyboard's memory chip (do this first)
   fm1_install.py            puts LOOM-8 on the keyboard
-  fm1ports.py               finds the keyboard's MIDI ports (both tools need it beside them)
+  fm1ports.py               finds the keyboard's MIDI ports (the tools need it beside them)
+  smk37_rescue.py           the last resort: puts your backup back if the keyboard ever stops starting
 
 Backup first, then install. Use your model's .fwsc file in both commands.
 
@@ -28,3 +29,9 @@ The install (in this folder)
   py -3.12 fm1_install.py loom-smk37.fwsc
 
 The full guide: SMK37.md at https://github.com/durutti320/fm1-loom/tree/loom8-smk37
+
+If the keyboard ever stops starting (and fm1_install.py cannot reach it)
+  In a terminal opened as administrator, in this folder:
+    py -3.12 smk37_rescue.py smk37-backup-(date).bin            checks, writes nothing
+    py -3.12 smk37_rescue.py smk37-backup-(date).bin --write    puts back what differs
+  It never writes the chip's boot head. Ask for help before --write if you can.
