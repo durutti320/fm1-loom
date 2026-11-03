@@ -8,7 +8,7 @@
  *   pads        on Steps and Bar (SEQ), the bar's 16 cells, pads 1-8 the top row: the white keys' job there, every
  *               gesture of theirs (a tap, a hold, a later one for the length); lit in the track's colour: a step with
  *               notes dim, the step playing bright, a step held white. Elsewhere, or after KNOB BANK there: pads 1-8
- *               (the top row) mute T1-T8, lit while the track plays; pads 9-16 (the bottom row) the drums: the kit's
+ *               (the top row) mute T1-T8 (a tap; held: solo; two taps: a solo that stays), lit while the track plays; pads 9-16 (the bottom row) the drums: the kit's
  *               first eight sounds, whatever track is selected (the kit: the track selected if it is one, else the
  *               kit selected last, else the first), with velocity, recorded into the kit while recording
  *   NOTE REPEAT tapped: note repeat on / off (lit): the drum pads held sound again in time (seq.c rp_*: on the
@@ -42,6 +42,8 @@ static struct {
     uint32_t nr_pads;                   /* pads pressed as a rate while NOTE REPEAT was held (not cells) */
     uint8_t last_kit;                   /* the kit the drum pads play when a synth is selected (0xFF: none yet) */
     uint8_t pad_drums;                  /* KNOB BANK: the pads drum pads on Steps too */
+    uint8_t mute_held;                  /* the top row's mute pads held (bit p) since mute_t[p] */
+    uint32_t mute_t[8];
     uint8_t fbank;                      /* the faders: 0 T1-T4, 1 T5-T8 */
     uint8_t flast[4];                   /* (soft takeover: 0xFF waits for the fader to move) */
     uint8_t out_trk[NOUTER], out_note[NOUTER];   /* an outer key's note playing: track and note (0 none) */
@@ -113,6 +115,51 @@ static int lsmk_nr_release(uint32_t held_ms)
 }
 static int lsmk_nr_lit(void) { return lsmk.nr_on; }
 
+/* a mute pad (the top row) as Mix's black keys: a tap mutes or unmutes, held soloes while held (more held: more
+ * soloed), two taps solo and it stays (a tap then ends it) */
+#define LSMK_SOLO_MS 400u                          /* a mute pad held this long: its track soloed while held */
+static void lsmk_mute_up(int b, uint32_t t0)
+{
+    uint32_t now = plat_ms();
+    if (now - t0 < LSMK_SOLO_MS && (!ui.solo || ui.solo_lat)) {   /* a tap (not while others are held) */
+        int twice = ui.solo_tap_trk == b && t0 - ui.solo_tap_t < SOLO_TWICE_MS, muted = ui.solo_tap_mut;
+        ui.solo_tap_trk = twice ? 0xFF : (uint8_t)b;
+        ui.solo_tap_t = now;
+        ui.solo_tap_mut = (uint8_t)(!twice && !ui.solo_lat);
+        if (twice) {                               /* a double tap: soloed, and it stays (the first tap's mute undone) */
+            if (muted)
+                set_mute(b, !(seq.mute >> b & 1u));
+            solo_end();
+            solo_begin(b);
+            ui.solo_lat = (uint16_t)(1u << b);
+            say("SOLO", TRACK_NAME[b]);
+        } else if (ui.solo_lat) {                  /* a tap while a solo stays: it ends, the mutes back */
+            solo_end();
+            say("SOLO OFF", 0);
+        } else {
+            set_mute(b, !(seq.mute >> b & 1u));
+            say(seq.mute >> b & 1u ? "MUTED" : "UNMUTED", TRACK_NAME[b]);
+        }
+    } else if (ui.solo) {                          /* let go after a hold: that track leaves the solo; the last, the
+                                                    * mutes back */
+        ui.solo &= (uint16_t)~((1u << b) & ~ui.solo_lat);
+        if (!ui.solo) {
+            ui.solo = 1;
+            solo_end();
+        } else
+            seq.mute = (uint16_t)(((1u << NSEQT) - 1u) & ~ui.solo);
+    }
+}
+static void lsmk_mute_holds(void)                  /* every pass: a mute pad held long enough solos its track */
+{
+    uint32_t now = plat_ms();
+    for (int p = 0; p < 8 && p < NSEQT; p++)
+        if ((lsmk.mute_held >> p & 1u) && now - lsmk.mute_t[p] >= LSMK_SOLO_MS && !(ui.solo >> p & 1u)) {
+            solo_begin(p);
+            say("SOLO", TRACK_NAME[p]);
+        }
+}
+
 static void lsmk_pads(void)
 {
     int p, v;
@@ -135,10 +182,10 @@ static void lsmk_pads(void)
                 lsmk.latch |= m;
                 continue;
             }
-            if (p < 8) {                           /* the top row: T1-T8's mutes */
-                if (p < NTRK) {
-                    set_mute(p, !(seq.mute >> p & 1u));
-                    say(seq.mute >> p & 1u ? "MUTED" : "UNMUTED", TRACK_NAME[p]);
+            if (p < 8) {                           /* the top row: T1-T8's mutes (a tap), solos (held): at the let go */
+                if (p < NTRK && p < NSEQT) {
+                    lsmk.mute_held |= (uint8_t)m;
+                    lsmk.mute_t[p] = plat_ms();
                 }
             } else {                               /* the bottom row: the kit's sounds 1-8 (its keys), a pad each */
                 int kit = lsmk_kit(), key = p - 7;
@@ -160,8 +207,13 @@ static void lsmk_pads(void)
         } else {                                   /* let go: what it started ends, whatever the page is now */
             lsmk.nr_pads &= ~m;
             lsmk_drum_off(p);
+            if (p < 8 && (lsmk.mute_held >> p & 1u)) {
+                lsmk.mute_held &= (uint8_t)~m;
+                lsmk_mute_up(p, lsmk.mute_t[p]);
+            }
         }
     }
+    lsmk_mute_holds();
 }
 /* the cells held (and pressed since the last pass) as their white keys: input() takes them with the keys */
 static uint32_t lsmk_pad_keys(void)
