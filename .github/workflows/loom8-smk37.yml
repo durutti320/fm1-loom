@@ -96,10 +96,10 @@ jobs:
         BOARD=smk37 MODEL=mke ./build.sh "${rel[@]}"
         # the download: the three packages, the installer and the backup tool, and a note on where to start
         mkdir -p build/loom8
-        cp app/build/loom-smk37*.fwsc base/tools/fm1_install.py base/tools/fm1ports.py tools/smk37_backup.py \
+        cp app/build/loom-smk37*.fwsc base/tools/fm1_install.py base/tools/fm1ports.py tools/smk37_backup.py tools/smk37_rescue.py \
           tools/START-HERE.txt build/loom8/
         # (the tools as they sit in the download, nothing else beside them: each must start)
-        (cd build/loom8 && PYTHONDONTWRITEBYTECODE=1 python3 fm1_install.py --help > /dev/null && PYTHONDONTWRITEBYTECODE=1 python3 smk37_backup.py --help > /dev/null && rm -rf __pycache__)
+        (cd build/loom8 && PYTHONDONTWRITEBYTECODE=1 python3 fm1_install.py --help > /dev/null && PYTHONDONTWRITEBYTECODE=1 python3 smk37_backup.py --help > /dev/null && PYTHONDONTWRITEBYTECODE=1 python3 smk37_rescue.py --help > /dev/null && rm -rf __pycache__)
         EOF
         cat /tmp/l8-build.log
         # the sizes as a note on the run's page (the image against the SMK-37's app slot, 619,520 B; the factory
@@ -121,6 +121,7 @@ jobs:
         cc -std=c99 -Wall -Wno-unused-function -o /tmp/smk_daw_test tests/smk_daw_test.c
         /tmp/smk_daw_test
         python3 tests/smk37_backup_test.py
+        python3 tests/smk37_rescue_test.py
         EOF
         cat /tmp/l8-test.log
         if [ "$rc" != 0 ]; then
