@@ -180,7 +180,7 @@ body.learn [data-learn] { cursor: crosshair; }
         <button id="panic" type="button" hidden>Let go of everything</button>
       </div>
       <p id="midiState">Its keys play the keys, the wheels the wheels; pads sending notes 36–51 on channel 10 play the pads (36–43
-        the drums); from M-VAVE's SMK OPEN, choose <b>Pads: SMK OPEN</b> (its pads 1–11 play, 12–16 send nothing; only
+        the drums); <a href="midicheck.html">MIDI check</a>: DAW mode's controls one by one. From M-VAVE's SMK OPEN, choose <b>Pads: SMK OPEN</b> (its pads 1–11 play, 12–16 send nothing; only
         channels 1 and 10 play, so its own sequencer, if running, does not). For the rest, <b>Learn a control</b>: click a knob, fader, pad or button here, then move or press yours.</p>
       <p class="heard" id="heard"></p>
     </section>
@@ -194,7 +194,7 @@ body.learn [data-learn] { cursor: crosshair; }
         <li><b>LOOM-8</b> as it runs on the FM-1, with the SMK's extra controls added. Eight tracks; <b>K3</b> (ALGORITHM) picks the track, <b>K2</b> (SELECT) the page.</li>
         <li><b>Sounds:</b> <b>PARA</b> opens the track's engine; <b>K4</b> (PRESETS) steps through its sounds; K5–K8 its four knobs.</li>
         <li><b>The keys</b> play the selected track on every page, Steps too (the pads are the steps there). The outer keys add notes either side of the FM-1's 27.</li>
-        <li><b>Pads</b> on <b>SEQ</b> (Steps): the bar's 16 steps; a step's pad held, then a later one: its length. Elsewhere, or after <b>KNOB BANK</b>: pads 1–8 mute T1–T8, pads 9–16 the kit's drums, whatever track is selected.</li>
+        <li><b>Pads</b> on <b>SEQ</b> (Steps): the bar's 16 steps; a step's pad held, then a later one: its length. Elsewhere, or after <b>KNOB BANK</b>: pads 1–8 mute T1–T8 (held: solo; two taps: solo that stays), pads 9–16 the kit's drums, whatever track is selected.</li>
         <li><b>NOTE REPEAT</b> tapped: repeat on or off (lit), so a drum pad held plays in time. Held, then a top pad: its rate. Held alone and let go: the LFO page.</li>
         <li><b>Faders</b>: the levels of T1–T4; <b>FADER BANK</b> (lit) T5–T8. A fader acts once it moves.</li>
         <li><b>Mod wheel</b>: the filter of the track the keys play, once it passes the current value. <b>Pitch wheel</b>: bend, up to a fifth.</li>
@@ -470,7 +470,8 @@ const panicBtn = document.getElementById("panic");
 // M-VAVE's SMK OPEN: its pads on its drum track send these notes on channel 10, pads 1..11 (1..8 the top row), 12..16
 // nothing; pad n is the page's pad n
 const OPEN_PADS = [36, 38, 41, 45, 48, 37, 39, 56, 49, 46, 42];
-const PAD_MAP_KEY = "loom8-emu-padmap", padMap = document.getElementById("padMap");
+const PAD_MAP_KEY = "loom8-emu-padmap-chosen", padMap = document.getElementById("padMap");   /* (only a choice made
+                                                                                       * in the list: kept) */
 let padMapChosen = false;
 try { const v = localStorage.getItem(PAD_MAP_KEY); if (v) { padMap.value = v; padMapChosen = true; } } catch { /* this visit only */ }
 padMap.onchange = () => {
@@ -480,10 +481,17 @@ padMap.onchange = () => {
 // not chosen here: SMK OPEN is known by what it sends: pad pressure as channel aftertouch on channel 10 (DAW mode
 // sends none), or note 56 there (pad 8; Snoop37's pads stop at 51)
 function padMapSeen(st, d1) {
-  if (padMapChosen || padMap.value === "open") return;
+  if (padMapChosen) return;
+  const ty = st & 0xF0;
+  if (padMap.value === "open") {                                   // DAW mode's own messages: back to its map
+    if ((st === 0x99 && [40, 43, 44, 47, 50, 51].includes(d1)) || (ty === 0xB0 && DAW_CC[d1])) {
+      padMap.value = "daw";
+      midiState.textContent = "DAW mode recognised: its pads and controls play the page's.";
+    }
+    return;
+  }
   if (st === 0xD9 || (st === 0x99 && d1 === 56)) {
     padMap.value = "open";
-    try { localStorage.setItem(PAD_MAP_KEY, "open"); } catch { /* this visit only */ }      // (next visit: from the start)
     midiState.textContent = "SMK OPEN's pads recognised: its pads 1-11 play the page's pads 1-11 (12-16 send nothing).";
   }
 }
@@ -653,6 +661,7 @@ function midiPorts() {
   learnBtn.hidden = unlearnBtn.hidden = panicBtn.hidden = padMap.hidden = !ins.length;
   const port = ins.find((i) => i.id === midiPort.value);              // (SMK OPEN names its port "... Open")
   if (!padMapChosen && port && /\bopen\b/i.test(port.name || "")) padMap.value = "open";
+  if (!padMapChosen && port && /loom|spider|snoop/i.test(port.name || "")) padMap.value = "daw";   // (LOOM-8 SMK-37's DAW mode)
   midiListen();
   if (!ins.length) midiState.textContent = "No MIDI keyboard found: plug it in by USB (it shows up here when it is).";
   else if (!document.body.classList.contains("learn") && !learnEl)

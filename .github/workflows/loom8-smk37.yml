@@ -56,6 +56,7 @@ jobs:
           cp app/build/emu/app.wasm app/web/emu_smk37/worklet.js "$out"/
           # the one-page cheat sheet beside it (qrg.html, linked from the page's header) and its PDF
           cp app/web/emu_smk37/qrg.html docs/SMK37-QRG.pdf "$out"/
+          cp app/web/emu_smk37/midicheck.html "$out"/   # (DAW mode's controls checked one by one)
           # the page as a document of its own (it is written for a host that wraps it: claude.ai's artifacts), so the
           # branch can be a website as it is (GitHub Pages: Settings, Pages, branch loom8-smk37-emu), where Web MIDI works
           { printf '<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'

@@ -1,0 +1,59 @@
+# the top row's mute pads as Mix's black keys (app/smk37.c lsmk_mute_up): a tap mutes / unmutes; held: solo while
+# held (more held: more soloed), let go: the mutes back; two taps: solo, and it stays; a tap then ends it
+wait 300
+listen
+tap HOME
+wait 40
+expect mute 0
+# a tap: T3 muted, again: unmuted
+tappad 2
+wait 40
+expect mute 4
+said MUTED
+wait 400
+tappad 2
+wait 40
+expect mute 0
+wait 400
+# held: T2 soloed while held (every other track muted: the conductor and the throws too), let go: back
+pad 1 100
+wait 600
+expect mute 1021
+said SOLO
+pad 2 100
+wait 600
+expect mute 1017
+pad 2 0
+wait 40
+expect mute 1021
+pad 1 0
+wait 40
+expect mute 0
+wait 400
+# a mute kept under a solo: T5 muted, T2 held, let go: T5 still muted
+tappad 4
+wait 40
+expect mute 16
+wait 400
+pad 1 100
+wait 600
+expect mute 1021
+pad 1 0
+wait 40
+expect mute 16
+wait 400
+tappad 4
+wait 400
+# two taps: T4 soloed and it stays; a tap: the solo ends
+tappad 3
+wait 100
+tappad 3
+wait 40
+expect mute 1015
+said SOLO
+wait 600
+expect mute 1015
+tappad 6
+wait 40
+expect mute 0
+said SOLO OFF
