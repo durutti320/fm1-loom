@@ -95,7 +95,7 @@ jobs:
         BOARD=smk37 ./build.sh "${rel[@]}"
         # the Pro image's functions by address, into the log (the ci-log branch keeps it): a crash's pc and rets
         # (fm1_remote.py log) looked up against the build that crashed
-        for d in app/build/loom-smk37.dis; do [ -f "$d" ] && grep -E '^[0-9a-f]{8} <' "$d" | sed 's/^/SYM /'; done || true
+        for d in app/build/loom.dis; do [ -f "$d" ] && grep -E '^[0-9a-f]{8} <' "$d" | sed 's/^/SYM /'; done || true
         BOARD=smk37 MODEL=elite ./build.sh "${rel[@]}"
         BOARD=smk37 MODEL=mke ./build.sh "${rel[@]}"
         # the download: the three packages, the installer and the backup tool, and a note on where to start
