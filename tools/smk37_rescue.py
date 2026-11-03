@@ -27,8 +27,18 @@ jl-uboot-tool unpacked beside this file, and smk37_backup.py, fm1_install.py and
    again and compared; any sector still different is tried once more. It ends with "restored" only when the whole
    flash equals the backup.
 5. Switch the keyboard off and on. It starts as it was when the backup was made: the factory firmware, or LOOM-8's
-   update mode if the backup was made on the way to the first install (then: fm1_install.py with the stock
-   package, or with LOOM-8's).
+   update mode if the backup was made on the way to the first install (then: fm1_install.py with LOOM-8's package).
+
+Back to the factory firmware (the way back from LOOM-8: M-VAVE's own SMK package carries an update program of
+another kind, usb_hid_ota.bin, which LOOM-8's update does not hand over to):
+
+    py -3.12 smk37_rescue.py smk37-backup-DATE.bin --stock "SMK-37 Pro_016.fwsc" [--write]
+
+   The flash put back is the backup's, with two changes: its app area [0x4000, 0x9D000) is the package's own
+   flash.bin (M-VAVE's factory firmware, byte for byte), and the update area [0xBB000, 0xC0000) is left blank (the
+   backup holds LOOM-8's update program there, staged by its first install step, and its record to start it), so the
+   keyboard starts the factory firmware, its settings at their defaults. The package must be for the SMK-37 and its
+   boot head the keyboard's own, or nothing is written.
 
 Exit codes: 0 done (check: the flash read; write: restored), 1 cancelled or failed, 2 bad arguments or setup,
 3 nothing found, 5 the UBOOT disk not found or not readable, 7 a read or the write failed its checks, 8 refused
@@ -47,6 +57,8 @@ import smk37_backup as SB  # noqa: E402
 
 I = SB.I
 FLASH, SECTOR, HEAD = SB.FLASH, 0x1000, 0x4000
+APP_END = 0x9D000                           # the SMK-37's app area's end: a package's flash.bin is [0, this)
+OTA_AREA, OTA_END = 0xBB000, 0xC0000        # where an update program is staged, and its start record (felucca-bsp ota.c)
 CAL = SB.TRIM_AT & ~(SECTOR - 1)            # the calibration's sector (0xC1000)
 DELAY = {"wait": 300.0}                     # how long the disk is waited for while the keyboard is switched off and on
 EXIT = dict(SB.EXIT, refused=8, badwrite=7)
@@ -102,6 +114,47 @@ def load_backup(path, out):
     else:
         print(f"backup: {path} (SHA-256 {digest}; no .sha256.txt beside it to check against)", file=out)
     return data
+
+
+def stock_image(want, path, out):
+    """the backup with M-VAVE's factory firmware from the package in its app area and the update area blank"""
+    import struct
+    try:
+        raw = Path(path).read_bytes()
+    except OSError as e:
+        raise Stop("usage", f"cannot read {path}: {e.strerror}")
+    product = I.product_of(raw)
+    if not I.is_stock(product) or I.model_of(product) not in SB.SMK_MODELS:
+        raise Stop("badpkg", f"{path} is {product!r}: --stock takes M-VAVE's own SMK-37 firmware (SMK-37 Pro_016.fwsc)")
+    img = I.logical_image(raw)
+    hdr = bytearray(img[:0x40 + 11 * 0x50])
+
+    def enc(b, off, n, key=0xFFFF):
+        for i in range(n):
+            b[off + i] ^= key & 0xFF
+            key = ((key << 1) ^ (0x1021 if key & 0x8000 else 0)) & 0xFFFF
+    enc(hdr, 0, 0x40)
+    nent = hdr[8] | hdr[9] << 8
+    flash = None
+    for i in range(min(nent, 11)):
+        o = 0x40 + i * 0x50
+        enc(hdr, o, 0x50)
+        typ, = struct.unpack_from("<H", hdr, o)
+        off, ln = struct.unpack_from("<II", hdr, o + 8)
+        if typ == 0:
+            flash = img[off:off + ln]
+    if flash is None or len(flash) != APP_END:
+        raise Stop("badpkg", f"{path}: no SMK-37 flash image in it ({len(flash) if flash else 0} bytes, not {APP_END})")
+    if flash[:HEAD] != want[:HEAD]:
+        raise Stop("refused", f"{path}'s boot head is not the keyboard's (the backup's): nothing is written")
+    app = [o for o in range(HEAD, APP_END, SECTOR) if flash[o:o + SECTOR] != want[o:o + SECTOR]]
+    print(f"package: {product} ({path}); its firmware " +
+          ("is the backup's, byte for byte" if not app else f"differs from the backup's in {len(app)} sectors "
+           "(the package's is put back)"), file=out)
+    stock = bytearray(want)
+    stock[HEAD:APP_END] = flash[HEAD:APP_END]
+    stock[OTA_AREA:OTA_END] = b"\xff" * (OTA_END - OTA_AREA)
+    return bytes(stock)
 
 
 def jl_run(jl, device, cmds, cwd, say):
@@ -164,6 +217,8 @@ def read_all(jl, disks, path, work, name, out, run):
 
 def rescue(a, backend, out, ask, disks=None, run=jl_run):
     want = load_backup(a.backup, out)
+    if a.stock:
+        want = stock_image(want, a.stock, out)
     jl = SB.find_jl(a.jl)
     missing = [m for m in SB.JL_MODULES if SB.importlib.util.find_spec(m) is None]
     if missing:
@@ -179,7 +234,8 @@ def rescue(a, backend, out, ask, disks=None, run=jl_run):
         path, cur = read_all(jl, disks, path, work, "now.bin", out, run)
         secs = plan(cur, want)
         if not secs:
-            print("\nthe keyboard's flash is the same as the backup: nothing to put back", file=out)
+            print("\nthe keyboard's flash is the same as " + ("the factory firmware on the backup" if a.stock else
+                  "the backup") + ": nothing to put back", file=out)
             return 0
         rs = ranges(secs)
         print(f"\n{len(secs)} sectors differ from the backup ({len(secs) * SECTOR // 1024} KB), in {len(rs)} "
@@ -209,8 +265,8 @@ def rescue(a, backend, out, ask, disks=None, run=jl_run):
                                       "(it starts at the disk) and ask for help")
             left = differing(cur, want)
             if not left:
-                print("\nrestored: the whole flash equals the backup.\nSwitch the keyboard off and on with its "
-                      "power switch.", file=out)
+                print("\nrestored: the whole flash equals " + ("the factory firmware on the backup" if a.stock else
+                      "the backup") + ".\nSwitch the keyboard off and on with its power switch.", file=out)
                 return 0
             if any(o < HEAD for o in left):
                 raise Stop("badwrite", "the boot head changed during the write: switch nothing off and ask for help")
@@ -224,6 +280,8 @@ def main(argv=None, backend=None, out=sys.stdout, ask=I.ask_tty, disks=None, run
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("backup", help="the keyboard's backup (smk37-backup-DATE.bin, from smk37_backup.py)")
     ap.add_argument("--write", action="store_true", help="put the differing sectors back (default: check only)")
+    ap.add_argument("--stock", metavar="PACKAGE", help="back to the factory firmware: M-VAVE's SMK package "
+                    "(SMK-37 Pro_016.fwsc) in the app area, the update area blank")
     ap.add_argument("--jl", metavar="DIR", help="jl-uboot-tool's folder (default: one beside this file)")
     ap.add_argument("--port", metavar="NAME", help="MIDI port to use (part of its name)")
     ap.add_argument("--yes", action="store_true", help="do not ask")
