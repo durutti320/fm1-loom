@@ -99,7 +99,7 @@ jobs:
         cp app/build/loom-smk37*.fwsc base/tools/fm1_install.py base/tools/fm1ports.py tools/smk37_backup.py \
           tools/START-HERE.txt build/loom8/
         # (the tools as they sit in the download, nothing else beside them: each must start)
-        (cd build/loom8 && python3 fm1_install.py --help > /dev/null && python3 smk37_backup.py --help > /dev/null)
+        (cd build/loom8 && PYTHONDONTWRITEBYTECODE=1 python3 fm1_install.py --help > /dev/null && PYTHONDONTWRITEBYTECODE=1 python3 smk37_backup.py --help > /dev/null && rm -rf __pycache__)
         EOF
         cat /tmp/l8-build.log
         # the sizes as a note on the run's page (the image against the SMK-37's app slot, 619,520 B; the factory
