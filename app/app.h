@@ -9,7 +9,11 @@
 #include "dsp/synth.h"
 #include "dsp/fx.h"
 
+#if BOARD_SMK37
+#define APP_NAME "SPIDER"              /* the M-VAVE SMK-37 build: LOOM-8 as SPIDER (its boot: spider_splash.c) */
+#else
 #define APP_NAME "LOOM-8"
+#endif
 #define APP_BLOCK 256u                  /* frames a render (5.8 ms): fm1-base's USB audio input takes 256-frame halves
                                          * at most (felucca-bsp usb.c); LOOM-8's own platform had 512-frame halves,
                                          * each rendered as two 256-frame calls, which is what the simulator always did */
@@ -114,6 +118,11 @@ void app_say(const char *a, const char *b);
 #define APP_BTDEV                       /* Bluetooth MIDI devices (fm1-base lib/btdev.h): GLO's BT DEVICE list (bt.c) */
 #define APP_SPLASH                      /* the name over the eight tracks' inks woven as threads */
 void app_splash(void);
+#if BOARD_SMK37
+#define APP_SPLASH_LATE                 /* SPIDER's boot, its sound and its pads, the platform up (spider_splash.c) */
+void app_splash_late(int show);
+#define APP_WEB                         /* the browser build's own exports (web.c: SPIDER's boot) */
+#endif
 #define APP_REDRAW                      /* the screen mirror lost a part (or a viewer came): every band again */
 void app_redraw(void);
 #define APP_SYSEX                       /* the user sample bank over USB-MIDI (samples.c: F0 7D 46 4C) */

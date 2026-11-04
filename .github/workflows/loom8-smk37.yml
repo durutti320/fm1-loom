@@ -95,7 +95,7 @@ jobs:
         BOARD=smk37 ./build.sh "${rel[@]}"
         # the Pro image's functions by address, into the log (the ci-log branch keeps it): a crash's pc and rets
         # (fm1_remote.py log) looked up against the build that crashed
-        python3 tools/elf_funcs.py app/build/loom.elf || true
+        python3 tools/elf_funcs.py "$(ls app/build/*.elf | head -1)" || true
         # no radio on the SMK-37 yet: a build with Bluetooth in it stops here
         if grep -E '^parts ' /tmp/l8-build.log | tail -1 | sed 's/(not built in.*//' | grep -q Bluetooth; then
           echo "the SMK-37 build has Bluetooth in it: it must not"; exit 1; fi
@@ -103,7 +103,7 @@ jobs:
         BOARD=smk37 MODEL=mke ./build.sh "${rel[@]}"
         # the download: the three packages, the installer and the backup tool, and a note on where to start
         mkdir -p build/loom8
-        cp app/build/loom-smk37*.fwsc base/tools/fm1_install.py base/tools/fm1ports.py tools/smk37_backup.py tools/smk37_rescue.py \
+        cp app/build/*-smk37*.fwsc base/tools/fm1_install.py base/tools/fm1ports.py tools/smk37_backup.py tools/smk37_rescue.py \
           base/tools/fm1_remote.py tools/START-HERE.txt build/loom8/
         # (the tools as they sit in the download, nothing else beside them: each must start)
         (cd build/loom8 && PYTHONDONTWRITEBYTECODE=1 python3 fm1_install.py --help > /dev/null && PYTHONDONTWRITEBYTECODE=1 python3 smk37_backup.py --help > /dev/null && PYTHONDONTWRITEBYTECODE=1 python3 smk37_rescue.py --help > /dev/null && rm -rf __pycache__)
@@ -124,7 +124,7 @@ jobs:
         bash -euo pipefail > /tmp/l8-test.log 2>&1 <<'EOF' || rc=$?
         BOARD=smk37 ./build.sh --host
         mkdir -p /tmp/l8-scenarios
-        for s in tests/scenarios_smk37/*.xy; do app/build/host/loom-smk37_host "$s" /tmp/l8-scenarios; done
+        for s in tests/scenarios_smk37/*.xy; do app/build/host/*-smk37_host "$s" /tmp/l8-scenarios; done
         cc -std=c99 -Wall -Wno-unused-function -o /tmp/smk_daw_test tests/smk_daw_test.c
         /tmp/smk_daw_test
         python3 tests/smk37_backup_test.py

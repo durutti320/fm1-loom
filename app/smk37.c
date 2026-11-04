@@ -427,6 +427,30 @@ static uint32_t lsmk_rgb(uint16_t c, uint32_t lv)  /* an RGB565 ink at lv / 256 
     uint32_t r = (c >> 11) << 3 | (c >> 13), g = ((c >> 5) & 0x3Fu) << 2 | ((c >> 9) & 3u), b = (c & 0x1Fu) << 3 | ((c >> 2) & 7u);
     return (r * lv >> 8) << 16 | (g * lv >> 8) << 8 | (b * lv >> 8);
 }
+/* the pads at rest away from Steps (nothing held): the mutes lit while their track plays, the drums dim in the kit's
+ * ink (dark with no kit). Also SPIDER's boot's last picture (spider_splash.c), so the UI takes over without a jump */
+static void lsmk_pad_rest(uint32_t *col)
+{
+    int c, kit = lsmk_kit();
+    for (c = 0; c < 8; c++)
+        col[c] = c >= NTRK ? 0u : lsmk_rgb(trk_ink(c), seq.mute >> c & 1u ? 10u : 200u);
+    for (c = 8; c < NPADS; c++)
+        col[c] = kit < 0 ? 0u : lsmk_rgb(trk_ink(kit), 44u);
+}
+/* the pads as the UI opens (the Steps page, bar 1, the track selected; stopped, nothing held): the boot's last
+ * picture. A track without steps: the pads at rest */
+static void lsmk_pad_boot(uint32_t *col)
+{
+    int t = sel_trk(), c;
+    const tpat_t *tp;
+    if (!is_seqt(t)) {
+        lsmk_pad_rest(col);
+        return;
+    }
+    tp = tpat(t);
+    for (c = 0; c < NPADS; c++)
+        col[c] = c < tp->len && t != AUX_WEAVE && step_on(&tp->st[c], t) ? lsmk_rgb(trk_ink(t), 56u) : 0u;
+}
 static void lsmk_lights(void)
 {
     int c, t = sel_trk();
@@ -449,11 +473,10 @@ static void lsmk_lights(void)
         }
     } else {                                   /* mutes (lit while the track plays) and the drums */
         int kit = lsmk_kit();
-        uint32_t held = plat_pads_held();
-        for (c = 0; c < 8; c++)
-            plat_pad_rgb(c, c >= NTRK ? 0u : lsmk_rgb(trk_ink(c), seq.mute >> c & 1u ? 10u : 200u));
-        for (c = 8; c < NPADS; c++)
-            plat_pad_rgb(c, kit < 0 ? 0u : lsmk_rgb(trk_ink(kit), held >> c & 1u ? 256u : 44u));
+        uint32_t held = plat_pads_held(), col[NPADS];
+        lsmk_pad_rest(col);
+        for (c = 0; c < NPADS; c++)
+            plat_pad_rgb(c, c >= 8 && held >> c & 1u && kit >= 0 ? lsmk_rgb(trk_ink(kit), 256u) : col[c]);
     }
     if (lsmk_nr_held())                        /* NOTE REPEAT held: the rates, the one in use bright */
         for (c = 0; c < 8; c++)

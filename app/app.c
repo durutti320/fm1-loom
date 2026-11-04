@@ -106,6 +106,9 @@ void app_init(void)
 #endif
 }
 
+#if BOARD_SMK37
+static void spd_snd_mix(int32_t *lr, uint32_t n, uint32_t gain_q12);   /* SPIDER's boot sound (spider_splash.c) */
+#endif
 void app_render(int32_t *lr, uint32_t n, uint32_t gain_q12)
 {
     uint32_t t0 = render_t0(), pct;
@@ -114,6 +117,9 @@ void app_render(int32_t *lr, uint32_t n, uint32_t gain_q12)
     work_begin();                                   /* (the simulator's count of the block's work: host.c) */
 #endif
     engine_render(lr, n, gain_q12);
+#if BOARD_SMK37
+    spd_snd_mix(lr, n, gain_q12);                   /* (while it sounds: nothing otherwise) */
+#endif
 #if defined(PLAT_HOST) && !defined(PLAT_WEB)
     wl = work_end(n);
 #endif
@@ -155,17 +161,39 @@ static void usb_host_poll(void)
             say(MSG[m][0], MSG[m][1]);
     }
 }
+#if BOARD_SMK37 && defined(PLAT_WEB)
+static int spd_web_frame(void);                     /* SPIDER's boot in the browser (spider_splash.c) */
+static int spd_web_busy(void);
+#endif
 void app_frame(void)
 {
+#if BOARD_SMK37 && defined(PLAT_WEB)
+    if (spd_web_frame())
+        return;
+#endif
     plat_usb_audio_full(proj.usb_full);             /* Setup's USB AUDIO: follows the knob, or full */
     usb_host_poll();
     ui_frame();
 }
-void app_input_only(void) { ui_input_only(); }
+void app_input_only(void)
+{
+#if BOARD_SMK37 && defined(PLAT_WEB)
+    if (spd_web_busy())
+        return;
+#endif
+    ui_input_only();
+}
 void app_say(const char *a, const char *b) { ui_say(a, b); }
 void app_redraw(void) { ui_redraw(); }
 int app_sysex(const uint8_t *p, uint32_t n) { return smp_frame(p, n); }
 
+#if BOARD_SMK37
+#include "spider_splash.c"                         /* SPIDER's boot: a spider weaves its web, the name woven in */
+void app_splash(void) { spd_splash(); }             /* (its first still; the rest once the platform is up) */
+#ifndef PLAT_HOST
+void app_splash_late(int show) { spd_splash_late(show); }
+#endif
+#else
 /* the name over the eight tracks' inks woven as threads, in the default theme (pages.c THEMES[0]) */
 void app_splash(void)
 {
@@ -183,6 +211,7 @@ void app_splash(void)
     }
     cv_blit(0, 76);
 }
+#endif
 
 /* backup and restore over USB (fm1-base's backup.c): the slots and the presets as saved (LOOM-8 saves when asked:
  * what is not saved stays so); no saving while a backup streams; a restore: everything from the flash again */

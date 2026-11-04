@@ -20,7 +20,9 @@ boot_pack = true               # .ram_text and .data LZMA-packed in the image, u
 cpu2 = true                    # the second core: fm1-base's (felucca-bsp's chip/fm1_cpu1.h, Melodee's), plat_cpu2_*
 # the M-VAVE SMK-37 build (BOARD=smk37): its USB names; for now without Bluetooth and the USB host (its radio and its
 # flash map for pairing records not yet checked on the device; its USB port a device's)
-smk37_usb_product = "LOOM-8 SMK-37"
+smk37_name = "spider"         # the SMK-37 build is SPIDER: spider-smk37.fwsc (app.h APP_NAME)
+smk37_usb_manufacturer = "SPIDER"
+smk37_usb_product = "SPIDER SMK-37"
 smk37_ble = false
 smk37_bt_audio = false
 smk37_usb_host = false
