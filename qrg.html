@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LOOM-SMK quick reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&amp;family=Barlow+Semi+Condensed:wght@400;500;600;700&amp;display=swap">
+<style>
+/* the one-page cheat sheet for LOOM-8 on the SMK-37: A4 landscape (1123 x 794 px at 96 px/in). On screen it sits on a
+   grey desk and scrolls sideways inside its frame on a narrow screen; printed, it is the page (no margins) */
+@page { size: A4 landscape; margin: 0; }
+html, body { margin: 0; background: #DADADA; }
+.bar { max-width: 1123px; margin: 0 auto; padding: 12px 16px 10px; display: flex; flex-wrap: wrap; gap: 8px 20px;
+        font: 600 15px/1.3 'Barlow Semi Condensed', 'Arial Narrow', Arial, sans-serif; }
+.bar a { color: #141414; }
+.bar a:hover { color: #C11A36; }
+.desk { overflow-x: auto; padding: 0 16px 32px; }
+.desk > div { margin: 0 auto; box-shadow: 0 2px 12px rgba(0, 0, 0, .25); }
+@media print {
+  html, body { background: #FFFFFF; }
+  .bar { display: none; }
+  .desk { padding: 0; overflow: visible; }
+  .desk > div { box-shadow: none; margin: 0; }
+  #sheet { height: 793px !important; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+<nav class="bar" aria-label="LOOM-SMK">
+<a href="./">The emulator</a>
+<a href="SMK37-QRG.pdf" download="">Download the PDF</a>
+<a href="https://github.com/durutti320/fm1-loom/blob/loom8-smk37/SMK37.md">SMK37.md, the full map</a>
+</nav>
+<div class="desk">
+<div id="sheet" style="width: 1123px; height: 794px; box-sizing: border-box; padding: 36px 40px 30px; background: #FFFFFF; color: #141414; font-family: 'Barlow Semi Condensed', 'Arial Narrow', Arial, sans-serif; font-size: 12px; line-height: 1.2; display: flex; flex-direction: column; gap: 9px">
+
+<header style="display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; border-bottom: 3px solid #151515; padding-bottom: 6px">
+<div>
+<h1 style="margin: 0; font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 800; font-size: 30px; line-height: 30px; letter-spacing: 0.01em">LOOM-SMK <span style="color: #E82C26">/</span> LOOM-8 on the M-VAVE SMK-37</h1>
+<p style="margin: 3px 0 0; font-size: 13px; line-height: 16px; color: #3A3A3A">Quick reference guide · branch loom8-smk37 (beta), build of 4 November 2026 · the SMK's printed names first, the FM-1's after them</p>
+</div>
+<div style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px">
+<div style="font-size: 12px; font-weight: 600; color: #3A3A3A">Track colours (b/w theme)</div>
+<div style="display: flex; gap: 3px">
+<div style="width: 26px; height: 16px; border-radius: 3px; background: #FF5CAA; display: flex; align-items: center; justify-content: center; font-weight: 700">T1</div>
+<div style="width: 26px; height: 16px; border-radius: 3px; background: #28CCC0; display: flex; align-items: center; justify-content: center; font-weight: 700">T2</div>
+<div style="width: 26px; height: 16px; border-radius: 3px; background: #F4C83C; display: flex; align-items: center; justify-content: center; font-weight: 700">T3</div>
+<div style="width: 26px; height: 16px; border-radius: 3px; background: #6898FF; display: flex; align-items: center; justify-content: center; font-weight: 700">T4</div>
+<div style="width: 26px; height: 16px; border-radius: 3px; background: #FF8840; display: flex; align-items: center; justify-content: center; font-weight: 700">T5</div>
+<div style="width: 26px; height: 16px; border-radius: 3px; background: #6ED86E; display: flex; align-items: center; justify-content: center; font-weight: 700">T6</div>
+<div style="width: 26px; height: 16px; border-radius: 3px; background: #B288FF; display: flex; align-items: center; justify-content: center; font-weight: 700">T7</div>
+<div style="width: 26px; height: 16px; border-radius: 3px; background: #D6B088; display: flex; align-items: center; justify-content: center; font-weight: 700">T8</div>
+</div>
+</div>
+</header>
+
+<main style="display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.15fr) minmax(0, 1fr); column-gap: 14px; flex: 1; min-height: 0">
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+
+<section style="border: 1px solid #151515">
+<h2 style="margin: 0; padding: 2px 8px; background: #151515; color: #FFFFFF; font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 15px; line-height: 17px; letter-spacing: 0.05em; text-transform: uppercase; display: flex; align-items: center; gap: 7px"><span aria-hidden="true" style="width: 8px; height: 8px; background: #E82C26; flex: none"></span>8 Knobs</h2>
+<table style="width: 100%; border-collapse: collapse">
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">K1</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0"><b>Volume</b> (the FM-1's MASTER); the screen shows the level</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">K2</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0"><span style="color: #595959; font-weight: 600">SELECT</span> · the button's next page; in a list, up / down</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">K3</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0"><span style="color: #595959; font-weight: 600">ALGORITHM</span> · picks the track: T1–T8, COND, THROW, WEAVE</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">K4</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0"><span style="color: #595959; font-weight: 600">PRESETS</span> · the next preset, drum key, effect, pattern or scene</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #B8B8B8; font-weight: 700; white-space: nowrap">K5–K8</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #B8B8B8"><span style="color: #595959; font-weight: 600">KNOB 1–4</span> · the four values along the bottom of the screen</td></tr>
+<tr><th colspan="2" scope="colgroup" style="text-align: left; padding: 1px 6px; background: #EBEBEB; border-bottom: 1px solid #B8B8B8; font-weight: 700">On Steps (SEQ)</th></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">Nothing held</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">K5 pattern · K6 length · K7 scale · K8 groove</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">A pad held</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">K5 velocity · K6 length · K7 chance · K8 pitch</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; font-weight: 700; white-space: nowrap">Pad + ARP</th><td style="vertical-align: top; padding: 1px 6px">K5 trick 1 · K6 its value · K7 trick 2 · K8 its value</td></tr>
+</table>
+</section>
+
+<section style="border: 1px solid #151515">
+<h2 style="margin: 0; padding: 2px 8px; background: #151515; color: #FFFFFF; font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 15px; line-height: 17px; letter-spacing: 0.05em; text-transform: uppercase; display: flex; align-items: center; gap: 7px"><span aria-hidden="true" style="width: 8px; height: 8px; background: #E82C26; flex: none"></span>4 Faders + 2 Wheels</h2>
+<table style="width: 100%; border-collapse: collapse">
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">Faders 1–4</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">Levels of T1–T4; after <b>FADER BANK</b> (lit), T5–T8. A fader acts once it moves</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">Pitch wheel</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">Bends the track the keys play, up to a fifth (±7 semitones)</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; font-weight: 700; white-space: nowrap">Mod wheel</th><td style="vertical-align: top; padding: 1px 6px">That track's filter cutoff (DYNAMIC filter: its hi cut). Picks up: acts once it passes the track's value</td></tr>
+</table>
+</section>
+
+<section style="border: 1px solid #151515; flex: 1">
+<h2 style="margin: 0; padding: 2px 8px; background: #151515; color: #FFFFFF; font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 15px; line-height: 17px; letter-spacing: 0.05em; text-transform: uppercase; display: flex; align-items: center; gap: 7px"><span aria-hidden="true" style="width: 8px; height: 8px; background: #E82C26; flex: none"></span>37 Keys</h2>
+<table style="width: 100%; border-collapse: collapse">
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">F3–G5</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">The FM-1's 27 keys, with velocity (GLOBE, Setup: KEY VELOCITY). <b>White 1–16</b> are their white keys from F3, <b>black 1–11</b> their black keys</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">Outer 10</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">C3–E3 and G♯5–C6: more notes on the same track; on a kit, its keys</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">On a kit</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">Black 1–11: its eleven drum sounds (black 1 the kick)</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">Arrange</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">White: scenes 1–16 (OCT+: 17–32). Black: mutes</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; font-weight: 700; white-space: nowrap">Throws</th><td style="vertical-align: top; padding: 1px 6px">FX, K2 to Throws. Hold a white key, F3–E4 on the drums, F4–E5 on the melodic tracks: mute · stutter · repeat · echo · build · floor · jumble. Black keys: warble · pan · octave · chop · ring</td></tr>
+</table>
+</section>
+
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+
+<section style="border: 1px solid #151515">
+<h2 style="margin: 0; padding: 2px 8px; background: #151515; color: #FFFFFF; font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 15px; line-height: 17px; letter-spacing: 0.05em; text-transform: uppercase; display: flex; align-items: center; gap: 7px"><span aria-hidden="true" style="width: 8px; height: 8px; background: #E82C26; flex: none"></span>Buttons</h2>
+<table style="width: 100%; border-collapse: collapse">
+<tr><th scope="col" style="text-align: left; padding: 1px 6px; background: #EBEBEB; border-bottom: 1px solid #B8B8B8; font-weight: 700">SMK-37</th><th scope="col" style="text-align: left; padding: 1px 6px; background: #EBEBEB; border-bottom: 1px solid #B8B8B8; font-weight: 700"><span style="color: #595959">FM-1 name</span> · what it does</th></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">PATCH</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0"><span style="color: #595959; font-weight: 600">HOME</span> · Arrange; again: Song. Held: a shift (undo, redo, tempo). To a question: no</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">BT</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0"><span style="color: #595959; font-weight: 600">SAVE</span> · saves now (lit: unsaved). Held + white 1–2: to that slot. On a sound page, held + a white key: keep the sound</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">PARA</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0"><span style="color: #595959; font-weight: 600">EDIT</span> · the sound: Engine, Play, Play 2 (K2 turns the pages)</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">CHORD</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0"><span style="color: #595959; font-weight: 600">ENV</span> · Envelope, Filter, Filter envelope</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">FX</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0"><span style="color: #595959; font-weight: 600">FX</span> · Character, Sends, FX I, FX II, Throws</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">SCALE</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0"><span style="color: #595959; font-weight: 600">SEL</span> · the page's settings and actions. To a question: yes</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">GLOBE</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0"><span style="color: #595959; font-weight: 600">GLO</span> · Mix, Master EQ, Master color, Master out, LFO, Setup</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">ARP</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0"><span style="color: #595959; font-weight: 600">ARP</span> · Players (arp, strum, hold, random), Weave. A step's pad held: its two tricks</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">SEQ</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0"><span style="color: #595959; font-weight: 600">SEQ</span> · Steps; K2: Bar. Held on Steps: the keys play, and set what a pad writes</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">PLAY</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0"><span style="color: #595959; font-weight: 600">PLAY</span> · start / stop. SEQ + PLAY on Steps: from this bar</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">REC</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0"><span style="color: #595959; font-weight: 600">REC</span> · REC + PLAY: record live. Held while playing: records while held. Tapped, stopped, on Steps: step record. <b>Tapped twice:</b> a counted-in take: stopped, a bar of clicks then from step 1; playing, from the next bar</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">NOTE REPEAT</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0"><span style="color: #595959; font-weight: 600">LFO</span> · tapped: note repeat on / off (lit). Held + pads 1–8: its rate. Held and let go alone: the LFO page</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">KNOB BANK</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">The pads: on Steps, cells ↔ live pads (lit); elsewhere, opens Steps</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">FADER BANK</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">The faders: T1–T4 ↔ T5–T8 (lit)</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">&lt; / &gt;</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">The bar before / after, on any page, when let go</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">&lt; + &gt;</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0"><b>DAW mode</b> on / off: the second pressed while the first is held</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; font-weight: 700; white-space: nowrap">OCT− / OCT+</th><td style="vertical-align: top; padding: 1px 6px">The keys' octave. A step's pad held: nudge it. SEQ held on Steps: the pattern an octave. Arrange: scenes 1–16 / 17–32. Step record: back / rest</td></tr>
+</table>
+</section>
+
+<section style="border: 1px solid #151515; flex: 1">
+<h2 style="margin: 0; padding: 2px 8px; background: #151515; color: #FFFFFF; font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 15px; line-height: 17px; letter-spacing: 0.05em; text-transform: uppercase; display: flex; align-items: center; gap: 7px"><span aria-hidden="true" style="width: 8px; height: 8px; background: #E82C26; flex: none"></span>Quick moves</h2>
+<table style="width: 100%; border-collapse: collapse">
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">Undo / redo</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">PATCH + REC / PATCH + PLAY</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">Tempo</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">PATCH held + turn K2, on any page</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">Write a note</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">Hold SEQ, play it, let go, tap a pad</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">Lock a knob</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">Hold a pad, press PARA, CHORD or FX, turn</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">New scene</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">PATCH, then an empty white key</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; font-weight: 700; white-space: nowrap">Solo</th><td style="vertical-align: top; padding: 1px 6px">GLOBE (Mix): hold the track's black key</td></tr>
+</table>
+</section>
+
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+
+<section style="border: 1px solid #151515">
+<h2 style="margin: 0; padding: 2px 8px; background: #151515; color: #FFFFFF; font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 15px; line-height: 17px; letter-spacing: 0.05em; text-transform: uppercase; display: flex; align-items: center; gap: 7px"><span aria-hidden="true" style="width: 8px; height: 8px; background: #E82C26; flex: none"></span>16 Pads</h2>
+<div style="padding: 5px 7px 7px; display: flex; flex-direction: column; gap: 4px">
+<div style="font-weight: 700">On Steps and Bar (SEQ): the bar's 16 cells</div>
+<div aria-hidden="true" style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 3px">
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FFC6E0; display: flex; align-items: center; justify-content: center; font-weight: 700">1</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #F0F0F0; display: flex; align-items: center; justify-content: center; font-weight: 700">2</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #F0F0F0; display: flex; align-items: center; justify-content: center; font-weight: 700">3</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #F0F0F0; display: flex; align-items: center; justify-content: center; font-weight: 700">4</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FF5CAA; display: flex; align-items: center; justify-content: center; font-weight: 700">5</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #F0F0F0; display: flex; align-items: center; justify-content: center; font-weight: 700">6</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #F0F0F0; display: flex; align-items: center; justify-content: center; font-weight: 700">7</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #F0F0F0; display: flex; align-items: center; justify-content: center; font-weight: 700">8</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FFC6E0; display: flex; align-items: center; justify-content: center; font-weight: 700">9</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #F0F0F0; display: flex; align-items: center; justify-content: center; font-weight: 700">10</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #F0F0F0; display: flex; align-items: center; justify-content: center; font-weight: 700">11</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #F0F0F0; display: flex; align-items: center; justify-content: center; font-weight: 700">12</div>
+<div style="height: 18px; border: 2px solid #151515; border-radius: 3px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 700">13</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #F0F0F0; display: flex; align-items: center; justify-content: center; font-weight: 700">14</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #F0F0F0; display: flex; align-items: center; justify-content: center; font-weight: 700">15</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #F0F0F0; display: flex; align-items: center; justify-content: center; font-weight: 700">16</div>
+</div>
+<div>Track colour: notes dim, playing bright, held white. Hold + a later pad: length</div>
+<div style="font-weight: 700; margin-top: 3px">Every other page (or KNOB BANK on Steps): live pads</div>
+<div aria-hidden="true" style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 3px">
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FF5CAA; display: flex; align-items: center; justify-content: center; font-weight: 700">T1</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #28CCC0; display: flex; align-items: center; justify-content: center; font-weight: 700">T2</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #F4C83C; display: flex; align-items: center; justify-content: center; font-weight: 700">T3</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #6898FF; display: flex; align-items: center; justify-content: center; font-weight: 700">T4</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FF8840; display: flex; align-items: center; justify-content: center; font-weight: 700">T5</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #6ED86E; display: flex; align-items: center; justify-content: center; font-weight: 700">T6</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #B288FF; display: flex; align-items: center; justify-content: center; font-weight: 700">T7</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #D6B088; display: flex; align-items: center; justify-content: center; font-weight: 700">T8</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FFC6E0; display: flex; align-items: center; justify-content: center; font-weight: 700">D1</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FFC6E0; display: flex; align-items: center; justify-content: center; font-weight: 700">D2</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FFC6E0; display: flex; align-items: center; justify-content: center; font-weight: 700">D3</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FFC6E0; display: flex; align-items: center; justify-content: center; font-weight: 700">D4</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FFC6E0; display: flex; align-items: center; justify-content: center; font-weight: 700">D5</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FFC6E0; display: flex; align-items: center; justify-content: center; font-weight: 700">D6</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FFC6E0; display: flex; align-items: center; justify-content: center; font-weight: 700">D7</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FFC6E0; display: flex; align-items: center; justify-content: center; font-weight: 700">D8</div>
+</div>
+<div><b>Top:</b> mutes T1–T8 (dark: muted). <b>Bottom:</b> the kit's first 8 sounds, with velocity, whatever track is selected</div>
+<div style="font-weight: 700; margin-top: 3px">NOTE REPEAT held: the top row sets the rate</div>
+<div aria-hidden="true" style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 3px">
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FBEBC0; display: flex; align-items: center; justify-content: center; font-weight: 700">1/4</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FBEBC0; display: flex; align-items: center; justify-content: center; font-weight: 700">1/8</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FBEBC0; display: flex; align-items: center; justify-content: center; font-weight: 700">1/8T</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #F4C83C; display: flex; align-items: center; justify-content: center; font-weight: 700">1/16</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FBEBC0; display: flex; align-items: center; justify-content: center; font-weight: 700">1/16T</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FBEBC0; display: flex; align-items: center; justify-content: center; font-weight: 700">1/32</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FBEBC0; display: flex; align-items: center; justify-content: center; font-weight: 700">1/32T</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FBEBC0; display: flex; align-items: center; justify-content: center; font-weight: 700">1/64</div>
+</div>
+<div>In use: bright (1/16 at first). A pick turns repeat on: a held drum pad plays again in time</div>
+</div>
+</section>
+
+<section style="border: 1px solid #151515">
+<h2 style="margin: 0; padding: 2px 8px; background: #151515; color: #FFFFFF; font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 15px; line-height: 17px; letter-spacing: 0.05em; text-transform: uppercase; display: flex; align-items: center; gap: 7px"><span aria-hidden="true" style="width: 8px; height: 8px; background: #E82C26; flex: none"></span>DAW mode (&lt; + &gt;)</h2>
+<table style="width: 100%; border-collapse: collapse">
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">Keys</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">Notes on CHANNEL (1), C3 = 48. OCT−/+: ±3; both: 0</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">K1–K8</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">CC 70–77; KNOB BANK: CC 102–109</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">Faders</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">CC 20–23; FADER BANK: CC 24–27</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">Pads</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">Ch 10: bottom 36–43, top 44–51; both BANKs: <span style="white-space: nowrap">52–59, 60–67</span></td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">Buttons</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">CC, 127 / 0: &lt; 110 · &gt; 111 · SEQ 112 · FX 113 · PARA 114 · PLAY 115 · REC 117 · ARP 118 · NOTE REPEAT 119 · SCALE 85 · CHORD 86 · GLOBE 87 · BT 88</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">Wheels</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">Pitch bend; mod: CC 1</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; font-weight: 700; white-space: nowrap">PATCH</th><td style="vertical-align: top; padding: 1px 6px">Tapped: LOCAL (the keys play LOOM-8 too). Held: K5 CHANNEL · K6 map · K7 knobs ABS / REL · K8 key velocity · OCT+ map editor</td></tr>
+</table>
+</section>
+
+<section style="border: 1px solid #151515; flex: 1">
+<h2 style="margin: 0; padding: 2px 8px; background: #151515; color: #FFFFFF; font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 15px; line-height: 17px; letter-spacing: 0.05em; text-transform: uppercase; display: flex; align-items: center; gap: 7px"><span aria-hidden="true" style="width: 8px; height: 8px; background: #E82C26; flex: none"></span>Power-on and help</h2>
+<table style="width: 100%; border-collapse: collapse">
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">Power-on</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">OCT− + OCT+ held: recalibrate the buttons and knobs</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; font-weight: 700; white-space: nowrap">Help</th><td style="vertical-align: top; padding: 1px 6px">Hold any button 1 s for its card. The screen's bottom lines name each control's job</td></tr>
+</table>
+</section>
+
+</div>
+
+</main>
+
+<footer style="display: flex; justify-content: space-between; gap: 16px; font-size: 12px; line-height: 14px; color: #555555; border-top: 1px solid #B8B8B8; padding-top: 4px">
+<span>LOOM-8 by Charles Vestal, on fm1-base and felucca-bsp (from Felucca by Leo Kuroshita) · SMK-37 board layer by genkigenki · DAW map after Snoop37</span>
+<span>Beta: back up the whole flash before installing</span>
+</footer>
+
+</div>
+</div>
+</body>
+</html>
