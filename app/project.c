@@ -239,8 +239,9 @@ void project_device_put(void)
 void project_defaults(void)
 {
 #if BOARD_SMK37
-    static const uint8_t ORDER[NTRK] = {EG_DRUMLINE, EG_MONO, EG_POLY, EG_FM, EG_ACID, EG_KNIT, EG_BELLOWS,
-                                        EG_SAMPLE};   /* SPIDER: its kit, mono bass, poly, fm, acid, then LOOM-8's */
+    static const uint8_t ORDER[NTRK] = {EG_DRUMLINE, EG_MONO, EG_POLY, EG_FM, EG_ACID, EG_POLY, EG_MONO,
+                                        EG_SAMPLE};   /* SPIDER: its kit, mono bass, poly, fm, acid, a second poly and
+                                                       * mono (their second presets), the sampler */
 #else
     static const uint8_t ORDER[NTRK] = {EG_DRUMLINE, EG_KNIT, EG_RAYON, EG_JACQUARD, EG_KNIT, EG_BELLOWS, EG_CANE,
                                         EG_VOILE};
@@ -285,10 +286,15 @@ void project_defaults(void)
             tr->par[TP_S] = 0;
             tr->par[TP_R] = 64;
             set_name(tr, "kit");
-        } else if (t == 1 && ORDER[t] == EG_KNIT) {
+        } else if (t == 1 && ORDER[t] == EG_KNIT && !EG_DROPPED(EG_KNIT)) {
             apply_preset(tr, preset_named(EG_KNIT, "sub"));     /* knit's round sub under everything */
         } else {
-            apply_preset(tr, preset_first(ORDER[t]));
+            int f = preset_first(ORDER[t]);
+#if BOARD_SMK37
+            if (t >= 5 && f >= 0 && (ORDER[t] == EG_POLY || ORDER[t] == EG_MONO))
+                f++;                                      /* (the second poly and mono: their second presets) */
+#endif
+            apply_preset(tr, f);
         }
         if (!tr->name[0])
             set_name(tr, EG_NAME[ORDER[t]]);
@@ -359,6 +365,10 @@ static int settings_valid(settings_t *s)
         s->trk[t].name[NAME_LEN - 1] = 0;
         if (t < NTRK && p[TP_ENGINE] >= NENGINE)
             return 0;
+        if (t < NTRK && EG_DROPPED(p[TP_ENGINE])) {   /* (SPIDER: a LOOM-8 project's knit .. voile: poly's sound) */
+            sound_default(p, EG_FALLBACK);
+            p[TP_ENGINE] = EG_FALLBACK;
+        }
         if (t >= AUX_FX1 && p[TP_ENGINE] >= NFXPICK)
             return 0;
         if (t < NTRK)

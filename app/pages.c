@@ -749,7 +749,7 @@ static int kit_x_page(int t)                         /* a kit whose key shown ha
 static int x_page(int t)                             /* the engine has a second page of knobs (TP_X1..X4) */
 {
     int e = t < NTRK ? proj.trk[t].par[TP_ENGINE] : -1, m = t < NTRK ? proj.trk[t].par[TP_E4] % NSM : 0;
-    return e == EG_RAYON || e == EG_KNIT || e == EG_MIDI || e == EG_ACID ||
+    return ((e == EG_RAYON || e == EG_KNIT) && !EG_DROPPED(e)) || e == EG_MIDI || e == EG_ACID ||
 #if BOARD_SMK37
            e == EG_POLY || e == EG_MONO ||
 #endif
@@ -4612,14 +4612,18 @@ static void draw_engine(void)
             text_r(230, 3, &FONT_S, nm, K_DIM);
     }
     switch (eg) {
+#if !BOARD_SMK37
     case EG_JACQUARD: pic_wave(20, 24, 200, PIC_H, p, pic_f); break;
     case EG_RAYON: pic_rayon(20, 24, 200, PIC_H, p, pic_f); break;
     case EG_BELLOWS: pic_organ(20, 24, 200, PIC_H, p, pic_f); break;
+#endif
     case EG_SAMPLE: pic_sample(20, 24, 200, PIC_H, p); break;
     case EG_SLICE: pic_slice(20, 24, 200, PIC_H, p, trk); break;
+#if !BOARD_SMK37
     case EG_CANE: pic_cane(20, 24, 200, PIC_H, p, pic_f); break;
     case EG_VOILE: pic_voile(20, 24, 200, PIC_H, p, pic_f); break;
     case EG_KNIT: pic_knit(20, 24, 200, PIC_H, p, pic_f); break;
+#endif
     case EG_MIDI: pic_midi(24, 30, p, ui.page == P_SUB, eng_midi_hit[trk]); break;
     case EG_ACID: pic_acid(20, 24, 200, PIC_H, p); break;
 #if BOARD_SMK37
@@ -5081,7 +5085,7 @@ static void draw_acid_x(void)
 static void draw_sub(void)
 {
     int eg = proj.trk[sel_trk()].par[TP_ENGINE];
-    if (eg == EG_RAYON)
+    if (eg == EG_RAYON && !EG_DROPPED(EG_RAYON))
         draw_rayon_fall();
     else if (eg == EG_ACID)
         draw_acid_x();

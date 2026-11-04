@@ -60,7 +60,29 @@ enum { EG_KNIT, EG_RAYON, EG_JACQUARD, EG_BELLOWS, EG_CANE, EG_VOILE, EG_SAMPLE,
 #define NVOILE 4
 #define CN_SLOTS 4
 #define CN_LEN 1536
-static inline int eg_synth(int e) { return e >= 0 && e < NENGINE && e != EG_DRUMLINE && e != EG_MIDI; }   /* a voice
+#if BOARD_SMK37
+#define EG_DROPPED(e) ((e) >= EG_KNIT && (e) <= EG_VOILE)   /* SPIDER leaves LOOM-8's knit .. voile out (their numbers
+                                                         * kept: a project's saved engine still means the same) */
+#define EG_FALLBACK EG_POLY                             /* what a dropped engine's track plays */
+#else
+#define EG_DROPPED(e) 0
+#define EG_FALLBACK EG_KNIT
+#endif
+/* the engine d places on from e, skipping the dropped ones, kept inside 0 .. NENGINE - 1 (the pickers) */
+static inline int eg_step(int e, int d)
+{
+    while (d) {
+        int n = e + (d > 0 ? 1 : -1);
+        while (n >= 0 && n < NENGINE && EG_DROPPED(n))
+            n += d > 0 ? 1 : -1;
+        if (n < 0 || n >= NENGINE)
+            break;
+        e = n;
+        d -= d > 0 ? 1 : -1;
+    }
+    return e;
+}
+static inline int eg_synth(int e) { return e >= 0 && e < NENGINE && e != EG_DRUMLINE && e != EG_MIDI && !EG_DROPPED(e); }   /* a voice
                                                                                                          * engine */
 enum { SM_ONESHOT, SM_LOOP, SM_REVERSE, SM_PINGPONG, NSM };   /* the sample engine's modes (TP_E4) */
 #define SL_NCOUNT 4                                  /* the slice engine's counts: 4 << TP_E2 */

@@ -43,6 +43,7 @@ X_DEF = {"knit": (64, 0, 0, 0), "acid": (0, 1, 27, 0)}   # the engines' second p
 import os  # noqa: E402
 SMK = os.environ.get("BOARD", "fm1").lower().replace("-", "") == "smk37"
 SPIDER_ENGINES = ["poly", "mono", "fm"]
+SPIDER_DROPS = ["knit", "rayon", "jacquard", "bellows", "cane", "voile"]
 if SMK:
     ENGINES = ENGINES + SPIDER_ENGINES
     KNOBS = {**KNOBS, "poly": ["saw", "pulse", "width", "sub"], "mono": ["saw", "pulse", "width", "sub"],
@@ -59,6 +60,8 @@ def P(name, role, engine, knobs, mode="poly", glide=0, bend=2, volume=100, amp=(
       genres=()):
     assert role in ROLES, (name, role)
     if engine in SPIDER_ENGINES and not SMK:   # SPIDER's engines: not on the FM-1
+        return
+    if engine in SPIDER_DROPS and SMK:         # LOOM-8's engines SPIDER leaves out (synth.h EG_DROPPED)
         return
     assert engine in KNOBS, (name, engine)
     assert len(name) <= 11 and name == name.lower(), name

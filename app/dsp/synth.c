@@ -30,7 +30,11 @@
 #include "fastmath.h"
 #include "drumline.h"
 #include "sample.h"
+#if !BOARD_SMK37
 #include "wavetables.h"
+#else
+#define WT_NTABLE 9                           /* (SPIDER: no wavetables; jacquard dropped) */
+#endif
 
 #define SUB 16                                /* filter coefficient refresh, steal fade steps */
 #define NCK 8                                 /* chunk slots a prepare may cover (n <= 512) */
@@ -404,6 +408,7 @@ static void eng_init(voice_t *v)
     for (i = 0; i < SMP_NXF; i++)                /* (a crossfade it held: free) */
         if (smp_xo[i] == v->vi)
             smp_xo[i] = NVOICE;
+#if !BOARD_SMK37
     if (v->engine == EG_BELLOWS)
         for (i = 0; i < 6; i++)
             v->o[i * 2] = 1.0f;                  /* the rotating phasors start at 1 + 0i */
@@ -417,7 +422,8 @@ static void eng_init(voice_t *v)
         cn_init(v);
     else if (v->engine == EG_VOILE)
         vo_init(v);
-    else if (v->engine == EG_ACID)
+#endif
+    if (v->engine == EG_ACID)
         v->o[4] = 1.0f;                          /* its 303 set up from scratch on the render's side (acid_chunk) */
 #if BOARD_SMK37
     if (v->engine == EG_POLY || v->engine == EG_MONO) {
@@ -445,6 +451,7 @@ SY_INLINE float saw_pulse(float p, float dt, float idt, sawp_t k)
     q = q >= 1.0f ? q - 1.0f : q;
     return 2.0f * p - k.m2 * q + k.c - blep(p, dt, idt) + k.mix * blep(q, dt, idt);
 }
+#if !BOARD_SMK37
 /* wavetable: a frame crossfade (scan) through one of nine tables, bend bends the phase (symmetry), ripple
  * phase-modulates it by a second oscillator that climbs from a slow wobble to the note's own rate */
 static void wt_prep(voice_t *v)
@@ -489,6 +496,7 @@ static void wt_run(voice_t *v, float *xl, float *xr, int m)
     v->o[1] = mp;
 }
 
+#endif
 /* rayon (was orbit): two-operator FM, the DX's way, for e-pianos, bells, mallets and basses. bright = the index (velocity
  * sets how much of it a note gets: 0.4 .. 1 of it); ratio from a detuned 1:1 (0..50: slow beating) to the modulator's
  * ratios (51..100: RAYON_RATIO, the bells' inharmonic ones among them); edge = the modulator's feedback (sine toward
@@ -1511,11 +1519,13 @@ static synth_t *fm_syn;                          /* the synth (synth_init): fm's
 static void eng_chunk(voice_t *v)                /* every chunk: the engines' own slow movements */
 {
     switch (v->engine) {
+#if !BOARD_SMK37
     case EG_RAYON: rayon_chunk(v); break;
     case EG_BELLOWS: organ_chunk(v); break;
     case EG_CANE: cn_chunk(v); break;
     case EG_KNIT: knit_chunk(v); break;
     case EG_VOILE: vo_chunk(v); break;
+#endif
     case EG_ACID: acid_chunk(v); break;
 #if BOARD_SMK37
     case EG_POLY: case EG_MONO: vco_chunk(v); break;
@@ -1526,13 +1536,17 @@ static void eng_chunk(voice_t *v)                /* every chunk: the engines' ow
 static void eng_prep(voice_t *v, float bpm)
 {
     switch (v->engine) {
+#if !BOARD_SMK37
     case EG_JACQUARD: wt_prep(v); break;
     case EG_RAYON: rayon_prep(v); break;
     case EG_BELLOWS: organ_prep(v); break;
+#endif
     case EG_SAMPLE: smp_prep(v); break;
     case EG_SLICE: slc_prep(v, bpm); break;
+#if !BOARD_SMK37
     case EG_CANE: cn_prep(v); break;
     case EG_VOILE: vo_prep(v); break;
+#endif
     case EG_ACID: v->c.stereo = 0; break;        /* (its own: acid_chunk) */
 #if BOARD_SMK37
     case EG_POLY: case EG_MONO: vco_prep(v); break;
@@ -1544,13 +1558,17 @@ static void eng_prep(voice_t *v, float bpm)
 static void eng_run(voice_t *v, float *xl, float *xr, int m)
 {
     switch (v->engine) {
+#if !BOARD_SMK37
     case EG_JACQUARD: wt_run(v, xl, xr, m); break;
     case EG_RAYON: rayon_run(v, xl, xr, m); break;
     case EG_BELLOWS: organ_run(v, xl, xr, m); break;
+#endif
     case EG_SAMPLE: smp_run(v, xl, xr, m); break;
     case EG_SLICE: slc_run(v, xl, xr, m); break;
+#if !BOARD_SMK37
     case EG_CANE: cn_run(v, xl, xr, m); break;
     case EG_VOILE: vo_run(v, xl, xr, m); break;
+#endif
     case EG_ACID: acid_run(v, xl, m); break;
 #if BOARD_SMK37
     case EG_POLY: case EG_MONO: vco_run(v, xl, xr, m); break;
@@ -1571,7 +1589,7 @@ static void voice_start(synth_t *s, voice_t *v, int note, int vel, int glide_ms,
     float ms = porta_ms(glide_ms, P(s, v->trk, TP_PORTA));
     int eng = P(s, v->trk, TP_ENGINE);
     if (!eg_synth(eng))
-        eng = EG_KNIT;
+        eng = EG_FALLBACK;
     uint8_t was_as = v->as;
     v->tws = v->tws_pend;                        /* cane: the slot voice_take kept for this note */
     v->as = v->as_pend;                          /* acid: its 303's */
@@ -1600,19 +1618,23 @@ static void voice_start(synth_t *s, voice_t *v, int note, int vel, int glide_ms,
     v->amp.stage = ENV_ATTACK;
     v->flt.stage = ENV_ATTACK;
     v->tsec = 0.0f;
+#if !BOARD_SMK37
     if (v->engine == EG_RAYON)                   /* its fall and its tine from the top, every note */
         v->o[5] = v->o[7] = 1.0f;
+#endif
     if (v->engine == EG_SAMPLE || v->engine == EG_SLICE) {   /* from the region's (the slice's) start again */
         if (v->engine == EG_SAMPLE)
             smp_xf_free(v);                      /* (a crossing it was in: its cache free) */
         v->o[3] = v->o[4] = 0.0f;
         v->o[6] = v->o[7] = 0.0f;
     }
+#if !BOARD_SMK37
     if (v->engine == EG_CANE)                    /* the Braids engines: a strike (Braids' trigger) */
         cn_strike(v, 1);
     else if (v->engine == EG_VOILE)
         vo_strike(v);
-    else if (v->engine == EG_ACID)
+#endif
+    if (v->engine == EG_ACID)
         acid_note(v, note, vel, glide_ms > 0);
 #if BOARD_SMK37
     else if (v->engine == EG_FM)
@@ -1863,10 +1885,12 @@ static int find_voice(synth_t *s, int trk)
     int i, best = -1, over;
     float quiet = 1e9f;
     uint32_t oldest = 0xFFFFFFFFu;
+#if !BOARD_SMK37
     if (P(s, trk, TP_ENGINE) == EG_KNIT && (best = knit_find(s, trk)) >= 0)
         return best;
     if (P(s, trk, TP_ENGINE) == EG_CANE && (best = cn_find(s, trk)) >= 0)
         return best;
+#endif
     if (P(s, trk, TP_ENGINE) == EG_ACID && (best = acid_find(s, trk)) >= 0)
         return best;
     if (track_voices(s, trk) >= NVOICE_TRK) {
@@ -2013,16 +2037,20 @@ void synth_note_on(synth_t *s, int trk, int note, int vel, int glide_ms, uint32_
                 v->amp.stage = ENV_ATTACK;       /* retrigger from the level now */
                 v->flt.stage = ENV_ATTACK;
                 v->tsec = 0.0f;
+#if !BOARD_SMK37
                 if (v->engine == EG_RAYON)
                     v->o[5] = v->o[7] = 1.0f;
+#endif
                 if (v->engine == EG_SAMPLE)
                     smp_retrigger(v);
                 if (v->engine == EG_SLICE)
                     slc_retrigger(v);
+#if !BOARD_SMK37
                 if (v->engine == EG_CANE)        /* the lines as they are, the exciter again */
                     cn_strike(v, 0);
                 else if (v->engine == EG_VOILE)
                     vo_strike(v);
+#endif
             }
             if (v->engine == EG_ACID)            /* the 303: a note held still slides (its own legato), and one
                                                   * with a glide (the step's trick, the arp's) slides anyway */
@@ -2181,6 +2209,7 @@ int synth_voice_cost(const synth_t *s, int vi)
         return u < 1 ? 1 : u > 40 ? 40 : u;
     }
 #endif
+#if !BOARD_SMK37
     if (v->engine == EG_CANE || v->engine == EG_VOILE) {   /* by the model (braids.h) */
         int md = v->c.ex[19] > 0.0f ? (int)v->c.ex[19] : 0;
         return v->engine == EG_CANE ? CN_COST[md < NCANE ? md : 0] : VO_COST[md < NVOILE ? md : 0];
@@ -2194,6 +2223,7 @@ int synth_voice_cost(const synth_t *s, int vi)
                (v->c.ex[16] > 0.0f || v->c.ex[17] > 0.0f);
     if (v->engine == EG_RAYON)
         return 5;                                /* (the FM-1, 2026-10-19: a quarter above an ordinary voice) */
+#endif
 #if BOARD_SMK37
     if (v->engine == EG_POLY && v->c.cho)        /* (the chorus: a line and two taps a sample, a stereo output) */
         return 5;
@@ -2242,7 +2272,7 @@ void synth_init(synth_t *s, uint8_t (*par)[NTP])
         v->vi = (uint8_t)i;
         v->rng = 0x2545F491u * (uint32_t)(i + 1) + 1u;
         v->steal_gain = 1.0f;
-        v->engine = EG_KNIT;
+        v->engine = EG_FALLBACK;
         v->tws = v->tws_pend = CN_NONE;
         for (j = 0; j < 8; j++)
             v->env_in[j] = -1.0f;                /* the caches: nothing made yet */
@@ -2874,6 +2904,7 @@ static void voice_chunk(synth_t *s, voice_t *v)
          * chunk: the organ's pitch wobble and phasor trim); knit's and rayon's second pages: when they moved */
         float pin = v->pitch_cur + c->pitch_off * 0.01f;
         int moved = pin != v->pitch_in || v->fresh || (v->nchunk & 3) == 0;
+#if !BOARD_SMK37
         if (v->engine == EG_RAYON) {             /* its second page (rayon_prep, rayon_chunk) */
             int fl = P(s, trk, TP_X1), fo = P(s, trk, TP_X2), ks = P(s, trk, TP_X3);
             float fall = fl ? fm_expf(-(float)SY_CHUNK / (0.02f * fm_exp2f((float)fl * (7.64f / 127.0f)) * SY_SR)) : 0.0f;
@@ -2883,6 +2914,7 @@ static void voice_chunk(synth_t *s, voice_t *v)
             c->ex[9] = fv;
             c->ex[10] = kv;
         }
+#endif
         if (v->engine == EG_SAMPLE) {          /* its loop page (smp_prep) */
             float a = (float)P(s, trk, TP_X1), b = (float)P(s, trk, TP_X2);
             moved |= a != c->ex[8] || b != c->ex[9];
@@ -2899,6 +2931,7 @@ static void voice_chunk(synth_t *s, voice_t *v)
         }
         c->cho = (uint8_t)(v->engine == EG_POLY ? P(s, trk, TP_X3) & 3 : 0);
 #endif
+#if !BOARD_SMK37
         if (v->engine == EG_KNIT) {            /* its second page (knit_prep) */
             for (i = 0; i < 4; i++) {
                 float xv = (float)P(s, trk, TP_X1 + i);
@@ -2908,6 +2941,7 @@ static void voice_chunk(synth_t *s, voice_t *v)
                 c->ex[18 + i] = xv;
             }
         }
+#endif
         for (i = 0; i < 4 && !moved; i++)
             moved = c->e[i] != v->e_in[i];
         if (moved) {
@@ -3240,7 +3274,7 @@ static void voice_samples(synth_t *s, voice_t *v, float *l, float *r, float *s1,
         if (ahead) {                             /* (knit's oscillators made for the whole call already: below) */
             xl = bl + i;
             xr = br + i;
-        } else if (i == 0 && (v->engine == EG_KNIT || v->engine == EG_ACID) && v->steal_phase != 1 && m <= SY_CHUNK) {
+        } else if (i == 0 && ((!EG_DROPPED(EG_KNIT) && v->engine == EG_KNIT) || v->engine == EG_ACID) && v->steal_phase != 1 && m <= SY_CHUNK) {
             /* knit's oscillators depend on the chunk's values alone (its pitch, detune, gains: voice_chunk), and m
              * stays inside a chunk: all of them at once, each oscillator's set-up once instead of a sub-block's
              * worth of times; the filter, the character and the outputs keep their sub-blocks below (a pending
@@ -3636,6 +3670,7 @@ static void eknob_init(void)
             i->def = EG_DEF[e][k];
             i->kind = PK_NN;
             i->names = 0;
+#if !BOARD_SMK37
             if (e == EG_JACQUARD && k == 0) {
                 i->hi = WT_NTABLE - 1;
                 i->kind = PK_NAMES;
@@ -3656,6 +3691,7 @@ static void eknob_init(void)
                 i->kind = PK_NAMES;
                 i->names = e == EG_CANE ? CANE_N : VOILE_N;
             }
+#endif
             if (e == EG_SAMPLE) {              /* sample, start, length, mode */
                 i->kind = k == 0 ? PK_SAMPLE : k == 3 ? PK_NAMES : PK_PCT;
                 i->hi = (uint8_t)(k == 0 ? smp_slots() - 1 : k == 3 ? NSM - 1 : 127);
@@ -3731,14 +3767,17 @@ const tp_info_t *tp_info(int p, int engine)
         eknob_init();
     if (p >= TP_E1 && p <= TP_E4) {
         if (engine < 0 || engine >= NENGINE)
-            engine = EG_KNIT;
+            engine = EG_FALLBACK;
         return &eknob[engine][p - TP_E1];
     }
     if (engine == EG_MIDI && midi_cc_of(p) >= 0)
         return &MIDI_CC_P[midi_cc_of(p)];
     if (p >= TP_X1 && p <= TP_X4)                /* the engine's second page: knit's, rayon's, else none */
-        return engine == EG_MIDI ? &MIDI_X_P[p - TP_X1] : engine == EG_RAYON ? &RAYON_X_P[p - TP_X1]
-             : engine == EG_KNIT ? &KNIT_X_P[p - TP_X1] : engine == EG_SAMPLE ? &SAMPLE_X_P[p - TP_X1]
+        return engine == EG_MIDI ? &MIDI_X_P[p - TP_X1]
+#if !BOARD_SMK37
+             : engine == EG_RAYON ? &RAYON_X_P[p - TP_X1] : engine == EG_KNIT ? &KNIT_X_P[p - TP_X1]
+#endif
+             : engine == EG_SAMPLE ? &SAMPLE_X_P[p - TP_X1]
              : engine == EG_ACID ? &ACID_X_P[p - TP_X1]
 #if BOARD_SMK37
              : engine == EG_POLY ? &POLY_X_P[p - TP_X1] : engine == EG_MONO ? &MONO_X_P[p - TP_X1]
@@ -3817,7 +3856,7 @@ const tp_info_t *tp_info_par(int p, const uint8_t *par)
     case TP_LX:
         if (lt == LT_WAVE || lt == LT_DRIFT) {
             switch (par[TP_LDEST] & 3) {
-            case LD_SYNTH: return &lparam[engine < NENGINE ? engine : EG_KNIT];
+            case LD_SYNTH: return &lparam[engine < NENGINE ? engine : EG_FALLBACK];
             case LD_ENV: return engine == EG_ACID ? &LFO_PARAM_ACIDE : &LFO_PARAM_ENV;
             case LD_FILTER: return engine == EG_ACID ? &LFO_PARAM_ACID : &LFO_PARAM_FLT;
             default: return &LFO_PARAM_AMP;
@@ -3918,7 +3957,7 @@ static void tp_text_i(const tp_info_t *i, int p, int v, int engine, char *num, c
             ms_text(0.001f * ms, num, unit);
         return;
     }
-    if (p == TP_E2 && engine == EG_RAYON) {       /* the ratio: "1:1 +12c" in the detuned stretch, else "3.5:1" */
+    if (p == TP_E2 && engine == EG_RAYON && !EG_DROPPED(EG_RAYON)) {       /* the ratio: "1:1 +12c" in the detuned stretch, else "3.5:1" */
         float r = (float)(v > 127 ? 127 : v) * (100.0f / 127.0f);
         if (r <= 50.0f) {
             char *e = put_s(num, "1:1");
@@ -4057,7 +4096,7 @@ void sound_default(uint8_t *par, int engine)
 {
     int p, k;
     if (engine < 0 || engine >= NENGINE)
-        engine = EG_KNIT;
+        engine = EG_FALLBACK;
     for (p = 0; p < TP_DRUM0; p++)
         par[p] = tp_info(p, engine)->def;
     par[TP_ENGINE] = (uint8_t)engine;
