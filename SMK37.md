@@ -27,7 +27,7 @@ The manual still applies: the FM-1's controls are where the SMK-37 prints the sa
 
 | SMK-37 | LOOM-8 |
 | --- | --- |
-| Keys F3..G5 (the middle 27) | the FM-1's 27 keys, **with velocity** (the unit's own factory curves). On Steps and Bar they play the track (the pads are the cells there); a step's pad held on a kit: the black keys its sounds |
+| Keys F3..G5 (the middle 27) | the FM-1's 27 keys, **with velocity** (the unit's own factory curves, at **KEY VELOCITY**: below). On Steps and Bar they play the track (the pads are the cells there); a step's pad held on a kit: the black keys its sounds |
 | Keys C3..E3, G#5..C6 (the outer 10) | more notes on the track the keys play, with velocity; on a kit, its keys |
 | 16 pads, on Steps and Bar (SEQ) | the bar's 16 cells, pads 1-8 the top row, 9-16 the bottom: everything the white keys do there (a tap, a hold, a later one for the length). Lit in the track's colour: a step with notes dim, the step playing bright, a step held white |
 | 16 pads, every other page | pads 1-8 (top row): T1-T8, lit while the track plays: a tap mutes or unmutes, held solos while held (more held: more), two taps solo and it stays (a tap ends it). Pads 9-16 (bottom row): the drums, the kit's first eight sounds whatever track is selected (the track selected if it is a kit, else the kit selected last), with velocity, recorded into the kit while recording |
@@ -43,8 +43,17 @@ The manual still applies: the FM-1's controls are where the SMK-37 prints the sa
 | FX, SCALE, CHORD, PARA, GLOBE | FX, SEL, ENV, EDIT, GLO |
 | PATCH / BT | HOME / SAVE |
 | ARP / SEQ / SEQ PLAY / SEQ REC | ARP / SEQ / PLAY / REC |
+| SEQ REC tapped twice | a counted-in take, latched. Stopped: a count-in (REC's COUNT-IN, 1 or 2 bars; off or ON NOTE: a bar), then from step 1, recording (the first tap's step record undone). Playing: recording from the next bar line, the rest of this bar the count-in (less than a beat of it left: the bar after; the screen counts the beats, REC blinks); a key half a sixteenth early lands on the bar's first step. The count-in clicks even with the metronome off. A REC press while it waits: off |
 | OCTAVE- / OCTAVE+ | OCT- / OCT+ |
 | OCTAVE- + OCTAVE+ held at power-on | HARDWARE CALIBRATION: teach the buttons and knobs again |
+
+**KEY VELOCITY** (GLOBE, Setup, SEL list; in DAW mode PATCH held + K8): how hard all 37 keys play, in LOOM-8 and
+DAW mode alike (the pads keep their own). The keys time each stroke from the first contact to the second and read it
+through the unit's factory curves; KEY VELOCITY sets the time base they read it at: **heavy** (0.1 ms, the reading
+before 4 November, where a hard stroke gave about 80 on the unit this was made on), firm, medium, **normal** (the
+default, 0.4 ms: that stroke near 127), light, lighter, lightest (0.8 ms); or **fixed 100** / **fixed 127**. The line
+above it shows the last key: its velocity and its stroke in ms (DAW mode: on the screen while PATCH is held). Kept with
+DAW mode's settings (OBJ_DAW), not in a project.
 
 Not on the SMK-37: TRS MIDI IN (the SMK's jack is a MIDI output; its pin is a key row there). MIDI in works over USB.
 LOOM-8's Bluetooth (MIDI and audio) and its USB MIDI host are off in the SMK-37 build for now: the SMK's radio, and
@@ -66,7 +75,8 @@ module for the DAW). The mode is kept: the SMK starts in DAW mode if it was left
 - **PATCH** tapped: **LOCAL** on / off (PATCH lit: on). On: the keys also play the track selected, NOTE pads the kit,
   the pitch wheel bends the track. Off (the default): LOOM-8 plays only what comes in.
 - **PATCH held:** K5 CHANNEL, K6 CC MAP (left DEFAULT, right USER), K7 KNOBS (left ABSOLUTE, right RELATIVE),
-  OCTAVE+ the map editor.
+  K8 KEY VELOCITY (as Setup's: the screen shows it and the last key's velocity while PATCH is held), OCTAVE+ the map
+  editor.
 - **The map editor** (your own map, USER): touch a control (turn a knob, move a fader or a wheel, hit a pad, press a
   button), then K5 its TYPE (OFF, CC, CC TOGGLE, NOTE, MMC, PITCH BEND, as the control has them), K6 its NUMBER (the
   CC, note or MMC command), K7 its CHANNEL (MAIN, the one PATCH + K5 sets, or 1–16). OCTAVE+ the next control,
@@ -126,7 +136,8 @@ BOARD=smk37 ./build.sh --host           # the simulator: app/build/host/loom-smk
 
 The simulator takes the SMK's controls in a script: `pad`, `tappad`, `outer`, `fader`, `bend`, `modw`, `k1`, `smkbtn`,
 `smktap`, `keyvel`, and `pads` prints the pads' colours (`tests/scenarios_smk37/`; `smk37_daw.xy` checks DAW mode's
-MIDI out byte by byte).
+MIDI out byte by byte; `smk37_recbar.xy` the double-tapped REC, its steps and its clicks; `smk37_keyvel.xy` KEY
+VELOCITY).
 
 ## Install, and the way back
 

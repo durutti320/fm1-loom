@@ -52,6 +52,23 @@ static uint8_t daw_ch = 1;                /* CHANNEL 1..16: the keys, and every 
 static uint8_t daw_local;                 /* LOCAL: 1 ON (the keys and NOTE pads also play LOOM-8), 0 OFF (the default) */
 static uint8_t daw_user;                  /* CC MAP: 0 DEFAULT, 1 USER */
 static uint8_t daw_rel;                   /* KNOBS: 0 ABSOLUTE (0..127), 1 RELATIVE (64 +- the steps) */
+/* KEY VELOCITY: how hard the keys play (all 37, in LOOM-8 and in DAW mode; the pads keep their own). The touches read
+ * the stroke (contact to contact) through the unit's own curves at a time base of 0.1 ms x KV_TOUCH (fm1-base
+ * plat_key_touch): HEAVY the reading the earlier builds had (a hard stroke about 80 on the unit this was made on),
+ * NORMAL (the default) four times as light, where that stroke reads near 127; FIXED: every key that velocity. Kept
+ * with DAW mode's settings (daw_store_t.rsv: KEY VELOCITY + 1; 0, older data: NORMAL) */
+enum { KV_HEAVY, KV_FIRM, KV_MEDIUM, KV_NORMAL, KV_LIGHT, KV_LIGHTER, KV_LIGHTEST, KV_FIX100, KV_FIX127, KV_N };
+static const char *const KV_NAME[KV_N] = {"heavy", "firm", "medium", "normal", "light", "lighter", "lightest",
+                                          "fixed 100", "fixed 127"};
+static const uint8_t KV_TOUCH[KV_N] = {1, 2, 3, 4, 5, 6, 8, 4, 4};
+static uint8_t daw_kv = KV_NORMAL;
+/* a key's velocity as played (1..127; 0 a let-go, kept) -> the one it plays at KEY VELOCITY */
+static uint32_t daw_kv_vel(uint32_t v)
+{
+    if (!v)
+        return 0;
+    return daw_kv == KV_FIX100 ? 100u : daw_kv == KV_FIX127 ? 127u : v > 127u ? 127u : v;
+}
 static daw_ent_t daw_umap[DAW_N] PLAT_POOL;   /* the USER map (the pool: zeroed at boot; smk37.c fills it) */
 
 static uint32_t daw_class(uint32_t i)
@@ -215,7 +232,7 @@ static int daw_cv_due(const daw_cv_t *c, uint32_t now, uint32_t rel)
 typedef struct {
     uint32_t magic;
     uint8_t flags;                        /* bit 0 DAW mode, 1 LOCAL ON, 2 CC MAP USER, 3 KNOBS RELATIVE */
-    uint8_t ch, n, rsv;                   /* CHANNEL; the entries that follow (DAW_N) */
+    uint8_t ch, n, rsv;                   /* CHANNEL; the entries that follow (DAW_N); KEY VELOCITY + 1 */
     daw_ent_t map[DAW_N];                 /* the USER map */
 } daw_store_t;
 static void daw_store_fill(daw_store_t *s)
@@ -227,7 +244,7 @@ static void daw_store_fill(daw_store_t *s)
     s->flags = (uint8_t)((daw_on & 1u) | (daw_local & 1u) << 1 | (daw_user & 1u) << 2 | (daw_rel & 1u) << 3);
     s->ch = daw_ch;
     s->n = DAW_N;
-    s->rsv = 0;
+    s->rsv = (uint8_t)(daw_kv + 1u);
     for (i = 0; i < DAW_N; i++)
         s->map[i] = daw_umap[i];
 }
@@ -251,6 +268,7 @@ static int daw_store_take(const uint8_t *b, uint32_t len)
     daw_user = (uint8_t)((s.flags >> 2) & 1u);
     daw_rel = (uint8_t)((s.flags >> 3) & 1u);
     daw_ch = (uint8_t)(s.ch >= 1u && s.ch <= 16u ? s.ch : 1u);
+    daw_kv = (uint8_t)(s.rsv >= 1u && s.rsv <= KV_N ? s.rsv - 1u : KV_NORMAL);
     for (i = 0; i < DAW_N; i++)
         daw_umap[i] = i < n && daw_ent_ok(i, &s.map[i]) ? s.map[i] : daw_default(i);
     return 1;

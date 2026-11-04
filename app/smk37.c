@@ -31,7 +31,7 @@
  * faders (FADER BANK: A / B), the pads (KNOB BANK + FADER BANK together: A / B), 13 buttons and the wheels what the map
  * says. K1 is a knob here, not the volume. < and > send when let go. PATCH tapped: LOCAL (the keys, NOTE pads and
  * the pitch wheel also play LOOM-8). PATCH held: K5 CHANNEL, K6 CC MAP (DEFAULT / USER), K7 KNOBS (ABSOLUTE /
- * RELATIVE); + OCT+ the map editor: touch a control, K5 its TYPE, K6 its NUMBER, K7 its CHANNEL; OCT+ the next
+ * RELATIVE), K8 KEY VELOCITY (as Setup's in LOOM-8: the keys' touch, or fixed); + OCT+ the map editor: touch a control, K5 its TYPE, K6 its NUMBER, K7 its CHANNEL; OCT+ the next
  * control, OCT- or PATCH done. Kept in flash (OBJ_DAW): the mode, the settings, the USER map. */
 
 static struct {
@@ -244,7 +244,7 @@ static void lsmk_outer(void)
                 engine_key(lsmk.out_trk[i], lsmk.out_note[i], 0, 0);
             lsmk.out_trk[i] = (uint8_t)t;
             lsmk.out_note[i] = (uint8_t)n;
-            engine_key(t, n, 1, v);
+            engine_key(t, n, 1, (int)daw_kv_vel((uint32_t)v));
         } else if (lsmk.out_note[i]) {
             engine_key(lsmk.out_trk[i], lsmk.out_note[i], 0, 0);
             lsmk.out_note[i] = 0;
@@ -526,6 +526,50 @@ static void lsmk_daw_dirty(void)
     ld.dirty_t = plat_ms();
 }
 
+/* ---- KEY VELOCITY (smk_daw.h daw_kv): Setup's row in LOOM-8, PATCH held + K8 in DAW mode; kept with DAW mode's
+ * settings (OBJ_DAW), the touch handed to the keys at start and on each change (fm1-base plat_key_touch) */
+static void lsmk_kv_apply(void) { plat_key_touch(KV_TOUCH[daw_kv % KV_N]); }
+static void lsmk_kv_step(int d)
+{
+    int v = clampi((int)daw_kv + d, 0, KV_N - 1);
+    if (v == daw_kv)
+        return;
+    daw_kv = (uint8_t)v;
+    lsmk_kv_apply();
+    lsmk_daw_dirty();
+}
+/* a middle key's velocity (ui.c KEY_VEL): at KEY VELOCITY; a pad on Steps (a cell, as its white key): its own */
+static int lsmk_key_vel(int k)
+{
+    uint32_t v = plat_key_vel(k);
+    return (int)(k >= 0 && k < NKEYS && (lsmk_padk >> k & 1u) ? v : daw_kv_vel(v));
+}
+/* the last key, "velocity 112 at 14.4 ms" (as KEY VELOCITY plays it; the stroke contact to contact), written at t: to
+ * set KEY VELOCITY by ear and by number. 0: no key yet (nothing written) */
+static int lsmk_kv_last(char *t)
+{
+    int vel, dt;
+    char *e;
+    if (plat_key_last(&vel, &dt) < 0)
+        return 0;
+    e = num_s(daw_kv_vel((uint32_t)vel), s_cat(t, "velocity "));
+    if (dt > 0 && daw_kv < KV_FIX100) {
+        e = num_s((uint32_t)dt / 10u, s_cat(e, " at "));
+        s_cat(num_s((uint32_t)dt % 10u, s_cat(e, ".")), " ms");
+    }
+    return 1;
+}
+static void lsmk_list_keys(void)                /* Setup (pages.c list_setup): the last key, then KEY VELOCITY (the line
+                                                 * above the row: in sight while the row is picked) */
+{
+    static char last[48];
+    list_head("SMK-37 keys");
+    if (!lsmk_kv_last(s_cat(last, "Last key: ")))
+        s_cat(last, "Play a key to see its velocity");
+    list_add(last, 0, LK_NOTE, 0);
+    list_add(ACTION_NAME[A_KEY_VEL], KV_NAME[daw_kv % KV_N], LK_PICK, A_KEY_VEL);
+}
+
 /* ---- flash: OBJ_DAW */
 static daw_store_t lsmk_daw_obj;                /* (loading and saving: one buffer) */
 static void lsmk_daw_load(void)
@@ -587,10 +631,10 @@ static void lsmk_daw_keys(void)
     ld.keys = keys;
     for (k = 0; k < NKEYS; k++)
         if (ch >> k & 1u)
-            lsmk_daw_key(k + 5, keys >> k & 1u ? (int)plat_key_vel(k) : 0);
+            lsmk_daw_key(k + 5, keys >> k & 1u ? (int)daw_kv_vel(plat_key_vel(k)) : 0);
     while (plat_outer(&i, &v))
         if (i >= 0 && i < NOUTER)
-            lsmk_daw_key(i < 5 ? i : NKEYS + i, v);
+            lsmk_daw_key(i < 5 ? i : NKEYS + i, (int)daw_kv_vel((uint32_t)v));
 }
 
 /* ---- the pads and buttons: a press (vel) and a let-go (0) */
@@ -762,12 +806,15 @@ static void lsmk_daw_controls(void)
     s[0] = plat_k1_enc();
     for (k = 1; k < 8; k++)
         s[k] = plat_enc(k - 1);
-    /* PATCH: tapped LOCAL; held, the settings (K5 CHANNEL, K6 CC MAP, K7 KNOBS) and OCT+ the map editor */
+    /* PATCH: tapped LOCAL; held, the settings (K5 CHANNEL, K6 CC MAP, K7 KNOBS, K8 KEY VELOCITY) and OCT+ the map
+     * editor */
     if (pr >> B_HOME & 1u)
         ld.patch_used = 0;
     if (patch) {
-        if (s[4] || s[5] || s[6] || (pr & oct))
+        if (s[4] || s[5] || s[6] || s[7] || (pr & oct))
             ld.patch_used = 1;
+        if (s[7] && !ld.edit)
+            lsmk_kv_step(s[7]);
         if (s[4])
             daw_ch = (uint8_t)clampi(daw_ch + s[4], 1, 16);
         if (s[5])
@@ -929,8 +976,15 @@ static void lsmk_daw_draw(void)
         cv_rect(0, 39, 240, 1, K_LINE);
         cv_blit(0, 0);
     }
-    /* band 1, 40..119: the control last touched, or the editor's */
-    if (ld.edit) {
+    /* band 1, 40..119: the control last touched, or the editor's; PATCH held: KEY VELOCITY and the last key */
+    int pv = (ld.btn >> B_HOME & 1u) && !ld.edit;
+    char kl[40];
+    kl[0] = 0;
+    if (pv) {
+        if (!lsmk_kv_last(kl))
+            kl[0] = 0;
+        h = hash_s(hash_u(0x56u, daw_kv), kl);
+    } else if (ld.edit) {
         daw_ent_t e = daw_umap[ld.esel % DAW_N];
         h = hash_u(hash_u(hash_u(hash_u(0x45u, ld.edit), ld.esel), e.type | e.num << 8 | e.ch << 16), daw_ch);
     } else
@@ -938,7 +992,15 @@ static void lsmk_daw_draw(void)
     if (h != ld.sig[1]) {
         ld.sig[1] = h;
         cv_begin(240, 80, K_BG);
-        if (ld.edit == 1u) {
+        if (pv) {
+            cv_text(12, 4, &FONT_B, "Key velocity", K_TEXT);
+            text_r(228, 4, &FONT_B, KV_NAME[daw_kv % KV_N], K_TEXT);
+            cv_text(12, 28, &FONT_XS, "K8: heavy to lightest, fixed 100, 127", K_DIM);
+            if (kl[0])
+                cv_text(12, 50, &FONT_S, kl, K_TEXT);
+            else
+                cv_text(12, 50, &FONT_S, "play a key to see its velocity", K_DIM);
+        } else if (ld.edit == 1u) {
             text_c(120, 14, &FONT_B, "Touch a control", K_TEXT);
             text_c(120, 38, &FONT_XS, "a knob, fader, wheel, pad or button", K_DIM);
             text_c(120, 56, &FONT_XS, "OCT- or PATCH: done", K_DIM);
@@ -1018,7 +1080,7 @@ static void lsmk_daw_draw(void)
         ld.sig[4] = h;
         cv_begin(240, 28, K_BG);
         cv_rect(0, 0, 240, 1, K_LINE);
-        text_c(120, 7, &FONT_XS, ld.btn >> B_HOME & 1u ? "K5 channel  K6 map  K7 knobs  OCT+ edit"
+        text_c(120, 7, &FONT_XS, ld.btn >> B_HOME & 1u ? "K5 ch  K6 map  K7 knobs  K8 vel  OCT+ edit"
                                  : ld.edit ? "OCT+ next control    OCT- done"
                                            : "< + >  LOOM-8        PATCH  local", K_DIM);
         cv_blit(0, 212);
@@ -1125,6 +1187,7 @@ static int lsmk_daw_frame(void)
     if (!ld.loaded) {                              /* the first frame: the settings, the map; the mode kept */
         ld.loaded = 1;
         lsmk_daw_load();
+        lsmk_kv_apply();                           /* (KEY VELOCITY's touch: the keys read with it from now) */
         if (daw_on) {
             daw_on = 0;
             lsmk_daw_set(1);

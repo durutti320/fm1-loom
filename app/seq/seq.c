@@ -303,6 +303,24 @@ uint32_t seq_step_q8(const seq_t *s, int trk)
 }
 
 int seq_bar_step(const seq_t *s) { return s->bar16 & 15; }
+#if BOARD_SMK37
+int seq_six_to_bar(const seq_t *s)
+{
+    uint32_t b = s->bar_six, end = (b + 15u) & ~15u;
+    if (s->bar_fresh)
+        return 0;
+    if (end > s->bar_len)
+        end = s->bar_len;
+    return b >= end ? 0 : (int)(end - b);
+}
+/* rec_at_bar's last bar: a key this near the line (half a sixteenth, as the sound hears it) starts the recording, so
+ * a key played a hair early lands on the bar's first step as it would on its own (rec_key_on: the nearer step) */
+static int rec_bar_near(const seq_t *s)
+{
+    uint32_t left = s->six_to_next < SEQ_DUE ? 0u : s->six_to_next;
+    return s->rec_at_bar == 1u && !s->ext && seq_six_to_bar(s) == 0 && left + s->ahead <= six_q8(s) / 2u;
+}
+#endif
 
 /* ----------------------------------------------------------- punch-in --- */
 int punch_group_of(const seq_t *s, int trk) { return is_perc(s, trk) ? 0 : 1; }
@@ -2857,6 +2875,12 @@ static void key_in(seq_t *s, int t, int note, int on, int vel, int raw, const se
     pl = &s->player[t];
     player = s->par[t][TP_PLAYER];
     had_phys = pl->nphys;
+#if BOARD_SMK37
+    if (on && !s->rec && s->playing && !s->count_in && !s->rec_wait && rec_bar_near(s)) {
+        s->rec_at_bar = 0;            /* (cin_click stays: the line's own click ends the count-in) */
+        s->rec = 1;
+    }
+#endif
     if (on && s->rec && s->playing && !s->count_in) {
         if (s->rec_wait)
             rec_go(s, t, note, vel, o);
@@ -3263,6 +3287,10 @@ static void do_stop(seq_t *s, const seq_sink_t *o)
     s->playing = 0;
     s->count_in = 0;
     s->rec_wait = 0;
+#if BOARD_SMK37
+    s->rec_at_bar = 0;
+    s->cin_click = 0;
+#endif
     for (t = 0; t < NSEQT; t++) {
         seq_trk_t *tr = &s->t[t];
         cancel_offs(s, t, o);
@@ -3334,6 +3362,10 @@ static void six_tick(seq_t *s, const seq_sink_t *o)
 {
     int click = s->metronome == 2 || (s->metronome == 1 && (s->rec || s->count_in));
     uint32_t carry = s->six_to_next < SEQ_DUE ? s->six_to_next : 0;
+#if BOARD_SMK37
+    if (s->cin_click || ((s->count_in || s->rec_at_bar) && s->metronome == 1))
+        click = 1;                    /* (a count-in: its last click the bar's first, the recording's) */
+#endif
     if (s->count_in) {
         if (s->countin_six >= 16) {
             s->countin_six = 0;
@@ -3348,6 +3380,9 @@ static void six_tick(seq_t *s, const seq_sink_t *o)
             return;
         }
         tracks_go(s);                 /* the count-in is over: this sixteenth is the downbeat, recording begins */
+#if BOARD_SMK37
+        s->cin_click = 0;
+#endif
         s->bar_six = 0;
         s->bar_fresh = 1;
         s->step_tick = 0;
@@ -3381,6 +3416,12 @@ static void six_tick(seq_t *s, const seq_sink_t *o)
     }
     s->bar_fresh = 0;
     s->bar16 = (uint8_t)(s->bar_six & 15);
+#if BOARD_SMK37
+    if (s->rec_at_bar && s->bar16 == 0 && --s->rec_at_bar == 0)   /* the bar line: the recording begins */
+        s->rec = 1;
+    if (s->bar16 == 0 && !s->rec_at_bar)
+        s->cin_click = 0;             /* (its click this sixteenth's, already decided: the bar's first) */
+#endif
     if (click && (s->bar16 & 3) == 0 && o->metro)
         o->metro(o->ctx, s->bar16 == 0);
     fire_fills(s, o);

@@ -1,0 +1,66 @@
+# KEY VELOCITY (app/smk37.c lsmk_kv_*): how hard the 37 keys play, in LOOM-8 (Setup's SEL list, the last key's
+# velocity under it) and in DAW mode (PATCH held + K8, the setting and the last key on the screen); kept with DAW mode's
+# settings (OBJ_DAW). The touches hand the keys a time base (fm1-base plat_key_touch: heavy 1, the earlier builds' ..
+# normal 4, the default .. lightest 8); FIXED 100 / 127 every key that velocity. The pads keep their own
+wait 300
+expect kv 3
+expect touch 4
+# Setup: KEY VELOCITY, normal -> fixed 100
+tap GLO
+turn SELECT 5
+expect page Setup
+tap SEL
+row KEY VELOCITY
+shot keyvel_setup.png
+turn ALGO 4
+expect kv 7
+expect touch 4
+keyvel 0 30
+key 0 down
+wait 40
+key 0 up
+wait 40
+shot keyvel_last.png
+tap HOME
+wait 40
+# DAW mode: the keys and the outer keys at 100 (fixed), whatever they were played at
+smkbtn < down
+smkbtn > down
+wait 40
+smkbtn > up
+smkbtn < up
+wait 60
+expect daw 1
+out
+key 0 down
+wait 20
+expect_out USB 90 35 64
+key 0 up
+wait 20
+outer 0 90
+wait 20
+expect_out USB 90 30 64
+outer 0 0
+wait 20
+# PATCH held + K8 (the simulator's K4: the FM-1's KNOB 4): down to heavy (the touch 1), the keys as played again
+press HOME
+turn K4 -9
+wait 40
+shot keyvel_daw.png
+release HOME
+expect kv 0
+expect touch 1
+expect local 0
+key 0 down
+wait 20
+expect_out USB 90 35 1E
+key 0 up
+wait 20
+# K8 up one: firm (the touch 2); kept in flash, with DAW mode's settings (rsv: KEY VELOCITY + 1)
+press HOME
+turn K4 1
+release HOME
+expect kv 1
+expect touch 2
+wait 2000
+expect kvobj 2
