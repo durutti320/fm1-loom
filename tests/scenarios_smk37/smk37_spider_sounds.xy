@@ -1,10 +1,11 @@
 # SPIDER's own engines (synth.c, BOARD_SMK37): a new project is the kit, mono (after the SH-101), poly (after the
-# Juno-106), acid (X0X's 303), then LOOM-8's; mono and poly sound, poly's chord through its chorus; their pages
+# Juno-106), fm (six operators), acid (X0X's 303), then LOOM-8's; mono and poly sound, poly's chord through its chorus; their pages
 wait 300
 expect par1.engine 8
 expect par2.engine 12
 expect par3.engine 11
-expect par4.engine 10
+expect par4.engine 13
+expect par5.engine 10
 expect par2.vmode 1
 wav spider_sounds.wav
 # mono: a bass note
@@ -52,3 +53,29 @@ turn SELECT -3
 wait 60
 expect page Engine
 shot mono_engine.png
+# fm: the electric piano, a chord; its notes end by themselves (the operators' envelopes), the voices free again
+turn ALGO 2
+wait 60
+expect trk 4
+expect page Engine
+shot fm_engine.png
+peakreset
+key 12 down
+key 16 down
+key 19 down
+key 23 down
+wait 300
+expect voices 4
+key 12 up
+key 16 up
+key 19 up
+key 23 up
+wait 3000
+expect peak_db_min -36
+expect peak_db_max -0.5
+expect voices 0
+# fm's patch knob steps through its sixteen
+turn K1 3
+wait 60
+expect par4.e1 3
+shot fm_patch3.png

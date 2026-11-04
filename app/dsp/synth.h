@@ -46,7 +46,8 @@
 enum { EG_KNIT, EG_RAYON, EG_JACQUARD, EG_BELLOWS, EG_CANE, EG_VOILE, EG_SAMPLE, EG_SLICE, EG_DRUMLINE, EG_MIDI,
        EG_ACID,
 #if BOARD_SMK37
-       EG_POLY, EG_MONO,                             /* SPIDER's (the SMK-37 build): after the Juno-106, the SH-101 */
+       EG_POLY, EG_MONO, EG_FM,                      /* SPIDER's (the SMK-37 build): after the Juno-106, the SH-101;
+                                                      * six operators (dsp/fm_spider.c) */
 #endif
        NENGINE };                           /* (saved by number: PROJ_FORMAT 10 renumbered them; a new one
                                                       * goes last) */
@@ -289,8 +290,10 @@ typedef struct synth synth_t;         /* opaque: dsp/synth.c */
 void synth_glfo_restart(synth_t *s);              /* the shared LFO from its start (the transport started) */
 float synth_glfo_now(const synth_t *s);            /* its value now, -1..1 (the page's picture) */
 #if BOARD_SMK37
-#define SYNTH_BYTES 12544             /* room for the struct (checked at compile time in synth.c; SPIDER: poly's chorus
-                                       * state a voice and a track) */
+#define SYNTH_BYTES 20992             /* room for the struct (checked at compile time in synth.c; SPIDER: poly's chorus
+                                       * state, fm's notes: fm_spider.c) */
+int synth_fm_shape(int patch, uint8_t *ol, uint8_t *alg);   /* fm's patch for a picture: the operators' levels (OP1
+                                                             * first), its algorithm 1..32; returns its carriers */
 #else
 #define SYNTH_BYTES 12288             /* room for the struct (checked at compile time in synth.c) */
 #endif

@@ -4124,6 +4124,27 @@ static void pic_vco(int32_t x0, int32_t y0, int32_t w, int32_t h, const uint8_t 
         }
     }
 }
+/* fm: the patch's six operators as bars (their output levels), the carriers in the ink, the modulators faint and
+ * lit by bright; the algorithm's number */
+static void pic_fm(int32_t x0, int32_t y0, int32_t w, int32_t h, const uint8_t *p)
+{
+    uint8_t ol[6], alg;
+    int car = synth_fm_shape(p[TP_E1], ol, &alg), k;
+    int32_t bw = w / 6, bot = y0 + h - 10;
+    char t[16];
+    float br = 0.5f + (float)p[TP_E2] / 127.0f;
+    cv_rect(x0, bot, w, 1, K_LINE);
+    for (k = 0; k < 6; k++) {
+        int c = car >> k & 1;
+        float lv = (float)ol[k] / 99.0f * (c ? 1.0f : br);
+        int32_t bh = (int32_t)(fm_clampf(lv, 0.0f, 1.2f) * (float)(h - 24));
+        cv_rect(x0 + k * bw + 6, bot - bh, bw - 12, bh, c ? K_NOW : K_FAINT);
+        num_s((uint32_t)k + 1u, s_cat(t, "OP"));
+        text_c(x0 + k * bw + bw / 2, bot + 2, &FONT_XS, t, c ? K_TEXT : K_DIM);
+    }
+    num_s(alg, s_cat(t, "algorithm "));
+    text_r(x0 + w, y0, &FONT_XS, t, K_DIM);
+}
 #endif
 static void pic_knit(int32_t x0, int32_t y0, int32_t w, int32_t h, const uint8_t *p, uint32_t f)
 {
@@ -4604,6 +4625,7 @@ static void draw_engine(void)
 #if BOARD_SMK37
     case EG_POLY: pic_vco(20, 24, 200, PIC_H, p, pic_f, 0); break;
     case EG_MONO: pic_vco(20, 24, 200, PIC_H, p, pic_f, 1); break;
+    case EG_FM: pic_fm(20, 24, 200, PIC_H, p); break;
 #endif
     default:                                         /* the kit (large type: the pads fill the band, 4 px in) */
         if (LARGE)

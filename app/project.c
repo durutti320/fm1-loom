@@ -239,8 +239,8 @@ void project_device_put(void)
 void project_defaults(void)
 {
 #if BOARD_SMK37
-    static const uint8_t ORDER[NTRK] = {EG_DRUMLINE, EG_MONO, EG_POLY, EG_ACID, EG_RAYON, EG_KNIT, EG_BELLOWS,
-                                        EG_SAMPLE};   /* SPIDER: its kit, mono bass, poly, acid, then LOOM-8's */
+    static const uint8_t ORDER[NTRK] = {EG_DRUMLINE, EG_MONO, EG_POLY, EG_FM, EG_ACID, EG_KNIT, EG_BELLOWS,
+                                        EG_SAMPLE};   /* SPIDER: its kit, mono bass, poly, fm, acid, then LOOM-8's */
 #else
     static const uint8_t ORDER[NTRK] = {EG_DRUMLINE, EG_KNIT, EG_RAYON, EG_JACQUARD, EG_KNIT, EG_BELLOWS, EG_CANE,
                                         EG_VOILE};

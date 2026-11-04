@@ -37,7 +37,7 @@ ir_pass = "../tools/size_fns.py"
 gen = ["../tools/gen_font.py {gen}/loom_font.h", "../tools/gen_wavetables.py {gen}/wavetables.h",
        "../tools/gen_samples.py {gen}/samples.h", "../tools/gen_build.py {gen}/loom_build.h",
        "../tools/gen_presets.py {gen}/presets.h", "../tools/gen_kits.py {gen}/kits.h",
-       "../tools/gen_res.py {gen}/res.bin"]
+       "../tools/gen_res.py {gen}/res.bin", "../tools/gen_fm.py {gen}/fm.h"]
 # the resource region (tools/gen_res.py: the 909 cymbals' samples, 71 KB, and the large type faces, 16 KB), written
 # after an update (fm1-base device/res.c: app.h APP_RES_BASE, the 88 KB the projects' pool freed)
 resources = "{gen}/res.bin"

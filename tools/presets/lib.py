@@ -39,13 +39,14 @@ DESTS = ["synth", "envelope", "filter", "voice", "synth free", "envelope free", 
 CHARS = ["off", "drive", "fold", "crush", "ring", "tilt", "tape", "sampler"]   # CT_*
 X_DEF = {"knit": (64, 0, 0, 0), "acid": (0, 1, 27, 0)}   # the engines' second pages as sound_default leaves them
 # SPIDER (BOARD=smk37) adds its own engines after LOOM-8's (synth.h EG_POLY, EG_MONO): poly (after the Juno-106) and
-# mono (after the SH-101). Their presets (poly.py, mono.py) are left out of the FM-1's table (P: an engine it has not)
+# mono (after the SH-101), and fm (six operators: dsp/fm_spider.c). Their presets (poly.py, mono.py) are left out of the FM-1's table (P: an engine it has not)
 import os  # noqa: E402
 SMK = os.environ.get("BOARD", "fm1").lower().replace("-", "") == "smk37"
-SPIDER_ENGINES = ["poly", "mono"]
+SPIDER_ENGINES = ["poly", "mono", "fm"]
 if SMK:
     ENGINES = ENGINES + SPIDER_ENGINES
-    KNOBS = {**KNOBS, "poly": ["saw", "pulse", "width", "sub"], "mono": ["saw", "pulse", "width", "sub"]}
+    KNOBS = {**KNOBS, "poly": ["saw", "pulse", "width", "sub"], "mono": ["saw", "pulse", "width", "sub"],
+             "fm": ["patch", "bright", "decay", "detune"]}
     X_DEF = {**X_DEF, "poly": (0, 1, 1, 16), "mono": (0, 0, 0, 10)}   # (synth.c POLY_X_P, MONO_X_P)
 NOLFO = ("off", 3, 64, "filter", 0, 1)
 NOCHAR = ("off", 64, 64, 127)

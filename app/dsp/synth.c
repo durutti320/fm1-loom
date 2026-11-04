@@ -24,6 +24,9 @@
  * (dsp/bass303.c, GPL-3.0-only: its own unit, so a LOOM-8 built with it is GPL-3.0 as a whole). */
 #include "synth.h"
 #include "bass303.h"
+#if BOARD_SMK37
+#include "fm_spider.c"                 /* SPIDER's fm (part 1: its types) */
+#endif
 #include "fastmath.h"
 #include "drumline.h"
 #include "sample.h"
@@ -46,6 +49,7 @@ static const uint8_t E_GLIDE[NENGINE] = {
     0x0,                                                   /* acid (bass303_set: its own) */
 #if BOARD_SMK37
     0xF, 0xF,                                              /* poly, mono: saw, pulse, width, sub */
+    0xA,                                                   /* fm: bright, detune (not the patch, the decay) */
 #endif
 };
 static inline float glide_to(float from, float to)
@@ -69,7 +73,7 @@ const char *const RL_NAME[NRL] = {"bass", "lead", "pad", "keys", "pluck", "bell"
 const char *const EG_NAME[NENGINE] = {"knit", "rayon", "jacquard", "bellows", "cane", "voile", "sample", "slice",
                                       "kit", "midi", "acid",
 #if BOARD_SMK37
-                                      "poly", "mono",
+                                      "poly", "mono", "fm",
 #endif
 };
 const char *const EG_KNOB[NENGINE][4] = {
@@ -79,7 +83,7 @@ const char *const EG_KNOB[NENGINE][4] = {
     {"cc", "cc", "cc", "cc"},                    /* (midi: each knob named by its CC, tp_info_par) */
     {"wave", "accent", "slide", "tune"},
 #if BOARD_SMK37
-    {"saw", "pulse", "width", "sub"}, {"saw", "pulse", "width", "sub"},
+    {"saw", "pulse", "width", "sub"}, {"saw", "pulse", "width", "sub"}, {"patch", "bright", "decay", "detune"},
 #endif
 };
 /* each engine's plain sound (INIT), 0..127; bellows' four are discrete 1..8, knit's voices 1..7, the Braids engines'
@@ -89,6 +93,7 @@ static const uint8_t EG_DEF[NENGINE][4] = {{0, 20, 1, 0},  {40, 25, 0, 0}, {0, 4
                                            {0, 0, 0, 0}, {64, 64, 64, 64}, {0, 64, 21, 64},   /* (acid: X0X's) */
 #if BOARD_SMK37
                                            {127, 0, 0, 0}, {127, 0, 0, 64},   /* poly a saw, mono with its sub */
+                                           {0, 64, 64, 0},                    /* fm: the first patch as written */
 #endif
 };
 static const char *const VMODE_N[3] = {"poly", "mono", "legato"};
@@ -211,6 +216,7 @@ typedef struct {
                                        * sampler's output filter L R (tape: cz[4..5] its wow's phases) */
 #if BOARD_SMK37
     uint16_t cho_w;                   /* poly's chorus: its line's write position (cho_run) */
+    uint8_t cpu;                      /* the core rendering it (fm's buses: fm_spider.c) */
     float cho_ph;                     /* and its LFO's phase */
 #endif
 } voice_t;
@@ -262,6 +268,10 @@ struct synth {
     float g_ph, g_sh, g_now;          /* its phase, its random value, its value at the block's end (-1..1) */
     uint32_t g_rng;                   /* (its random steps' generator)*/
     volatile uint8_t g_reset;         /* restart at the next prepare (the transport started) */
+#if BOARD_SMK37
+    fm_trk_t fm_t[NTRK];              /* fm: each track's patch, the decay knob on it (fm_track) */
+    fm_voice_t fm_v[NVOICE];          /* and each voice's note */
+#endif
 };
 uint32_t synth_load_steals;           /* new notes that took a sounding voice to stay inside LOAD_ADMIT (synth.h) */
 _Static_assert(sizeof(struct synth) <= SYNTH_BYTES, "synth_t outgrew SYNTH_BYTES");
@@ -1493,6 +1503,9 @@ static void cho_start(voice_t *v, float ph)      /* a note on a fresh (or anothe
     v->cho_w = 0;
     v->cho_ph = ph;
 }
+static synth_t *fm_syn;                          /* the synth (synth_init): fm's notes live in it, eng_* has no s */
+#define FM_SPIDER_PART2
+#include "fm_spider.c"                           /* (part 2: the engine) */
 #endif
 
 static void eng_chunk(voice_t *v)                /* every chunk: the engines' own slow movements */
@@ -1523,6 +1536,7 @@ static void eng_prep(voice_t *v, float bpm)
     case EG_ACID: v->c.stereo = 0; break;        /* (its own: acid_chunk) */
 #if BOARD_SMK37
     case EG_POLY: case EG_MONO: vco_prep(v); break;
+    case EG_FM: fm_prep(fm_syn, v); break;
 #endif
     default: knit_prep(v); break;
     }
@@ -1540,6 +1554,7 @@ static void eng_run(voice_t *v, float *xl, float *xr, int m)
     case EG_ACID: acid_run(v, xl, m); break;
 #if BOARD_SMK37
     case EG_POLY: case EG_MONO: vco_run(v, xl, xr, m); break;
+    case EG_FM: fm_run(fm_syn, v, xl, xr, m); break;
 #endif
     default: knit_run(v, xl, xr, m); break;
     }
@@ -1567,6 +1582,8 @@ static void voice_start(synth_t *s, voice_t *v, int note, int vel, int glide_ms,
 #if BOARD_SMK37
         if (eng == EG_POLY)                      /* the chorus's line empty, its LFO the track's */
             cho_start(v, t->cho_ph);
+        if (eng == EG_FM)                        /* (fm: a note from silence) */
+            fm_init_voice(s, v);
 #endif
     } else if (v->engine == EG_ACID && v->as != was_as) {
         v->o[4] = 1.0f;                          /* (another slot: set up afresh) */
@@ -1597,6 +1614,10 @@ static void voice_start(synth_t *s, voice_t *v, int note, int vel, int glide_ms,
         vo_strike(v);
     else if (v->engine == EG_ACID)
         acid_note(v, note, vel, glide_ms > 0);
+#if BOARD_SMK37
+    else if (v->engine == EG_FM)
+        fm_strike(s, v);
+#endif
     if (!in_render)
         t->last_pitch = v->pitch;
     v->fresh = 1;
@@ -2176,6 +2197,8 @@ int synth_voice_cost(const synth_t *s, int vi)
 #if BOARD_SMK37
     if (v->engine == EG_POLY && v->c.cho)        /* (the chorus: a line and two taps a sample, a stereo output) */
         return 5;
+    if (v->engine == EG_FM)                      /* (six operators a sample, in integers) */
+        return 9;
 #endif
     if (v->engine == EG_ACID)
         return 16;                               /* (the FM-1, 2026-10-30: 17 to 19 % of a core, its 303 oversampled
@@ -2199,6 +2222,9 @@ void synth_init(synth_t *s, uint8_t (*par)[NTP])
     for (i = 0; i < (int)sizeof *s; i++)
         b[i] = 0;
     s->par = par;
+#if BOARD_SMK37
+    fm_syn = s;
+#endif
     s->bpm = 120.0f;
     s->max_voices = NVOICE;
     for (i = 0; i < NTRK; i++) {
@@ -2329,6 +2355,8 @@ void synth_prepare(synth_t *s, uint32_t n)
         float hz = type == LT_PUMP ? 0.0f : lfo_hz(P(s, i, TP_LSPEED), s->bpm), dph = hz * CHUNK_S;
         float amt = (float)P(s, i, TP_LAMT), pk = 0.0f, vib = 0.0f, vol = 0.0f;
 #if BOARD_SMK37
+        if (engine == EG_FM)                     /* fm: the track's patch, before its voices render */
+            fm_track(s, i);
         if (engine == EG_POLY) {                 /* poly's chorus LFO, the track's: its voices start at it */
             float cp = t->cho_ph + (float)n * CHO_HZ[P(s, i, TP_X3) & 3] * INV_SR;
             t->cho_ph = cp - fm_floorf(cp);
@@ -2805,7 +2833,13 @@ static void voice_chunk(synth_t *s, voice_t *v)
     lev = tp_level_gain(P(s, trk, TP_LEVEL)) * (100.0f / 127.0f);
     {   /* (acid: the velocity is its accent, the resonance its own: neither here) */
         const int acid = v->engine == EG_ACID;
-        vg = (acid ? 1.0f : 0.25f + 0.75f * v->vel * v->vel) * vol * vol * lev * lg * (acid ? 1.0f : 1.0f - 0.6f * res);
+#if BOARD_SMK37
+        const float vcurve = v->engine == EG_FM ? 0.8f : 0.25f + 0.75f * v->vel * v->vel;   /* (fm: its operators take
+                                                                                             * the velocity) */
+#else
+        const float vcurve = 0.25f + 0.75f * v->vel * v->vel;
+#endif
+        vg = (acid ? 1.0f : vcurve) * vol * vol * lev * lg * (acid ? 1.0f : 1.0f - 0.6f * res);
     }
     if (gd == GD_VOL)                            /* (a tremolo: down to silence, up to +6 dB) */
         vg *= fm_clampf(1.0f + g * (1.0f / 127.0f), 0.0f, 2.0f);
@@ -3357,6 +3391,9 @@ void synth_render_on(synth_t *s, int core, int v0, int v1, float *l, float *r, f
     for (oi = 0; oi < no; oi++) {
         voice_t *v = &s->v[vi = ord[oi]];
         uint32_t i = 0, t0 = 0, tc = 0, tk = 0;
+#if BOARD_SMK37
+        v->cpu = (uint8_t)(core != 0);
+#endif
         const int timed = clk && (v_sounding(v) || v->pos == 0);
         if (timed) {
             t0 = clk();
@@ -3629,6 +3666,14 @@ static void eknob_init(void)
                 i->hi = (uint8_t)(k == 0 ? 1 : 127);
                 i->names = k == 0 ? ACIDW_N : 0;
             }
+#if BOARD_SMK37
+            if (e == EG_FM) {                  /* patch (its name), bright and decay about the middle, detune */
+                static const uint8_t KIND[4] = {PK_NAMES, PK_BIP, PK_BIP, PK_PCT};
+                i->kind = KIND[k];
+                i->hi = (uint8_t)(k == 0 ? FM_NPATCH - 1 : 127);
+                i->names = k == 0 ? FM_PATCH_NAME : 0;
+            }
+#endif
             if (e == EG_SLICE) {               /* sample, slices (4 8 16 32), pitch (+-24 st), gate */
                 static const uint8_t KIND[4] = {PK_SAMPLE, PK_NAMES, PK_BIPST, PK_PCT};
                 i->kind = KIND[k];
