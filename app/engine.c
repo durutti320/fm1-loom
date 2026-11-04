@@ -543,6 +543,7 @@ static void pump_drum(int trk, int sound, int vel)
 }
 #ifdef PLAT_HOST
 static uint32_t host_drum_hits, host_note_ons;
+static uint32_t host_clicks;                              /* the metronome's clicks (host.c: expect clicks) */
 #endif
 static void s_note_on(void *x, int trk, int note, int vel, int glide_ms, uint32_t tag)
 {
@@ -714,6 +715,9 @@ static void s_metro(void *x, int accent)
     metro_left = 1800u;                                  /* 40 ms */
     metro_ph = 0.0f;
     metro_inc = (accent ? 1760.0f : 1320.0f) / 44100.0f;
+#ifdef PLAT_HOST
+    host_clicks++;
+#endif
     synth_duck_trigger(SY, DUCK_METRO);
     eng_master_key(PB_METRO, accent ? 127 : 100, 0);
 }

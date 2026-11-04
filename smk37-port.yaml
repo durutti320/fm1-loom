@@ -34,7 +34,9 @@ models: [pro, elite, mke]
 keys:
   middle: fm1                # the FM-1's 27 keys, velocity from the unit's factory curves (KEY_VEL)
   outer: extend              # more notes on the track the keys play; on a kit its keys (i % 11 + 1)
-  velocity: factory
+  velocity: factory          # the unit's curves, read at KEY VELOCITY's time base (Setup; DAW mode PATCH + K8):
+                             # heavy 0.1 ms (the analysed stock reading) .. normal 0.4 ms (the default) .. lightest
+                             # 0.8 ms, or fixed 100 / 127; kept in OBJ_DAW
 
 pads:
   pattern: custom            # "drum pads and step sequencer"
@@ -71,7 +73,7 @@ daw_mode:                    # ported from Snoop37 (genkigenki/sloop-fm1 snoop37
   toggle: "< + >"
   map: "smk_daw.h daw_default (SMK37.md); a USER map edited on the device (PATCH held + OCT+)"
   local: "PATCH tapped"
-  settings: "PATCH held: K5 CHANNEL, K6 CC MAP, K7 KNOBS ABSOLUTE / RELATIVE"
+  settings: "PATCH held: K5 CHANNEL, K6 CC MAP, K7 KNOBS ABSOLUTE / RELATIVE, K8 KEY VELOCITY"
   k1: "a knob in DAW mode (fm1-base plat_k1_raw); the volume stays where it was"
   kept: "OBJ_DAW at 0xE8000 (USRFLASH): the mode, the settings, the USER map"
   not_ported: [TRS MIDI out, the web editor's DAW map tab, RESET MAP]
