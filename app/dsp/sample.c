@@ -3,9 +3,10 @@
  * standard IMA one (IMA Digital Audio Focus and Technical Working Groups, "Recommended Practices for Enhancing
  * Digital Audio Compatibility in Multimedia Systems", 1992), run a block at a time from the block's checkpoint. */
 #include "sample.h"
-/* the factory set built in: the host simulator, the DSP tests and the emulator (no flash to fit); on the FM-1 its
- * rows are empty since 0.8 and play the bank's entries of the factory set (the installer puts them there) */
-#if defined(PLAT_HOST) && !defined(SMP_FACT_MOVED)
+/* the factory set built in: the host simulator, the DSP tests and the emulator (no flash to fit), and SPIDER (the
+ * SMK-37: the room LOOM-8's dropped engines left, so its whole bank is the user's); on the FM-1 its rows are empty
+ * since 0.8 and play the bank's entries of the factory set (the installer puts them there) */
+#if (defined(PLAT_HOST) && !defined(SMP_FACT_MOVED)) || BOARD_SMK37
 #define SMP_FACT_BUILTIN 1
 #else
 #define SMP_FACT_BUILTIN 0
