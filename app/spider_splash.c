@@ -188,7 +188,7 @@ static float spd_cov(const spd_glyph_t *g, int32_t x, int32_t y)   /* at a cell 
 #define SPD_NSPOKE 14
 #define SPD_TURNS 8.0f
 #define SPD_RIN 0.2f                            /* the spiral ends at this share of a spoke (the hub's free zone) */
-/* the eight tracks' inks (pages.c THEMES[0], "web", on the SMK-37) and the loom's under-thread */
+/* the eight tracks' inks (pages.c THEMES "web", SPIDER's default) and the loom's under-thread */
 static const uint16_t SPD_INK[8] = {RGB(214, 44, 64), RGB(232, 112, 52), RGB(228, 182, 82), RGB(142, 202, 92),
                                     RGB(72, 182, 162), RGB(104, 142, 232), RGB(164, 104, 232), RGB(222, 112, 192)};
 #define SPD_UNDER RGB(40, 30, 50)

@@ -31,16 +31,31 @@ static const theme_t THEMES[] = {
      RGB(150, 150, 156), RGB(235, 235, 238), RGB(130, 130, 138), RGB(232, 44, 38), RGB(215, 215, 220),
      {RGB(255, 92, 170), RGB(40, 204, 192), RGB(244, 200, 60), RGB(104, 152, 255), RGB(255, 136, 64),
       RGB(110, 216, 110), RGB(178, 136, 255), RGB(214, 176, 136)}, 6, 9},
+#if BOARD_SMK37
+    /* SPIDER's (the SMK-37 build, its default): a web at night, near-black and violet, bone text, blood for recording;
+     * the inks jewel tones (crimson, ember, amber, absinthe, verdigris, cold blue, amethyst, orchid), as in its boot
+     * (spider_splash.c SPD_INK); the page buttons, the knobs and the footer's controls take them too (page_ink) */
+    {"web", RGB(10, 8, 14), RGB(26, 20, 34), RGB(42, 32, 54), RGB(54, 42, 68), RGB(98, 84, 116),
+     RGB(170, 158, 186), RGB(236, 228, 214), RGB(140, 120, 164), RGB(222, 30, 56), RGB(222, 204, 194),
+     {RGB(214, 44, 64), RGB(232, 112, 52), RGB(228, 182, 82), RGB(142, 202, 92), RGB(72, 182, 162), RGB(104, 142, 232),
+      RGB(164, 104, 232), RGB(222, 112, 192)}, 7, 10},
+#endif
 };
 #define NTHEMES (sizeof THEMES / sizeof THEMES[0])
 #define THEME_BW 2
+#if BOARD_SMK37
+#define THEME_WEB 3                                   /* SPIDER's own, last so the others keep their numbers */
+#define THEME_DEF THEME_WEB
+#else
+#define THEME_DEF THEME_BW
+#endif
 #define THEME_SET 0x80u                               /* rsv[1]: a theme picked since 0.11 (before: 0 the default, then the
                                                        * tape deck, now b/w; 1 and 2 as they were) */
 #define LARGE_TYPE 0x40u                              /* rsv[1] with THEME_SET: large type (Setup > SEL > LARGE TYPE) */
 static int theme_ix(void)
 {
     uint32_t v = proj.rsv[1];
-    return (int)(v & THEME_SET ? (v & 0x3Fu) % NTHEMES : v % NTHEMES ? v % NTHEMES : THEME_BW);
+    return (int)(v & THEME_SET ? (v & 0x3Fu) % NTHEMES : v % NTHEMES ? v % NTHEMES : THEME_DEF);
 }
 static void theme_step(int d)
 {
@@ -52,7 +67,7 @@ static void large_type_set(int on)
 {
     proj.rsv[1] = (uint8_t)(THEME_SET | (on ? LARGE_TYPE : 0u) | (uint32_t)theme_ix());
 }
-static const theme_t *theme = &THEMES[THEME_BW];
+static const theme_t *theme = &THEMES[THEME_DEF];
 #define THEME_OF_PROJ() (&THEMES[theme_ix()])
 #define AUTOSAVE_OFF 4u                              /* proj.rsv[2]: LOOM-8 saves only when SAVE is pressed */
 #define LOOP_FREE 8u                                  /* proj.rsv[2]: a loop throw let go drifts (seq.loop_free) */
@@ -148,6 +163,34 @@ static int page_group(int p)
 static int group_n(int g);                           /* the pages a button has now (the track decides) */
 static const char *const BTN_LABEL[NB] = {"FX", "SEL", "ENV", "LFO", "EDIT", "GLO", "HOME", "SAVE", "ARP", "SEQ",
                                           "PLAY", "REC", "OCT-", "OCT+"};
+#if BOARD_SMK37
+/* SPIDER's colour (its "web" theme): each page button its own ink (its page's tag, its name in the footer), each knob
+ * its own (K5..K8: the theme's inks 5..8; SELECT, ALGORITHM, PRESETS, KNOBS 2..5). Other themes: as LOOM-8 */
+static const uint8_t GROUP_INK[8] = {4, 3, 1, 2, 6, 5, 7, 0};   /* HOME SEQ EDIT ENV FX LFO ARP GLO */
+static int s_eq(const char *a, const char *b);
+static int web_ink(void) { return theme == &THEMES[THEME_WEB]; }
+static uint16_t page_ink(int p) { return web_ink() ? theme->ink[GROUP_INK[page_group(p) & 7]] : K_DIM; }
+static uint16_t knob_ink(int i) { return web_ink() ? theme->ink[4 + (i & 3)] : K_DIM; }
+static uint16_t ctl_ink(const char *b)          /* a control named in the footer: its colour */
+{
+    static const char *const ENC[4] = {"SELECT", "ALGO", "PRESET", "KNOBS"};
+    uint32_t i, k;
+    if (!web_ink())
+        return K_TEXT;
+    for (i = 0; i < 4u; i++)
+        if (s_eq(b, ENC[i]))
+            return theme->ink[1u + i];
+    if (s_eq(b, "REC"))
+        return K_REC;
+    if (s_eq(b, "PLAY"))
+        return theme->ink[3];
+    for (i = 0; i < NPAGE_BTN; i++)
+        for (k = 0; k < NB; k++)
+            if (PAGE_BTN[i].btn == k && s_eq(b, BTN_LABEL[k]))
+                return theme->ink[GROUP_INK[i & 7u]];
+    return K_TEXT;
+}
+#endif
 
 /* the tracks: 1-8, then the aux tracks (the tag's short names, the pages' long ones) */
 static const char *const TRACK_NAME[NALLTRK] = {"T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "COND", "THROW",
@@ -1123,9 +1166,17 @@ static void draw_header(void)
                 tempo_text(tt);
             room = r - (plat_battery() >= 0 ? BATT_W + 5 : 0) - text_w(&FONT_S, tt) - 8 - x;
             if (!LARGE || w + 6 + text_w(&LFONT_B, pn) <= room) {
-                cv_round(x, py, w, ph, 3, K_DIM);
-                cv_round(x + 1, py + 1, w - 2, ph - 2, 2, K_BG);
-                cv_text(x + (LARGE ? 5 : 3), cap_y(py, ph, &FONT_XS) - 1, &FONT_XS, bn, K_DIM);
+#if BOARD_SMK37
+                if (web_ink()) {                     /* (SPIDER: the button's own colour, filled) */
+                    cv_round(x, py, w, ph, 3, page_ink(ui.page));
+                    cv_text(x + (LARGE ? 5 : 3), cap_y(py, ph, &FONT_XS) - 1, &FONT_XS, bn, K_BG);
+                } else
+#endif
+                {
+                    cv_round(x, py, w, ph, 3, K_DIM);
+                    cv_round(x + 1, py + 1, w - 2, ph - 2, 2, K_BG);
+                    cv_text(x + (LARGE ? 5 : 3), cap_y(py, ph, &FONT_XS) - 1, &FONT_XS, bn, K_DIM);
+                }
                 x += w + 6;
             }
         }
@@ -1928,7 +1979,11 @@ static void draw_knobs(void)
         nw = text_w(&FONT_XS, k[i].name);
         if (nw > 46)
             nw = 46;
+        #if BOARD_SMK37
+        text_fit(cx - nw / 2, 0, &FONT_XS, k[i].name, 46, hot ? K_TEXT : knob_ink(i));   /* (SPIDER: the knob's colour) */
+#else
         text_fit(cx - nw / 2, 0, &FONT_XS, k[i].name, 46, hot ? K_TEXT : K_DIM);
+#endif
         if (upper_only(k[i].val) && text_w(&FONT_M, k[i].val) <= 48)   /* (48 px: clear of the panel's sides) */
             text_c(cx, cap_y(12, 28, &FONT_M), &FONT_M, k[i].val, vc);
         else if (text_w(&FONT_B, k[i].val) <= 48)
@@ -2399,9 +2454,14 @@ static int32_t bot_part(int32_t x, int32_t y, const char *s, uint32_t n, const f
             const char *shown = smk_name(b);          /* (the SMK: its name for it) */
             w = text_w(&FONT_XS, shown) + 2 * pad;
             if (draw) {
-                cv_round(x, y, w, BOT_PH, enc ? 7 : 2, K_TEXT);
+#if BOARD_SMK37
+                uint16_t pc = ctl_ink(b);              /* (SPIDER: the control's colour) */
+#else
+                uint16_t pc = K_TEXT;
+#endif
+                cv_round(x, y, w, BOT_PH, enc ? 7 : 2, pc);
                 cv_round(x + 1, y + 1, w - 2, BOT_PH - 2, enc ? 6 : 1, K_BG);
-                cv_text(x + pad, cap_y(y, BOT_PH, &FONT_XS) - (s_has_q(shown) ? 1 : 0), &FONT_XS, shown, K_TEXT);   /* (Q's tail) */
+                cv_text(x + pad, cap_y(y, BOT_PH, &FONT_XS) - (s_has_q(shown) ? 1 : 0), &FONT_XS, shown, pc);   /* (Q's tail) */
             }
             x += w;
             if (i < c) {
