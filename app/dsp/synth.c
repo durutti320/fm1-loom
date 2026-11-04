@@ -43,7 +43,11 @@ static const uint8_t E_GLIDE[NENGINE] = {
     0xE, /* jacquard: scan, bend, ripple (not the table) */ 0x0, /* bellows: four switches */
     0xE, /* cane: timbre, color, damp */ 0xE,               /* voile: timbre, color, breath */
     0x0, 0x0, 0x0, 0x0,                                    /* sample, slice (where a note starts), the kit, midi */
-    0x0};                                                  /* acid (bass303_set: its own) */
+    0x0,                                                   /* acid (bass303_set: its own) */
+#if BOARD_SMK37
+    0xF, 0xF,                                              /* poly, mono: saw, pulse, width, sub */
+#endif
+};
 static inline float glide_to(float from, float to)
 {
     float d = to - from;
@@ -63,18 +67,30 @@ static inline float glide_to(float from, float to)
 const char *const RL_NAME[NRL] = {"bass", "lead", "pad", "keys", "pluck", "bell", "stab", "strings", "brass", "voice",
                                   "chord", "fx", "drum", "loop"};
 const char *const EG_NAME[NENGINE] = {"knit", "rayon", "jacquard", "bellows", "cane", "voile", "sample", "slice",
-                                      "kit", "midi", "acid"};
+                                      "kit", "midi", "acid",
+#if BOARD_SMK37
+                                      "poly", "mono",
+#endif
+};
 const char *const EG_KNOB[NENGINE][4] = {
     {"wave", "detune", "voices", "width"}, {"bright", "ratio", "edge", "tine"},     {"table", "scan", "bend", "ripple"},
     {"stops", "pedal", "rotor", "rate"},   {"model", "timbre", "color", "damp"},   {"model", "timbre", "color", "breath"},
     {"sample", "start", "length", "mode"}, {"sample", "slices", "pitch", "gate"},  {"-", "-", "-", "-"},
     {"cc", "cc", "cc", "cc"},                    /* (midi: each knob named by its CC, tp_info_par) */
-    {"wave", "accent", "slide", "tune"}};
+    {"wave", "accent", "slide", "tune"},
+#if BOARD_SMK37
+    {"saw", "pulse", "width", "sub"}, {"saw", "pulse", "width", "sub"},
+#endif
+};
 /* each engine's plain sound (INIT), 0..127; bellows' four are discrete 1..8, knit's voices 1..7, the Braids engines'
  * models a name each (synth.h NCANE ...) */
 static const uint8_t EG_DEF[NENGINE][4] = {{0, 20, 1, 0},  {40, 25, 0, 0}, {0, 40, 0, 0},  {3, 4, 2, 5},
                                            {0, 64, 64, 0}, {2, 0, 64, 0},  {5, 0, 127, SM_ONESHOT}, {SMP_BREAK, 1, 64, 127},
-                                           {0, 0, 0, 0}, {64, 64, 64, 64}, {0, 64, 21, 64}};   /* (acid: X0X's) */
+                                           {0, 0, 0, 0}, {64, 64, 64, 64}, {0, 64, 21, 64},   /* (acid: X0X's) */
+#if BOARD_SMK37
+                                           {127, 0, 0, 0}, {127, 0, 0, 64},   /* poly a saw, mono with its sub */
+#endif
+};
 static const char *const VMODE_N[3] = {"poly", "mono", "legato"};
 static const char *const FTYPE_N[NFT] = {"lp24", "ladder", "lp12", "hp12", "bp12", "off"};   /* FT_DYNAMIC: no
                                                                           * filter on a synth track; the kit's
@@ -113,6 +129,11 @@ static const char *const CANE_N[NCANE] = {"pluck", "bow", "reed", "flute", "bell
 static const char *const VOILE_N[NVOILE] = {"vosim", "vowel", "choir", "whisper"};
 static const char *const ACIDW_N[2] = {"saw", "square"};
 static const char *const ACIDD_N[3] = {"off", "soft", "rat"};
+#if BOARD_SMK37
+static const char *const HPF_N[4] = {"boost", "flat", "240 Hz", "720 Hz"};   /* poly's and mono's second pages */
+static const char *const CHO_N_[4] = {"off", "I", "II", "I+II"};
+static const char *const SUBT_N[3] = {"-1 oct", "-2 oct", "-2 pulse"};
+#endif
 /* ring: the modulator's ratios to the note, tone / 8 */
 static const float RING_R[16] = {0.25f, 0.5f, 0.75f, 1.0f, 1.25f, 1.414f, 1.5f, 1.75f, 2.0f, 2.5f, 2.76f, 3.0f, 3.5f,
                                  4.0f, 5.0f, 7.0f};
@@ -147,6 +168,9 @@ typedef struct {
     uint8_t cin_type;                 /* and the type (0xFF: none yet) */
     uint8_t ftype, stereo, mute, eng;
     uint8_t ctype;                    /* the character stage running (CT_OFF: skipped, also at mix 0) */
+#if BOARD_SMK37
+    uint8_t cho;                      /* poly's chorus (0 off, 1 I, 2 II, 3 I+II) */
+#endif
 } cfg_t;
 
 typedef struct {
@@ -185,6 +209,10 @@ typedef struct {
     float o[16];                      /* the engine's state */
     float cz[8];                      /* the character stage's: low-pass / hold L R, DC L R, phase, -, the
                                        * sampler's output filter L R (tape: cz[4..5] its wow's phases) */
+#if BOARD_SMK37
+    uint16_t cho_w;                   /* poly's chorus: its line's write position (cho_run) */
+    float cho_ph;                     /* and its LFO's phase */
+#endif
 } voice_t;
 /* the sample engine's decoded windows (dsp/sample.h), a voice each: beside the struct, in RAM (the pool is
  * the scarcer); each is touched only by its own voice's render, on whichever core renders it */
@@ -215,6 +243,9 @@ typedef struct {
     int16_t ldest;                    /* the resolved destination: a TP_* index, LD_PITCH or LD_NONE */
     uint32_t rng;
     float loff[NCK], lpitch[NCK], lgain[NCK];   /* the chunk slots: offset (param units), cents, gain */
+#if BOARD_SMK37
+    float cho_ph;                     /* poly's chorus LFO (synth_prepare): a note's voice starts at it */
+#endif
 } trk_t;
 
 struct synth {
@@ -378,6 +409,12 @@ static void eng_init(voice_t *v)
         vo_init(v);
     else if (v->engine == EG_ACID)
         v->o[4] = 1.0f;                          /* its 303 set up from scratch on the render's side (acid_chunk) */
+#if BOARD_SMK37
+    if (v->engine == EG_POLY || v->engine == EG_MONO) {
+        v->o[0] = (float)(xs(&v->rng) >> 8) * (1.0f / 16777216.0f);   /* (the oscillator from a random phase) */
+        v->c.ex[22] = 1.0f;                      /* (no drift yet: another engine's ex[22] is not a factor) */
+    }
+#endif
 }
 
 /* a rising saw crossfading into a pulse that is low first and high after pw: the two in step, so the
@@ -1289,6 +1326,175 @@ static void acid_run(voice_t *v, float *xl, int m)
     }
 }
 
+#if BOARD_SMK37
+/* ---- SPIDER's engines (the SMK-37 build), from the old smk37 branch's dsp/synth_spider.c */
+/* poly (after the Juno-106) and mono (after the SH-101): a voice's one oscillator (the Juno's DCO, the SH's VCO) and
+ * its mixer: saw, pulse (width 50 % .. 5 %: the LFO on it is PWM; mono's can follow the filter envelope too: pw env),
+ * sub (a square an octave down; mono's also two octaves down, or a 25 % pulse two octaves down: sub type) and noise,
+ * all band-limited (PolyBLEP, the sub's edges on the saw's wrap). The mix's level held near 1 however many are up.
+ * poly then its high-pass (the Juno's HPF: boost, the bass lifted; flat; 240 Hz; 720 Hz) and, after the filter, its
+ * chorus (cho_run: I, II, I+II). Both drift: the pitch wandering slowly, up to +-8 cents (a fresh target every ~0.4 s).
+ * o[0] the phase, o[1] the cycles counted mod 4 (the sub's state), o[2] the high-pass's low, o[10] the drift (cents),
+ * o[11] its target. ex[0] the increment, ex[1] the saw's gain, ex[2] the pulse's, ex[3] the width, ex[4] the sub's
+ * gain, ex[5] the noise's, ex[7] the high-pass's coefficient, ex[8] its kind, ex[9] the sub's type, ex[10] pw env,
+ * ex[11] the width with the envelope (vco_chunk), ex[18..21] the second page's knobs (voice_chunk), ex[22] the
+ * drift's factor */
+static void vco_prep(voice_t *v)
+{
+    cfg_t *c = &v->c;
+    const int mono = v->engine == EG_MONO;
+    float f = c->freq * INV_SR, gs = c->e[0], gp = c->e[1], gb = c->e[3] * 0.75f;
+    float gn = (mono ? c->ex[19] : c->ex[18]) * (1.0f / 127.0f), k;
+    c->ex[0] = fm_minf(f, 0.45f);
+    k = 1.0f / fm_maxf(1.0f, 0.62f * (gs + gp + gb + gn));   /* the mix held near a single wave's level */
+    c->ex[1] = gs * k;
+    c->ex[2] = gp * k;
+    c->ex[3] = 0.5f - 0.45f * c->e[2];
+    c->ex[4] = gb * k;
+    c->ex[5] = gn * 0.7f * k;
+    if (mono) {
+        c->ex[8] = 1.0f;                         /* (no high-pass) */
+        c->ex[9] = fm_clampf(fm_floorf(c->ex[18] + 0.5f), 0.0f, 2.0f);
+        c->ex[10] = c->ex[20] * (1.0f / 127.0f);
+    } else {
+        static const float HP_HZ[4] = {110.0f, 0.0f, 240.0f, 720.0f};
+        int h = (int)fm_clampf(fm_floorf(c->ex[19] + 0.5f), 0.0f, 3.0f);
+        c->ex[8] = (float)h;
+        c->ex[7] = h == 1 ? 0.0f : 1.0f - fm_expf(-FM_TWO_PI * HP_HZ[h] * INV_SR);
+        c->ex[9] = 0.0f;
+        c->ex[10] = 0.0f;
+    }
+    c->ex[11] = c->ex[3];
+    if (c->ex[22] <= 0.0f)
+        c->ex[22] = 1.0f;
+    c->stereo = 0;
+}
+static void vco_chunk(voice_t *v)                /* the drift; mono's width on the filter envelope */
+{
+    cfg_t *c = &v->c;
+    float depth = c->ex[21] * (8.0f / 127.0f);
+    if (c->ex[10] > 0.0f)                        /* (the envelope narrows the pulse: 0.45 of the way at full) */
+        c->ex[11] = fm_maxf(c->ex[3] - c->ex[10] * 0.45f * v->flt.level, 0.04f);
+    else
+        c->ex[11] = c->ex[3];
+    if (depth <= 0.0f) {
+        c->ex[22] = 1.0f;
+        return;
+    }
+    if ((v->nchunk & 255) == 0)                  /* (~0.4 s) */
+        v->o[11] = frand(&v->rng) * depth;
+    v->o[10] += (v->o[11] - v->o[10]) * 0.01f;
+    c->ex[22] = fm_exp2f(v->o[10] * (1.0f / 1200.0f));
+}
+/* the sub's level after k cycles (mod 4): its type 0 a square at half the rate, 1 at a quarter, 2 a 25 % pulse at a
+ * quarter (its DC taken off) */
+static inline float vco_sub(int type, int k)
+{
+    return type == 0 ? (k & 1 ? -1.0f : 1.0f) : type == 1 ? (k & 2 ? -1.0f : 1.0f) : ((k & 3) == 0 ? 1.5f : -0.5f);
+}
+SY_INLINE void vco_loop(voice_t *v, float *x, int m, const int type)
+{
+    const cfg_t *c = &v->c;
+    const float d = fm_clampf(c->ex[0] * c->ex[22], 1e-6f, 0.45f), id = 1.0f / d;
+    const float gs = c->ex[1], gp = c->ex[2], gb = c->ex[4] * 0.7f, gn = c->ex[5], w = c->ex[11], dc = 2.0f * w - 1.0f;
+    float p = v->o[0];
+    int k = (int)v->o[1] & 3, i;
+    for (i = 0; i < m; i++) {
+        float y = 0.0f, b;
+        p += d;
+        if (p >= 1.0f) {
+            p -= 1.0f;
+            k = (k + 1) & 3;
+        }
+        b = blep(p, d, id);
+        if (gs > 0.0f)
+            y += gs * (2.0f * p - 1.0f - b);
+        if (gp > 0.0f) {                         /* high until w: its rise on the wrap, its fall at w */
+            float q = p - w;
+            q = q < 0.0f ? q + 1.0f : q;
+            y += gp * ((p < w ? 1.0f : -1.0f) + b - blep(q, d, id) - dc);
+        }
+        if (gb > 0.0f) {                         /* the edge beside the wrap: the one just past, or the next */
+            float s = vco_sub(type, k);
+            if (b != 0.0f)
+                s += 0.5f * (p < 0.5f ? s - vco_sub(type, k + 3) : vco_sub(type, k + 1) - s) * b;
+            y += gb * s;
+        }
+        if (gn > 0.0f)
+            y += gn * frand(&v->rng);
+        x[i] = y;
+    }
+    v->o[0] = p;
+    v->o[1] = (float)k;
+}
+static void vco_run(voice_t *v, float *xl, float *xr, int m)
+{
+    const cfg_t *c = &v->c;
+    int i;
+    (void)xr;
+    switch ((int)c->ex[9]) {
+    case 1: vco_loop(v, xl, m, 1); break;
+    case 2: vco_loop(v, xl, m, 2); break;
+    default: vco_loop(v, xl, m, 0); break;
+    }
+    if (c->ex[8] != 1.0f) {                      /* poly's high-pass: a one-pole's low taken off (or, boost, added) */
+        float z = v->o[2], a = c->ex[7], add = c->ex[8] == 0.0f ? 0.9f : -1.0f;
+        for (i = 0; i < m; i++) {
+            z += a * (xl[i] - z);
+            xl[i] += add * z;
+        }
+        v->o[2] = fm_flush(z);
+    }
+}
+
+/* poly's chorus (the Juno's BBD, after the filter: voice_samples): the voice into a short line, read back at two taps
+ * whose delays swing on a triangle in opposite directions, I 0.51 Hz and II 0.86 Hz across 1.66 .. 5.35 ms, I+II
+ * 9.75 Hz across 3.28 .. 3.51 ms, each added to the dry on its side (the filter before it has taken the line's top:
+ * no low-pass of its own). The lines are the voices' (a chord through one chorus is the same sum: it is linear); a
+ * voice takes its track's LFO phase at its note, so they swing together */
+#define CHO_N 256
+static int16_t cho_line[NVOICE][CHO_N];
+static const float CHO_HZ[4] = {0.0f, 0.513f, 0.863f, 9.75f};
+static const float CHO_LO[4] = {0.0f, 1.66e-3f * SY_SR, 1.66e-3f * SY_SR, 3.28e-3f * SY_SR};
+static const float CHO_HI[4] = {0.0f, 5.35e-3f * SY_SR, 5.35e-3f * SY_SR, 3.51e-3f * SY_SR};
+static inline float cho_tap(const int16_t *ln, uint32_t w, float d)
+{
+    int di = (int)d;
+    float fr = d - (float)di, a = (float)ln[(w - (uint32_t)di) & (CHO_N - 1)];
+    return a + ((float)ln[(w - (uint32_t)di - 1u) & (CHO_N - 1)] - a) * fr;
+}
+static void cho_run(voice_t *v, int mode, float *xl, float *xr, int k)
+{
+    int16_t *ln = cho_line[v->vi % NVOICE];
+    const float dph = CHO_HZ[mode & 3] * INV_SR, lo = CHO_LO[mode & 3], sw = CHO_HI[mode & 3] - lo;
+    const float gw = 0.6f / 8192.0f;
+    float ph = v->cho_ph;
+    uint32_t w = v->cho_w;
+    int j;
+    for (j = 0; j < k; j++) {
+        float x = xl[j], u = x * 8192.0f, tri;
+        ln[w & (CHO_N - 1)] = (int16_t)(u > 32767.0f ? 32767.0f : u < -32767.0f ? -32767.0f : u);
+        ph += dph;
+        ph = ph >= 1.0f ? ph - 1.0f : ph;
+        tri = ph < 0.5f ? 2.0f * ph : 2.0f - 2.0f * ph;   /* 0 .. 1 .. 0 */
+        xl[j] = x * 0.6f + cho_tap(ln, w, lo + sw * tri) * gw;
+        xr[j] = x * 0.6f + cho_tap(ln, w, lo + sw - sw * tri) * gw;
+        w++;
+    }
+    v->cho_ph = ph;
+    v->cho_w = (uint16_t)w;
+}
+static void cho_start(voice_t *v, float ph)      /* a note on a fresh (or another engine's) voice: an empty line */
+{
+    int i;
+    int16_t *ln = cho_line[v->vi % NVOICE];
+    for (i = 0; i < CHO_N; i++)
+        ln[i] = 0;
+    v->cho_w = 0;
+    v->cho_ph = ph;
+}
+#endif
+
 static void eng_chunk(voice_t *v)                /* every chunk: the engines' own slow movements */
 {
     switch (v->engine) {
@@ -1298,6 +1504,9 @@ static void eng_chunk(voice_t *v)                /* every chunk: the engines' ow
     case EG_KNIT: knit_chunk(v); break;
     case EG_VOILE: vo_chunk(v); break;
     case EG_ACID: acid_chunk(v); break;
+#if BOARD_SMK37
+    case EG_POLY: case EG_MONO: vco_chunk(v); break;
+#endif
     default: break;
     }
 }
@@ -1312,6 +1521,9 @@ static void eng_prep(voice_t *v, float bpm)
     case EG_CANE: cn_prep(v); break;
     case EG_VOILE: vo_prep(v); break;
     case EG_ACID: v->c.stereo = 0; break;        /* (its own: acid_chunk) */
+#if BOARD_SMK37
+    case EG_POLY: case EG_MONO: vco_prep(v); break;
+#endif
     default: knit_prep(v); break;
     }
 }
@@ -1326,6 +1538,9 @@ static void eng_run(voice_t *v, float *xl, float *xr, int m)
     case EG_CANE: cn_run(v, xl, xr, m); break;
     case EG_VOILE: vo_run(v, xl, xr, m); break;
     case EG_ACID: acid_run(v, xl, m); break;
+#if BOARD_SMK37
+    case EG_POLY: case EG_MONO: vco_run(v, xl, xr, m); break;
+#endif
     default: knit_run(v, xl, xr, m); break;
     }
 }
@@ -1349,6 +1564,10 @@ static void voice_start(synth_t *s, voice_t *v, int note, int vel, int glide_ms,
     if (eng != v->engine || !v_sounding(v)) {
         v->engine = (uint8_t)eng;
         eng_init(v);
+#if BOARD_SMK37
+        if (eng == EG_POLY)                      /* the chorus's line empty, its LFO the track's */
+            cho_start(v, t->cho_ph);
+#endif
     } else if (v->engine == EG_ACID && v->as != was_as) {
         v->o[4] = 1.0f;                          /* (another slot: set up afresh) */
     }
@@ -1954,6 +2173,10 @@ int synth_voice_cost(const synth_t *s, int vi)
                (v->c.ex[16] > 0.0f || v->c.ex[17] > 0.0f);
     if (v->engine == EG_RAYON)
         return 5;                                /* (the FM-1, 2026-10-19: a quarter above an ordinary voice) */
+#if BOARD_SMK37
+    if (v->engine == EG_POLY && v->c.cho)        /* (the chorus: a line and two taps a sample, a stereo output) */
+        return 5;
+#endif
     if (v->engine == EG_ACID)
         return 16;                               /* (the FM-1, 2026-10-30: 17 to 19 % of a core, its 303 oversampled
                                                   * twice: a knit unison voice's) */
@@ -2105,6 +2328,12 @@ void synth_prepare(synth_t *s, uint32_t n)
         int type = P(s, i, TP_LTYPE), lx = P(s, i, TP_LX), lx2 = P(s, i, TP_LX2), engine = P(s, i, TP_ENGINE);
         float hz = type == LT_PUMP ? 0.0f : lfo_hz(P(s, i, TP_LSPEED), s->bpm), dph = hz * CHUNK_S;
         float amt = (float)P(s, i, TP_LAMT), pk = 0.0f, vib = 0.0f, vol = 0.0f;
+#if BOARD_SMK37
+        if (engine == EG_POLY) {                 /* poly's chorus LFO, the track's: its voices start at it */
+            float cp = t->cho_ph + (float)n * CHO_HZ[P(s, i, TP_X3) & 3] * INV_SR;
+            t->cho_ph = cp - fm_floorf(cp);
+        }
+#endif
         {   /* the performance pitch: from the last stretch's value to this one's over the chunks (one stretch
              * behind, smooth); a note on the track since: at its value at once */
             float to = (float)t->perf.pitch_c;
@@ -2626,6 +2855,16 @@ static void voice_chunk(synth_t *s, voice_t *v)
             c->ex[8] = a;
             c->ex[9] = b;
         }
+#if BOARD_SMK37
+        if (v->engine == EG_POLY || v->engine == EG_MONO) {   /* the second page (vco_prep) */
+            for (i = 0; i < 4; i++) {
+                float xv = (float)P(s, trk, TP_X1 + i);
+                moved |= xv != c->ex[18 + i];
+                c->ex[18 + i] = xv;
+            }
+        }
+        c->cho = (uint8_t)(v->engine == EG_POLY ? P(s, trk, TP_X3) & 3 : 0);
+#endif
         if (v->engine == EG_KNIT) {            /* its second page (knit_prep) */
             for (i = 0; i < 4; i++) {
                 float xv = (float)P(s, trk, TP_X1 + i);
@@ -2981,6 +3220,16 @@ static void voice_samples(synth_t *s, voice_t *v, float *l, float *r, float *s1,
             eng_run(v, xl, xr, k);
         }
 #define SL(ft, ch) sample_loop(v, xl, xr, l + i, r + i, s1 + i, s2 + i, k, ft, 0, ch)
+#if BOARD_SMK37
+        if (v->c.cho) {                          /* poly's chorus: the filter, the character, the chorus (mono into
+                                                  * stereo), the outputs */
+            flt_channel(v, xl, k, 0);
+            if (v->c.ctype != CT_OFF)
+                char_stage(v->c.cx, v->cz, v->c.ctype, 0, xl, xr, k);
+            cho_run(v, v->c.cho, xl, xr, k);
+            out_stereo(v, xl, xr, l + i, r + i, s1 + i, s2 + i, k);
+        } else
+#endif
         if (v->c.stereo) {                       /* the filter a channel at a time, the character, the outputs */
             flt_channel(v, xl, k, 0);
             flt_channel(v, xr, k, 1);
@@ -3260,6 +3509,14 @@ static const tp_info_t ACID_F_P[4] = {{"cutoff", 0, 127, 64, PK_NUM, 0}, {"reso"
                                       {"env mod", 0, 127, 64, PK_PCT, 0}, {"low cut", 0, 127, 86, PK_NUM, 0}};
 static const tp_info_t ACID_E_P[4] = {{"attack", 0, 127, 32, PK_NUM, 0}, {"decay", 0, 127, 64, PK_NUM, 0},
                                       {"acc dec", 0, 127, 7, PK_NUM, 0}, {"length", 0, 127, 51, PK_NUM, 0}};
+#if BOARD_SMK37
+/* poly's and mono's second pages (vco_prep): poly's noise, high-pass, chorus, drift; mono's sub type, noise, pw env
+ * (the filter envelope narrowing the pulse), drift */
+static const tp_info_t POLY_X_P[4] = {{"noise", 0, 127, 0, PK_PCT, 0}, {"hpf", 0, 3, 1, PK_NAMES, HPF_N},
+                                      {"chorus", 0, 3, 1, PK_NAMES, CHO_N_}, {"drift", 0, 127, 16, PK_PCT, 0}};
+static const tp_info_t MONO_X_P[4] = {{"sub type", 0, 2, 0, PK_NAMES, SUBT_N}, {"noise", 0, 127, 0, PK_PCT, 0},
+                                      {"pw env", 0, 127, 0, PK_PCT, 0}, {"drift", 0, 127, 10, PK_PCT, 0}};
+#endif
 static const tp_info_t ACID_X_P[4] = {{"drive", 0, 127, 0, PK_PCT, 0}, {"type", 0, 2, 1, PK_NAMES, ACIDD_N},
                                       {"shaper", 0, 127, 27, PK_PCT, 0}, {"-", 0, 0, 0, PK_NUM, 0}};
 static const char *const ACIDF_N[4] = {"cutoff", "reso", "env mod", "low cut"};
@@ -3437,7 +3694,11 @@ const tp_info_t *tp_info(int p, int engine)
     if (p >= TP_X1 && p <= TP_X4)                /* the engine's second page: knit's, rayon's, else none */
         return engine == EG_MIDI ? &MIDI_X_P[p - TP_X1] : engine == EG_RAYON ? &RAYON_X_P[p - TP_X1]
              : engine == EG_KNIT ? &KNIT_X_P[p - TP_X1] : engine == EG_SAMPLE ? &SAMPLE_X_P[p - TP_X1]
-             : engine == EG_ACID ? &ACID_X_P[p - TP_X1] : &NONE_P;
+             : engine == EG_ACID ? &ACID_X_P[p - TP_X1]
+#if BOARD_SMK37
+             : engine == EG_POLY ? &POLY_X_P[p - TP_X1] : engine == EG_MONO ? &MONO_X_P[p - TP_X1]
+#endif
+             : &NONE_P;
     if (engine == EG_ACID) {                     /* its 303's filter and envelope; no glide, one mode, one filter */
         if (p >= TP_CUT && p <= TP_KTRK)
             return &ACID_F_P[p - TP_CUT];

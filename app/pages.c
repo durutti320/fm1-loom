@@ -749,7 +749,11 @@ static int kit_x_page(int t)                         /* a kit whose key shown ha
 static int x_page(int t)                             /* the engine has a second page of knobs (TP_X1..X4) */
 {
     int e = t < NTRK ? proj.trk[t].par[TP_ENGINE] : -1, m = t < NTRK ? proj.trk[t].par[TP_E4] % NSM : 0;
-    return e == EG_RAYON || e == EG_KNIT || e == EG_MIDI || e == EG_ACID || (e == EG_SAMPLE && (m == SM_LOOP || m == SM_PINGPONG)) ||   /* (the
+    return e == EG_RAYON || e == EG_KNIT || e == EG_MIDI || e == EG_ACID ||
+#if BOARD_SMK37
+           e == EG_POLY || e == EG_MONO ||
+#endif
+           (e == EG_SAMPLE && (m == SM_LOOP || m == SM_PINGPONG)) ||   /* (the
                                                                                      * sample's loop page: looping) */
            kit_x_page(t);
 }
@@ -4087,6 +4091,40 @@ static void pic_organ(int32_t x0, int32_t y0, int32_t w, int32_t h, const uint8_
 }
 /* knit: the wave (saw .. square .. pulse) a line a voice, the voices drifting apart as detune opens (one voice:
  * its slow drift) and fanned up and down as width opens */
+#if BOARD_SMK37
+/* SPIDER's poly and mono: two cycles of the oscillator's mix as the knobs set it (saw, pulse at its width, the sub,
+ * under the noise's grain); poly's chorus a second trace beside it, swinging while the track sounds */
+static float pic_vco_y(const uint8_t *p, float ph, int sub_type)
+{
+    float fr = ph - fm_floorf(ph), w = 0.5f - 0.45f * (float)p[TP_E3] / 127.0f, sp = ph * 0.5f / (sub_type ? 2.0f : 1.0f);
+    float gs = (float)p[TP_E1] / 127.0f, gp = (float)p[TP_E2] / 127.0f, gb = (float)p[TP_E4] / 127.0f * 0.75f;
+    float sf = sp - fm_floorf(sp), sub = sub_type == 2 ? (sf < 0.25f ? 1.5f : -0.5f) : (sf < 0.5f ? 1.0f : -1.0f);
+    float y = gs * (2.0f * fr - 1.0f) + gp * ((fr < w ? 1.0f : -1.0f) - (2.0f * w - 1.0f)) + gb * 0.7f * sub;
+    return y / fm_maxf(1.0f, 0.62f * (gs + gp + gb));
+}
+static void pic_vco(int32_t x0, int32_t y0, int32_t w, int32_t h, const uint8_t *p, uint32_t f, int mono)
+{
+    int st = mono ? p[TP_X1] % 3 : 0, cho = mono ? 0 : p[TP_X3] & 3;
+    float cy = (float)(y0 + h / 2), amp = (float)(h / 2 - 10), nz = (float)p[mono ? TP_X2 : TP_X1] / 127.0f;
+    uint32_t r = 2463534242u;
+    cv_rect(x0, y0 + h / 2, w, 1, K_LINE);
+    if (cho) {                                   /* the chorus: the same wave a little behind, swinging */
+        pen_t pc = {0, 0, 0};
+        float lag = 0.03f + 0.025f * fm_sin_turns((float)f * (cho == 3 ? 0.08f : cho == 2 ? 0.012f : 0.007f));
+        for (int32_t x = 0; x <= w; x++)
+            pen_to(&pc, (float)(x0 + x), cy - pic_vco_y(p, (float)x / (float)w * 2.0f - lag, st) * amp, K_DIM);
+    }
+    {
+        pen_t pn = {0, 0, 0};
+        for (int32_t x = 0; x <= w; x++) {
+            float y = pic_vco_y(p, (float)x / (float)w * 2.0f, st);
+            r ^= r << 13, r ^= r >> 17, r ^= r << 5;
+            y += nz * 0.3f * (float)(int32_t)r * (1.0f / 2147483648.0f);
+            pen_to(&pn, (float)(x0 + x), cy - fm_clampf(y, -1.2f, 1.2f) * amp, K_NOW);
+        }
+    }
+}
+#endif
 static void pic_knit(int32_t x0, int32_t y0, int32_t w, int32_t h, const uint8_t *p, uint32_t f)
 {
     static const float OFF[7] = {0.0f, 0.3f, -0.3f, 0.6f, -0.6f, 1.0f, -1.0f};
@@ -4517,6 +4555,10 @@ static void draw_engine(void)
                               (uint32_t)ui.page << 16);
     if (eg == EG_SAMPLE || eg == EG_SLICE)           /* (the bank: an upload changes what the picture shows) */
         h = hash_u(h, (uint32_t)smp_user_count() << 16 ^ smp_user_bytes());
+#if BOARD_SMK37
+    if (eg == EG_POLY || eg == EG_MONO)              /* (the second page's noise, sub type, chorus show) */
+        h = hash_u(h, (uint32_t)p[TP_X1] | (uint32_t)p[TP_X2] << 8 | (uint32_t)p[TP_X3] << 16);
+#endif
     if (eg == EG_SAMPLE)                             /* (its loop page's knobs mark the loop) */
         h = hash_u(h, (uint32_t)p[TP_X1] | (uint32_t)p[TP_X2] << 8 | (uint32_t)ui.page << 16);
     if (eg == EG_SLICE) {                            /* the slice playing and where (a column of the picture) */
@@ -4559,6 +4601,10 @@ static void draw_engine(void)
     case EG_KNIT: pic_knit(20, 24, 200, PIC_H, p, pic_f); break;
     case EG_MIDI: pic_midi(24, 30, p, ui.page == P_SUB, eng_midi_hit[trk]); break;
     case EG_ACID: pic_acid(20, 24, 200, PIC_H, p); break;
+#if BOARD_SMK37
+    case EG_POLY: pic_vco(20, 24, 200, PIC_H, p, pic_f, 0); break;
+    case EG_MONO: pic_vco(20, 24, 200, PIC_H, p, pic_f, 1); break;
+#endif
     default:                                         /* the kit (large type: the pads fill the band, 4 px in) */
         if (LARGE)
             pic_drumline(2, 26, 236, MAIN_H - 26, p, pic_f);
@@ -5017,7 +5063,11 @@ static void draw_sub(void)
         draw_rayon_fall();
     else if (eg == EG_ACID)
         draw_acid_x();
-    else if (eg == EG_SAMPLE || eg == EG_MIDI)
+    else if (eg == EG_SAMPLE || eg == EG_MIDI
+#if BOARD_SMK37
+             || eg == EG_POLY || eg == EG_MONO          /* (SPIDER's: the wave, the second page's noise and sub in it) */
+#endif
+             )
         draw_engine();                           /* (the sample's loop page: the waveform, its loop marked; MIDI's
                                                   * knobs 5..8: its eight bars) */
     else

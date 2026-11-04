@@ -238,8 +238,13 @@ void project_device_put(void)
 
 void project_defaults(void)
 {
+#if BOARD_SMK37
+    static const uint8_t ORDER[NTRK] = {EG_DRUMLINE, EG_MONO, EG_POLY, EG_ACID, EG_RAYON, EG_KNIT, EG_BELLOWS,
+                                        EG_SAMPLE};   /* SPIDER: its kit, mono bass, poly, acid, then LOOM-8's */
+#else
     static const uint8_t ORDER[NTRK] = {EG_DRUMLINE, EG_KNIT, EG_RAYON, EG_JACQUARD, EG_KNIT, EG_BELLOWS, EG_CANE,
                                         EG_VOILE};
+#endif
     int t, k;
     uint8_t *z = (uint8_t *)&proj, keep = proj.magic == PROJ_MAGIC;   /* (a project before it: the FM-1's settings
                                                                      * carried over; at the first start, none) */
@@ -280,7 +285,7 @@ void project_defaults(void)
             tr->par[TP_S] = 0;
             tr->par[TP_R] = 64;
             set_name(tr, "kit");
-        } else if (t == 1) {
+        } else if (t == 1 && ORDER[t] == EG_KNIT) {
             apply_preset(tr, preset_named(EG_KNIT, "sub"));     /* knit's round sub under everything */
         } else {
             apply_preset(tr, preset_first(ORDER[t]));

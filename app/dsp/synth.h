@@ -44,7 +44,11 @@
  * velocity ACID_ACCENT or more is accented; a note that starts while the last one is still held slides to it, and so
  * does a note with a glide (a step's glide trick, the arp's glide) after a short one: on the same pitch, a tie. */
 enum { EG_KNIT, EG_RAYON, EG_JACQUARD, EG_BELLOWS, EG_CANE, EG_VOILE, EG_SAMPLE, EG_SLICE, EG_DRUMLINE, EG_MIDI,
-       EG_ACID, NENGINE };                           /* (saved by number: PROJ_FORMAT 10 renumbered them; a new one
+       EG_ACID,
+#if BOARD_SMK37
+       EG_POLY, EG_MONO,                             /* SPIDER's (the SMK-37 build): after the Juno-106, the SH-101 */
+#endif
+       NENGINE };                           /* (saved by number: PROJ_FORMAT 10 renumbered them; a new one
                                                       * goes last) */
 #define NACID 2
 #define ACID_ACCENT 112
@@ -284,7 +288,12 @@ typedef struct {
 typedef struct synth synth_t;         /* opaque: dsp/synth.c */
 void synth_glfo_restart(synth_t *s);              /* the shared LFO from its start (the transport started) */
 float synth_glfo_now(const synth_t *s);            /* its value now, -1..1 (the page's picture) */
+#if BOARD_SMK37
+#define SYNTH_BYTES 12544             /* room for the struct (checked at compile time in synth.c; SPIDER: poly's chorus
+                                       * state a voice and a track) */
+#else
 #define SYNTH_BYTES 12288             /* room for the struct (checked at compile time in synth.c) */
+#endif
 
 void synth_init(synth_t *s, uint8_t (*par)[NTP]);   /* par: the tracks' parameter arrays, NTRK + 1 of them (the conductor's, SY_GLFO_TRK: the shared LFO) */
 void synth_tempo(synth_t *s, float bpm);
