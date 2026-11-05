@@ -22,8 +22,8 @@ factory package later. The installers take a package only for exactly the connec
 
 The manual still applies: the FM-1's controls are where the SMK-37 prints the same job.
 
-**On one page:** [the cheat sheet](docs/SMK37-QRG.pdf) (A4 landscape, to print), also on the emulator's site as
-`qrg.html` (the emulator's **Cheat sheet** button).
+**On one sheet:** [the cheat sheet](docs/SMK37-QRG.pdf) (A4 landscape, two-sided: flip on the short edge; the reverse
+is DAW mode's REAPER profile), also on the emulator's site as `qrg.html` (the emulator's **Cheat sheet** button).
 
 | SMK-37 | LOOM-8 |
 | --- | --- |
@@ -114,7 +114,7 @@ and Linux name it **SPIDER DAW**). With CC MAP on **REAPER**, SPIDER speaks **Ma
 REAPER's built-in *Mackie Control Universal* surface, and shows what REAPER sends back: the tracks' names, their
 pan, meters, select, mute, solo and arm, the transport's lights, the time. The keys, the drum pads, the wheels and
 LOCAL work as in the DEFAULT map, on the first port. (`app/smk_mcu.h`; REAPER's side: its SDK's
-`reaper_csurf/csurf_mcu.cpp`.)
+`reaper_csurf/csurf_mcu.cpp`.) On one page: the [cheat sheet](docs/SMK37-QRG.pdf)'s reverse.
 
 | Control | REAPER profile |
 |---|---|

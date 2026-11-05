@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&amp;family=Barlow+Semi+Condensed:wght@400;500;600;700&amp;display=swap">
 <style>
-/* the one-page cheat sheet for LOOM-8 on the SMK-37: A4 landscape (1123 x 794 px at 96 px/in). On screen it sits on a
+/* the cheat sheet, two pages (the reverse: DAW mode's REAPER profile) for LOOM-8 on the SMK-37: A4 landscape (1123 x 794 px at 96 px/in). On screen it sits on a
    grey desk and scrolls sideways inside its frame on a narrow screen; printed, it is the page (no margins) */
 @page { size: A4 landscape; margin: 0; }
 html, body { margin: 0; background: #DADADA; }
@@ -18,12 +18,14 @@ html, body { margin: 0; background: #DADADA; }
 .bar a:hover { color: #C11A36; }
 .desk { overflow-x: auto; padding: 0 16px 32px; }
 .desk > div { margin: 0 auto; box-shadow: 0 2px 12px rgba(0, 0, 0, .25); }
+.desk + .desk { padding-top: 8px; }
 @media print {
   html, body { background: #FFFFFF; }
   .bar { display: none; }
   .desk { padding: 0; overflow: visible; }
   .desk > div { box-shadow: none; margin: 0; }
-  #sheet { height: 793px !important; }
+  .sheet { height: 793px !important; }
+  .desk + .desk { break-before: page; padding-top: 0; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 </style>
@@ -31,11 +33,12 @@ html, body { margin: 0; background: #DADADA; }
 <body>
 <nav class="bar" aria-label="LOOM-SMK">
 <a href="./">The emulator</a>
+<a href="#reaper">The reverse: REAPER</a>
 <a href="SMK37-QRG.pdf" download="">Download the PDF</a>
 <a href="https://github.com/durutti320/fm1-loom/blob/loom8-smk37/SMK37.md">SMK37.md, the full map</a>
 </nav>
 <div class="desk">
-<div id="sheet" style="width: 1123px; height: 794px; box-sizing: border-box; padding: 36px 40px 30px; background: #FFFFFF; color: #141414; font-family: 'Barlow Semi Condensed', 'Arial Narrow', Arial, sans-serif; font-size: 12px; line-height: 1.2; display: flex; flex-direction: column; gap: 9px">
+<div id="sheet" class="sheet" style="width: 1123px; height: 794px; box-sizing: border-box; padding: 36px 40px 30px; background: #FFFFFF; color: #141414; font-family: 'Barlow Semi Condensed', 'Arial Narrow', Arial, sans-serif; font-size: 12px; line-height: 1.2; display: flex; flex-direction: column; gap: 9px">
 
 <header style="display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; border-bottom: 3px solid #151515; padding-bottom: 6px">
 <div>
@@ -111,7 +114,7 @@ html, body { margin: 0; background: #DADADA; }
 <tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">FX</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0"><span style="color: #595959; font-weight: 600">FX</span> · Character, Sends, FX I, FX II, Throws</td></tr>
 <tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">SCALE</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0"><span style="color: #595959; font-weight: 600">SEL</span> · the page's settings and actions. To a question: yes</td></tr>
 <tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">GLOBE</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0"><span style="color: #595959; font-weight: 600">GLO</span> · Mix, Master EQ, Master color, Master out, LFO, Setup</td></tr>
-<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">ARP</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0"><span style="color: #595959; font-weight: 600">ARP</span> · Players (arp, strum, hold), Weave. A step's pad held: its two tricks</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">ARP</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0"><span style="color: #595959; font-weight: 600">ARP</span> · Players (arp, strum, hold, random), Weave. A step's pad held: its two tricks</td></tr>
 <tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">SEQ</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0"><span style="color: #595959; font-weight: 600">SEQ</span> · Steps; K2: Bar. Held on Steps: the keys play, and set what a pad writes</td></tr>
 <tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">PLAY</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0"><span style="color: #595959; font-weight: 600">PLAY</span> · start / stop. SEQ + PLAY on Steps: from this bar</td></tr>
 <tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">REC</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0"><span style="color: #595959; font-weight: 600">REC</span> · REC + PLAY: record live. Held while playing: records while held. Tapped, stopped, on Steps: step record. <b>Tapped twice:</b> a counted-in take: stopped, a bar of clicks then from step 1; playing, from the next bar</td></tr>
@@ -227,6 +230,210 @@ html, body { margin: 0; background: #DADADA; }
 <footer style="display: flex; justify-content: space-between; gap: 16px; font-size: 12px; line-height: 14px; color: #555555; border-top: 1px solid #B8B8B8; padding-top: 4px">
 <span>LOOM-8 by Charles Vestal, on fm1-base and felucca-bsp (from Felucca by Leo Kuroshita) · SMK-37 board layer by genkigenki · DAW map after Snoop37</span>
 <span>Beta: back up the whole flash before installing</span>
+</footer>
+
+</div>
+</div>
+<div class="desk">
+<div id="reaper" class="sheet" style="width: 1123px; height: 794px; box-sizing: border-box; padding: 36px 40px 30px; background: #FFFFFF; color: #141414; font-family: 'Barlow Semi Condensed', 'Arial Narrow', Arial, sans-serif; font-size: 12px; line-height: 1.2; display: flex; flex-direction: column; gap: 9px">
+
+<header style="display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; border-bottom: 3px solid #151515; padding-bottom: 6px">
+<div>
+<h1 style="margin: 0; font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 800; font-size: 30px; line-height: 30px; letter-spacing: 0.01em">REAPER <span style="color: #E82C26">/</span> DAW mode's REAPER profile</h1>
+<p style="margin: 3px 0 0; font-size: 13px; line-height: 16px; color: #3A3A3A">Reverse · SPIDER on the M-VAVE SMK-37, branch spider2 (beta), build of 6 November 2026 · Mackie Control for REAPER's own control surface</p>
+</div>
+<div style="max-width: 250px; border: 1px solid #151515; padding: 4px 8px; font-size: 12px; line-height: 15px"><b>Try it first in the emulator:</b> &lt; + &gt;, PATCH held + K6 to REAPER, then <b>Pretend REAPER</b></div>
+</header>
+
+<main style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); column-gap: 14px; flex: 1; min-height: 0">
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+
+<section style="border: 1px solid #151515">
+<h2 style="margin: 0; padding: 2px 8px; background: #151515; color: #FFFFFF; font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 15px; line-height: 17px; letter-spacing: 0.05em; text-transform: uppercase; display: flex; align-items: center; gap: 7px"><span aria-hidden="true" style="width: 8px; height: 8px; background: #E82C26; flex: none"></span>Turn it on</h2>
+<table style="width: 100%; border-collapse: collapse">
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">1</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0"><b>&lt; + &gt;</b>: DAW mode (it starts in DAW mode if left there)</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">2</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0"><b>PATCH held, K6</b> (CC MAP) to <b>REAPER</b>: DEFAULT, USER, REAPER, a detent a step. Kept</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; font-weight: 700; white-space: nowrap">3</th><td style="vertical-align: top; padding: 1px 6px"><b>Waiting for REAPER</b> until REAPER answers. Every 3 s of silence SPIDER asks it to send everything again</td></tr>
+</table>
+</section>
+
+<section style="border: 1px solid #151515">
+<h2 style="margin: 0; padding: 2px 8px; background: #151515; color: #FFFFFF; font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 15px; line-height: 17px; letter-spacing: 0.05em; text-transform: uppercase; display: flex; align-items: center; gap: 7px"><span aria-hidden="true" style="width: 8px; height: 8px; background: #E82C26; flex: none"></span>Two USB MIDI ports</h2>
+<table style="width: 100%; border-collapse: collapse">
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">1 · music</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0"><b>SPIDER SMK-37</b>: keys (CHANNEL, 1 to start), drum pads (ch 10), wheels, the NAV knobs (ch 16), clock. As DEFAULT; LOCAL as always</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; font-weight: 700; white-space: nowrap">2 · control</th><td style="vertical-align: top; padding: 1px 6px">Windows: <b>MIDIIN2 / MIDIOUT2 (SPIDER SMK-37)</b>; macOS, Linux: <b>SPIDER DAW</b>. Mackie Control both ways; never plays SPIDER</td></tr>
+</table>
+</section>
+
+<section style="border: 1px solid #151515">
+<h2 style="margin: 0; padding: 2px 8px; background: #151515; color: #FFFFFF; font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 15px; line-height: 17px; letter-spacing: 0.05em; text-transform: uppercase; display: flex; align-items: center; gap: 7px"><span aria-hidden="true" style="width: 8px; height: 8px; background: #E82C26; flex: none"></span>8 Knobs</h2>
+<table style="width: 100%; border-collapse: collapse">
+<tr><th colspan="2" scope="colgroup" style="text-align: left; padding: 1px 6px; background: #EBEBEB; border-bottom: 1px solid #B8B8B8; font-weight: 700">KNOB BANK unlit: MIX</th></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #B8B8B8; font-weight: 700; white-space: nowrap">K1–K8</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #B8B8B8">V-pots: the pan of strips 1–8 (with FX's flip: volume)</td></tr>
+<tr><th colspan="2" scope="colgroup" style="text-align: left; padding: 1px 6px; background: #EBEBEB; border-bottom: 1px solid #B8B8B8; font-weight: 700">KNOB BANK lit: NAV (K2–K6, K8: port 1, ch 16, learnt in REAPER)</th></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">K1</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">Jog: the edit cursor (with PARA's scrub: scrubs)</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">K2 · CC 102</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">View: Scroll horizontally</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">K3 · CC 103</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">View: Zoom horizontally</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">K4 · CC 104</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">View: Scroll vertically</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">K5 · CC 105</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">View: Zoom vertically. K2–K5: the <i>MIDI CC relative/mousewheel</i> actions, mode <b>Relative 2</b></td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">K6 · CC 106 / 107</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">Track: Go to previous / next track</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">K7</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">The marker before / after (Mackie's &lt;&lt; &gt;&gt;: nothing to learn)</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; font-weight: 700; white-space: nowrap">K8 · CC 111</th><td style="vertical-align: top; padding: 1px 6px">Anticlockwise: undo. Clockwise: CC 111, learn Edit: Redo</td></tr>
+</table>
+</section>
+
+<section style="border: 1px solid #151515; flex: 1">
+<h2 style="margin: 0; padding: 2px 8px; background: #151515; color: #FFFFFF; font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 15px; line-height: 17px; letter-spacing: 0.05em; text-transform: uppercase; display: flex; align-items: center; gap: 7px"><span aria-hidden="true" style="width: 8px; height: 8px; background: #E82C26; flex: none"></span>4 Faders + 2 Wheels</h2>
+<table style="width: 100%; border-collapse: collapse">
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">Faders 1–4</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">Volume of strips 1–4; FADER BANK lit: 5–8. With FX's flip: pan</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">Pick-up</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">A fader waits until it crosses REAPER's value (the screen says up or down), then follows: nothing jumps</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; font-weight: 700; white-space: nowrap">Wheels</th><td style="vertical-align: top; padding: 1px 6px">Pitch bend and CC 1 on port 1, as DEFAULT</td></tr>
+</table>
+</section>
+
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+
+<section style="border: 1px solid #151515">
+<h2 style="margin: 0; padding: 2px 8px; background: #151515; color: #FFFFFF; font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 15px; line-height: 17px; letter-spacing: 0.05em; text-transform: uppercase; display: flex; align-items: center; gap: 7px"><span aria-hidden="true" style="width: 8px; height: 8px; background: #E82C26; flex: none"></span>Buttons</h2>
+<table style="width: 100%; border-collapse: collapse">
+<tr><th scope="col" style="text-align: left; padding: 1px 6px; background: #EBEBEB; border-bottom: 1px solid #B8B8B8; font-weight: 700">SMK-37</th><th scope="col" style="text-align: left; padding: 1px 6px; background: #EBEBEB; border-bottom: 1px solid #B8B8B8; font-weight: 700">In REAPER</th></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">PLAY</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">Play; while REAPER plays, stop</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">REC</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">Record</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">NOTE REPEAT</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">Loop on / off</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">ARP</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">Metronome (click)</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">FX</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">Flip: the faders on pan, the knobs on volume</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">PARA</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">Scrub: K1's jog scrubs</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">SCALE</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">Add a marker</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">CHORD</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">Undo</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">BT</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">Save the project</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">&lt; / &gt;</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">The strips by 8 (GLOBE held: by 1), when let go</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">&lt; + &gt;</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">DAW mode off: SPIDER again</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">SEQ</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">The pads' page: DRUMS → MIXER → ACTIONS</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">GLOBE</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">Held: shift (MIXER's pads arm and solo; &lt; &gt; by 1)</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">PATCH</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">Tapped: LOCAL (keys and drum pads play SPIDER too). Held: K5 CHANNEL · K6 CC MAP · K7 ABS / REL · K8 key velocity</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; font-weight: 700; white-space: nowrap">OCT− / OCT+</th><td style="vertical-align: top; padding: 1px 6px">The keys' octave, ±3; both: 0</td></tr>
+</table>
+</section>
+
+<section style="border: 1px solid #151515">
+<h2 style="margin: 0; padding: 2px 8px; background: #151515; color: #FFFFFF; font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 15px; line-height: 17px; letter-spacing: 0.05em; text-transform: uppercase; display: flex; align-items: center; gap: 7px"><span aria-hidden="true" style="width: 8px; height: 8px; background: #E82C26; flex: none"></span>Lit when</h2>
+<table style="width: 100%; border-collapse: collapse">
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">PLAY</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">REAPER plays</td><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; border-left: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">REC</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">it records</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">NOTE REPEAT</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">loop on</td><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; border-left: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">ARP</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">click on</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">FX</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">flipped</td><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; border-left: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">PARA</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">scrub on</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">CHORD</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">undo (a flash)</td><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; border-left: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">BT</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">saved (1 s)</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">SEQ</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">not on DRUMS</td><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; border-left: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">PATCH</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">LOCAL on</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; font-weight: 700; white-space: nowrap">KNOB BANK</th><td style="vertical-align: top; padding: 1px 6px">NAV</td><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-left: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">FADER BANK</th><td style="vertical-align: top; padding: 1px 6px">strips 5–8</td></tr>
+</table>
+</section>
+
+<section style="border: 1px solid #151515; flex: 1">
+<h2 style="margin: 0; padding: 2px 8px; background: #151515; color: #FFFFFF; font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 15px; line-height: 17px; letter-spacing: 0.05em; text-transform: uppercase; display: flex; align-items: center; gap: 7px"><span aria-hidden="true" style="width: 8px; height: 8px; background: #E82C26; flex: none"></span>The screen</h2>
+<table style="width: 100%; border-collapse: collapse">
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">Top</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">REAPER: playing, stopped or recording, loop, click; the time (bars.beats.ticks or min:sec.ms)</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">Strips</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">Eight in two rows of four: name, pan mark, meter. The faders' row framed, the selected strip filled. Red dot: armed. Amber: soloed. Faint name: muted</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; font-weight: 700; white-space: nowrap">Bottom</th><td style="vertical-align: top; padding: 1px 6px">TRACKS 1–8 · PADS and their page · MIX or NAV · OCT; the control touched last and what it did</td></tr>
+</table>
+</section>
+
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+
+<section style="border: 1px solid #151515">
+<h2 style="margin: 0; padding: 2px 8px; background: #151515; color: #FFFFFF; font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 15px; line-height: 17px; letter-spacing: 0.05em; text-transform: uppercase; display: flex; align-items: center; gap: 7px"><span aria-hidden="true" style="width: 8px; height: 8px; background: #E82C26; flex: none"></span>16 Pads: SEQ turns the page</h2>
+<div style="padding: 5px 7px 7px; display: flex; flex-direction: column; gap: 4px">
+<div style="font-weight: 700">DRUMS (SEQ unlit): notes on ch 10, as DEFAULT</div>
+<div aria-hidden="true" style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 3px">
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #C9D6FF; display: flex; align-items: center; justify-content: center; font-weight: 700">44</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #C9D6FF; display: flex; align-items: center; justify-content: center; font-weight: 700">45</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #C9D6FF; display: flex; align-items: center; justify-content: center; font-weight: 700">46</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #C9D6FF; display: flex; align-items: center; justify-content: center; font-weight: 700">47</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #C9D6FF; display: flex; align-items: center; justify-content: center; font-weight: 700">48</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #C9D6FF; display: flex; align-items: center; justify-content: center; font-weight: 700">49</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #C9D6FF; display: flex; align-items: center; justify-content: center; font-weight: 700">50</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #C9D6FF; display: flex; align-items: center; justify-content: center; font-weight: 700">51</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #C9D6FF; display: flex; align-items: center; justify-content: center; font-weight: 700">36</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #C9D6FF; display: flex; align-items: center; justify-content: center; font-weight: 700">37</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #C9D6FF; display: flex; align-items: center; justify-content: center; font-weight: 700">38</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #C9D6FF; display: flex; align-items: center; justify-content: center; font-weight: 700">39</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #C9D6FF; display: flex; align-items: center; justify-content: center; font-weight: 700">40</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #C9D6FF; display: flex; align-items: center; justify-content: center; font-weight: 700">41</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #C9D6FF; display: flex; align-items: center; justify-content: center; font-weight: 700">42</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #C9D6FF; display: flex; align-items: center; justify-content: center; font-weight: 700">43</div>
+</div>
+<div>Blue. With LOCAL the bottom row plays SPIDER's kit too</div>
+<div style="font-weight: 700; margin-top: 3px">MIXER (SEQ lit): strips 1–8</div>
+<div aria-hidden="true" style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 3px">
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 700">SEL</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 700">SEL</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 700">SEL</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 700">SEL</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 700">SEL</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 700">SEL</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 700">SEL</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 700">SEL</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FFB3AB; display: flex; align-items: center; justify-content: center; font-weight: 700">MUTE</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FFB3AB; display: flex; align-items: center; justify-content: center; font-weight: 700">MUTE</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FFB3AB; display: flex; align-items: center; justify-content: center; font-weight: 700">MUTE</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FFB3AB; display: flex; align-items: center; justify-content: center; font-weight: 700">MUTE</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FFB3AB; display: flex; align-items: center; justify-content: center; font-weight: 700">MUTE</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FFB3AB; display: flex; align-items: center; justify-content: center; font-weight: 700">MUTE</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FFB3AB; display: flex; align-items: center; justify-content: center; font-weight: 700">MUTE</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #FFB3AB; display: flex; align-items: center; justify-content: center; font-weight: 700">MUTE</div>
+</div>
+<div>Top: select (white). Bottom: mute (red). Bright: on. <b>GLOBE held:</b> top arm (red), bottom solo (amber, blinking as REAPER sends it). Dark: no track there</div>
+<div style="font-weight: 700; margin-top: 3px">ACTIONS (SEQ lit): yours to learn</div>
+<div aria-hidden="true" style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 3px">
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #DCCBFF; display: flex; align-items: center; justify-content: center; font-weight: 700">F1</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #DCCBFF; display: flex; align-items: center; justify-content: center; font-weight: 700">F2</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #DCCBFF; display: flex; align-items: center; justify-content: center; font-weight: 700">F3</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #DCCBFF; display: flex; align-items: center; justify-content: center; font-weight: 700">F4</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #DCCBFF; display: flex; align-items: center; justify-content: center; font-weight: 700">F5</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #DCCBFF; display: flex; align-items: center; justify-content: center; font-weight: 700">F6</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #DCCBFF; display: flex; align-items: center; justify-content: center; font-weight: 700">F7</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #DCCBFF; display: flex; align-items: center; justify-content: center; font-weight: 700">F8</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #DCCBFF; display: flex; align-items: center; justify-content: center; font-weight: 700">V1</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #DCCBFF; display: flex; align-items: center; justify-content: center; font-weight: 700">V2</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #DCCBFF; display: flex; align-items: center; justify-content: center; font-weight: 700">V3</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #DCCBFF; display: flex; align-items: center; justify-content: center; font-weight: 700">V4</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #DCCBFF; display: flex; align-items: center; justify-content: center; font-weight: 700">V5</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #DCCBFF; display: flex; align-items: center; justify-content: center; font-weight: 700">V6</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #DCCBFF; display: flex; align-items: center; justify-content: center; font-weight: 700">V7</div>
+<div style="height: 18px; border: 1px solid #151515; border-radius: 3px; background: #DCCBFF; display: flex; align-items: center; justify-content: center; font-weight: 700">V8</div>
+</div>
+<div>Purple. Mackie's F1–F8 and its eight view buttons: REAPER hands them to its action list, so learn each to any action</div>
+</div>
+</section>
+
+<section style="border: 1px solid #151515">
+<h2 style="margin: 0; padding: 2px 8px; background: #151515; color: #FFFFFF; font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 15px; line-height: 17px; letter-spacing: 0.05em; text-transform: uppercase; display: flex; align-items: center; gap: 7px"><span aria-hidden="true" style="width: 8px; height: 8px; background: #E82C26; flex: none"></span>Set up REAPER (once)</h2>
+<table style="width: 100%; border-collapse: collapse">
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">1</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0"><b>Preferences → Audio → MIDI Devices:</b> SPIDER SMK-37 in on (and <i>for control messages</i>), out on. MIDIIN2 / MIDIOUT2: leave off here</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">2</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0"><b>Preferences → Control/OSC/web → Add → Mackie Control Universal:</b> in MIDIIN2, out MIDIOUT2 (SPIDER SMK-37). <i>Map F1–F8 to markers</i>: off</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">3</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0"><b>Actions → Show action list:</b> pick an action, Add…, turn the NAV knob or press the ACTIONS pad. K2–K5: mode Relative 2</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; font-weight: 700; white-space: nowrap">4</th><td style="vertical-align: top; padding: 1px 6px"><b>Tracks you record:</b> input SPIDER SMK-37, channel 1 (keys) or 10 (pads), not all channels, so NAV's ch 16 stays out of takes</td></tr>
+</table>
+</section>
+
+<section style="border: 1px solid #151515; flex: 1">
+<h2 style="margin: 0; padding: 2px 8px; background: #151515; color: #FFFFFF; font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif; font-weight: 700; font-size: 15px; line-height: 17px; letter-spacing: 0.05em; text-transform: uppercase; display: flex; align-items: center; gap: 7px"><span aria-hidden="true" style="width: 8px; height: 8px; background: #E82C26; flex: none"></span>SPIDER in time with REAPER</h2>
+<table style="width: 100%; border-collapse: collapse">
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0; font-weight: 700; white-space: nowrap">Set</th><td style="vertical-align: top; padding: 1px 6px; border-bottom: 1px solid #D0D0D0">Out of DAW mode, CLOCK on receive (GLOBE, Setup; the default). REAPER's MIDI Devices, the SPIDER SMK-37 out: <i>Send clock</i> (and SPP)</td></tr>
+<tr><th scope="row" style="text-align: left; vertical-align: top; padding: 1px 6px; font-weight: 700; white-space: nowrap">Then</th><td style="vertical-align: top; padding: 1px 6px">Play from anywhere in REAPER: SPIDER starts each track at the step it would be on there, and the bar count with it</td></tr>
+</table>
+</section>
+
+</div>
+
+</main>
+
+<footer style="display: flex; justify-content: space-between; gap: 16px; font-size: 12px; line-height: 14px; color: #555555; border-top: 1px solid #B8B8B8; padding-top: 4px">
+<span>SPIDER's side: app/smk_mcu.h · REAPER's: its SDK's reaper_csurf/csurf_mcu.cpp · every detail: SMK37.md, The REAPER profile</span>
+<span>Two-sided: flip on the short edge</span>
 </footer>
 
 </div>
