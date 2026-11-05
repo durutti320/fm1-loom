@@ -178,6 +178,33 @@ int main(void)
         daw_store_take(b, sizeof s);
         check(daw_ch == 1, "a channel out of range: 1");
     }
+    /* ---- KEY VELOCITY: kept in rsv (+ 1); none (older data) or out of range: NORMAL ---- */
+    {
+        daw_store_t s;
+        uint8_t b[sizeof s];
+        daw_kv = KV_LIGHTER;
+        daw_store_fill(&s);
+        memcpy(b, &s, sizeof s);
+        daw_kv = KV_HEAVY;
+        check(daw_store_take(b, sizeof s) && daw_kv == KV_LIGHTER && KV_TOUCH[daw_kv] == 6, "KEY VELOCITY: round trip");
+        b[7] = 0;
+        daw_store_take(b, sizeof s);
+        check(daw_kv == KV_NORMAL && KV_TOUCH[KV_NORMAL] == 4, "older data (rsv 0): NORMAL, the touch four");
+        b[7] = KV_N + 1;
+        daw_kv = KV_HEAVY;
+        daw_store_take(b, sizeof s);
+        check(daw_kv == KV_NORMAL, "out of range: NORMAL");
+        check(daw_kv_vel(80) == 80 && daw_kv_vel(0) == 0, "a touch: the velocity as played");
+        daw_kv = KV_FIX100;
+        check(daw_kv_vel(12) == 100 && daw_kv_vel(0) == 0, "FIXED 100: every press 100, a let-go stays 0");
+        daw_kv = KV_FIX127;
+        check(daw_kv_vel(1) == 127, "FIXED 127");
+        daw_kv = KV_NORMAL;
+        int up = 1;
+        for (int i = 1; i < KV_FIX100; i++)
+            up &= KV_TOUCH[i] > KV_TOUCH[i - 1];
+        check(up && KV_TOUCH[KV_HEAVY] == 1, "the touches rise, HEAVY the earlier builds' reading");
+    }
     {
         char n[20];
         daw_name(DAW_KNOB0 + 10, n);

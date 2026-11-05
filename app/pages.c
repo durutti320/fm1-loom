@@ -330,7 +330,11 @@ enum { A_CLEAR_NOTES, A_CLEAR_LOCKS, A_CLEAR_BOTH, A_COPY_PAT, A_PASTE_PAT, A_RO
        A_KIT, A_SAVE_KIT, A_MIDI_CC, A_USB_HOST, A_BT_MIDI, A_BT_AUDIO, A_BT_ADEV, A_BT_DEVICE, A_BT_DEV, A_BT_LOOK,
        A_BT_FORGET, A_BT_DISCONNECT, A_CLEAR, A_ROTATE, A_PASTE, A_COPY_EMPTY, A_CLEAR_BAR,
        A_COPY_SOUND, A_PASTE_SOUND, A_COPY_KEY, A_PASTE_KEY, A_COPY_SCENE, A_PASTE_SCENE, A_DUP_SLOT, A_KIT_FILTER,
-       A_SHIFT, A_LARGE_TYPE, A_CC_IN, A_FX_WIDTH, A_RHYTHM, A_RHYTHM_KIT, NACTIONS };
+       A_SHIFT, A_LARGE_TYPE, A_CC_IN, A_FX_WIDTH, A_RHYTHM, A_RHYTHM_KIT,
+#if BOARD_SMK37
+       A_KEY_VEL,
+#endif
+       NACTIONS };
 static const char *const ACTION_NAME[NACTIONS] = {
     "CLEAR NOTES", "CLEAR LOCKS", "CLEAR NOTES AND LOCKS", "COPY PATTERN", "PASTE PATTERN", "ROTATE FORWARD",
     "ROTATE BACK", "DUPLICATE BAR", "ENGINE", "PRESET", "SCRAMBLE", "SAVE AS PRESET", "RESET SOUND", "FOLLOWS CONDUCTOR",
@@ -342,7 +346,14 @@ static const char *const ACTION_NAME[NACTIONS] = {
     "USB PORT", "BT MIDI", "BT AUDIO", "AUDIO DEVICE", "MIDI DEVICE", "DEVICE", "LOOK AGAIN", "FORGET", "DISCONNECT",
     "CLEAR", "ROTATE", "PASTE", "COPY TO EMPTY", "CLEAR BAR", "COPY SOUND", "PASTE SOUND", "COPY DRUM", "PASTE DRUM",
     "COPY SCENE", "PASTE SCENE", "DUPLICATE SLOT", "KIT FILTER", "SHIFT NOTES", "LARGE TYPE", "CC IN", "PING WIDTH", "RHYTHM",
-    "RHYTHM + KIT"};
+    "RHYTHM + KIT",
+#if BOARD_SMK37
+    "KEY VELOCITY",
+#endif
+};
+#if BOARD_SMK37
+static void lsmk_list_keys(void);                    /* (smk37.c: Setup's KEY VELOCITY rows) */
+#endif
 static const char *const CLEAR_WHAT[3] = {"notes", "locks", "notes and locks"};
 /* a pick ALGORITHM sets at once (a setting: SEL only leaves the list), as against a choice SEL then carries out */
 static int pick_sets(int a)
@@ -352,6 +363,9 @@ static int pick_sets(int a)
     case A_FX_HP: case A_FX_LP: case A_FX_SEND: case A_PUMP_BY: case A_PUMP_REL: case A_PUMP_ACC: case A_LEVEL:
     case A_SCENE_AT: case A_AUTOSAVE: case A_MIDI_OUT: case A_LOOP_FREE: case A_CC_OUT: case A_SCENES_OUT: case A_MIDI_CC:
     case A_USB_HOST: case A_KIT_FILTER: case A_CC_IN: case A_FX_WIDTH:
+#if BOARD_SMK37
+    case A_KEY_VEL:
+#endif
         return 1;
     default:
         return 0;
@@ -1063,6 +1077,11 @@ static void draw_header(void)
     h = hash_u(h, (uint32_t)cnt | (uint32_t)playing() << 8 | (uint32_t)is_drum(sel_trk()) << 9 |
                       (uint32_t)page_trk(ui.page) << 10 | (uint32_t)trk_ink(page_trk(ui.page)) << 16);
     h = hash_u(h, (uint32_t)cur_scene() | (uint32_t)seq.rec_wait << 8);
+#if BOARD_SMK37
+    int rbeats = seq.rec_at_bar && !seq.rec && playing() ?   /* REC tapped twice: the beats before its bar line */
+                     (seq_six_to_bar(&seq) + 16 * (seq.rec_at_bar - 1) + 4) / 4 : 0;
+    h = hash_u(h, (uint32_t)rbeats);
+#endif
     if (msg)
         h = hash_u(h, ui.msg_until ^ (uint32_t)ui.msg_no << 31);
     if (ask)
@@ -1096,6 +1115,13 @@ static void draw_header(void)
         num_s((uint32_t)cnt, t);
         cv_text(x + 8, 4, &FONT_B, t, K_REC);
         cv_round(222, 8, 9, 9, 4, K_REC);
+#if BOARD_SMK37
+    } else if (rbeats) {
+        int32_t x = cv_text(8, 4, &FONT_B, "Recording in", K_TEXT);
+        num_s((uint32_t)rbeats, t);
+        cv_text(x + 8, 4, &FONT_B, t, K_REC);
+        cv_round(222, 8, 9, 9, 4, K_REC);
+#endif
     } else if (msg) {
         int no = ui.msg_no;
 #if defined(PLAT_HOST) && !defined(PLAT_WEB)
@@ -3117,6 +3143,9 @@ static void list_setup(int g)
     list_add(ACTION_NAME[A_CC_IN], proj.rsv[3] & CC_IN_ENDLESS ? "endless" : "absolute", LK_PICK, A_CC_IN);
     list_add(ACTION_NAME[A_CC_OUT], proj.rsv[2] & CC_OUT_OFF ? "off" : "on", LK_PICK, A_CC_OUT);
     list_add(ACTION_NAME[A_SCENES_OUT], proj.rsv[2] & SCENES_OUT ? "on" : "off", LK_PICK, A_SCENES_OUT);
+#if BOARD_SMK37
+    lsmk_list_keys();                                /* KEY VELOCITY, the last key's reading */
+#endif
     list_head("LOOM-8");
     list_page_knobs(P_SETUP, 9u);                    /* LIGHTS, THEME */
     list_add(ACTION_NAME[A_LARGE_TYPE], !large_type() ? "off" : lt_ok ? "on" : "on: reinstall", LK_PICK, A_LARGE_TYPE);

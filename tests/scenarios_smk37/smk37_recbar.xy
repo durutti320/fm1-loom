@@ -1,0 +1,123 @@
+# SEQ REC tapped twice (app/ui.c rec_twice): live recording, counted in. Stopped: the first tap's step record undone,
+# a bar of count-in (COUNT-IN off), then the transport from step 1, recording; a key in the count-in's last half step
+# lands on step 1. Playing: recording from the next bar line, the rest of the bar the count-in (less than a beat of it
+# left: the bar after); a key half a sixteenth early lands on the bar's first step, one earlier is only heard; a REC
+# press while it waits turns it off. The count-in clicks with the metronome off, and only the count-in does.
+# (120 BPM: a sixteenth 125 ms, a bar 2000 ms; times from PLAY's press)
+wait 300
+listen
+turn ALGO 1
+expect trk 2
+# REC held + K1: the metronome off (it was "while recording")
+press REC
+turn K1 -2
+release REC
+wait 500
+expect clicks 0
+# stopped: tap, tap (the second's press: t 0 of the count-in)
+tap REC
+wait 60
+expect steprec 1
+tap REC
+said COUNT-IN
+wait 20
+expect steprec 0
+expect playing 1
+expect rec 1
+expect countin 1
+wait 1850
+expect countin 1
+# t 1950, a key just before the count-in ends: step 1
+key 0 down
+wait 60
+key 0 up
+wait 40
+expect countin 0
+# t 2494: step 5
+wait 440
+key 2 down
+wait 60
+key 2 up
+wait 1000
+# the count-in's four beats and the bar's first, nothing after (the metronome off)
+expect clicks 5
+tap PLAY
+expect playing 0
+expect note 2 1 1 53
+expect note 2 1 5 55
+# playing, on T3 (an empty pattern): tap, tap at the bar's sixth sixteenth (t 720): recording from the next bar line
+# (t 2000)
+turn ALGO 1
+expect trk 3
+tap PLAY
+wait 500
+tap REC
+wait 60
+tap REC
+said RECORDING
+expect recatbar 1
+expect rec 0
+# while it waits: heard, not recorded (t 800)
+key 5 down
+wait 60
+key 5 up
+wait 1038
+# t 1900, 100 ms before the line: heard only
+key 7 down
+wait 30
+key 7 up
+expect rec 0
+wait 28
+# t 1965, 35 ms before the line: it starts the recording, on step 1
+key 4 down
+wait 10
+expect rec 1
+expect recatbar 0
+wait 20
+key 4 up
+wait 500
+# t 2490: step 5
+key 9 down
+wait 60
+key 9 up
+wait 200
+# the count-in's beats left (t 1000, 1500) and the line's (t 2000)
+expect clicks 3
+tap PLAY
+expect note 3 1 1 57
+expect note 3 1 5 62
+expect note 3 1 7 0
+expect note 3 1 16 0
+# less than a beat left (tapped at sixteenth 13): the bar after; a REC press while it waits: off
+tap PLAY
+wait 1500
+tap REC
+wait 60
+tap REC
+expect recatbar 2
+wait 500
+expect recatbar 1
+expect rec 0
+tap REC
+said RECORD OFF
+expect recatbar 0
+# (the first line's click, t 2000: the count-in had a bar to go)
+expect clicks 1
+wait 2200
+expect rec 0
+expect clicks 0
+tap PLAY
+expect playing 0
+# the metronome while recording again: a double tap's count-in clicks as before, and so does the recording
+press REC
+turn K1 1
+release REC
+wait 300
+expect clicks 0
+tap REC
+wait 60
+tap REC
+wait 3860
+expect clicks 8
+tap PLAY
+expect playing 0

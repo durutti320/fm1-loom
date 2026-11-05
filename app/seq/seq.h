@@ -321,6 +321,11 @@ typedef struct {
     uint16_t rp_mask;                 /* the keys (bit k: key k + 1) */
     uint8_t rp_trk, rp_rate, rp_vel[NDRUM];
     uint32_t rp_to_next;              /* Q8 samples to the next repeat (NEVER: none) */
+    /* REC tapped twice (app/ui.c rec_twice): playing, recording latches on at a bar line, the rest of the bar before
+     * it the count-in (rec_at_bar: the bar lines still to come, 0 none; a key within half a sixteenth of that line
+     * starts it and lands on the bar's first step); cin_click: a count-in (this one, or count_in's from a stop)
+     * clicks whatever the metronome says, until the recording begins */
+    volatile uint8_t rec_at_bar, cin_click;
 #endif
 } seq_t;
 
@@ -369,6 +374,9 @@ void seq_punch_key(seq_t *s, int fx, int on, int target_trk);
 /* note repeat: key (1..NDRUM) of kit trk held (on) or let go, its velocity; key 0: the rate is vel (SEQ_RP_*) */
 enum { SEQ_RP_4, SEQ_RP_8, SEQ_RP_8T, SEQ_RP_16, SEQ_RP_16T, SEQ_RP_32, SEQ_RP_32T, SEQ_RP_64, NSEQ_RP };
 void seq_repeat(seq_t *s, int trk, int key, int on, int vel);
+/* playing: the sixteenths still to pass before the next bar line (the metronome's accent: every 16, and where track 1's
+ * span starts again); 0: the next sixteenth is the bar's first */
+int seq_six_to_bar(const seq_t *s);
 #endif
 int punch_group_of(const seq_t *s, int trk);        /* 0 percussive (a drumline or slice track), 1 melodic */
 uint32_t seq_punch_mask(const seq_t *s, int trk);   /* the 12 PX_* bits in force on track trk now (held keys aimed at

@@ -114,7 +114,9 @@ static int ordinal(const uint8_t *t, int n, int k)
 }
 static int key_note(int k) { return KEY_BASE + k + ui.oct * 12; }
 #if BOARD_SMK37                                  /* the M-VAVE SMK-37's panel (smk37.c, after this file) */
-#define KEY_VEL(k) ((int)plat_key_vel(k))       /* its keys' velocity, from the unit's own curves */
+static int lsmk_key_vel(int k);
+#define KEY_VEL(k) lsmk_key_vel(k)               /* its keys' velocity, from the unit's own curves at KEY VELOCITY */
+static void lsmk_kv_step(int d);
 static void lsmk_poll(void);
 static uint32_t lsmk_pad_keys(void);
 static uint32_t lsmk_padk;                       /* the white keys this pass that are pads (Steps' cells), not the keybed */
@@ -589,6 +591,10 @@ static void rec_off(void)
 {
     ui.rec_latched = 0;
     ui.rec_held = 0;
+#if BOARD_SMK37
+    seq.rec_at_bar = 0;                          /* (REC tapped twice, still waiting for its bar line) */
+    seq.cin_click = 0;
+#endif
     if (seq.rec || seq.rec_wait)
         rec_end();
 }
@@ -686,11 +692,56 @@ static void rec_up(void)
         rec_end();
     ui.rec_held = 0;
 }
+#if BOARD_SMK37
+/* SEQ REC tapped twice (the second press within REC_TWICE_MS of the first): live recording, counted in. Stopped: a
+ * count-in (REC's COUNT-IN: 1 or 2 bars; off or ON NOTE: a bar), then the transport from step 1, recording, as REC +
+ * PLAY (the first tap's step record undone). Playing: recording latches on at the next bar line, the rest of this bar
+ * the count-in (less than a beat of it left: the bar after); a key half a sixteenth early lands on the bar's first step.
+ * Either way the count-in clicks, metronome or not (after it, the metronome as set). A REC press while it waits: off */
+#define REC_TWICE_MS 400u
+static uint32_t rec_first_t;                     /* the last press that could be a double tap's first (0: none): a
+                                                  * tap of REC alone (held long, a knob turned, another button
+                                                  * pressed with it: none) */
+static int rec_twice(void)                       /* REC pressed: 1 when it was the second of two (and done here) */
+{
+    uint32_t now = plat_ms() | 1u;
+    int second = rec_first_t && now - rec_first_t < REC_TWICE_MS;
+    rec_first_t = playing() && (ui.rec_latched || seq.rec_at_bar) ? 0u : now;   /* (a press that turns recording
+                                                                                 * off starts nothing) */
+    if (!second)
+        return 0;
+    rec_first_t = 0;
+    if (!playing()) {
+        int cin = count_in();
+        ui.rec_armed = 0;                        /* (the first tap's step record) */
+        ui.rec_latched = 1;
+        if (ui.page != P_SONG)
+            seq.song_on = 0;
+        undo_pat(sel_trk(), cur_pat(sel_trk()), UNDO_REC_MS);
+        seq.count_in = (uint8_t)(cin == 1 || cin == 2 ? cin : 1);
+        seq.cin_click = 1;
+        seq_rec(&seq, 1);
+        say("COUNT-IN", "then recording");
+        engine_transport(3);
+        return 1;
+    }
+    rec_off();                                   /* (the first tap's moment of recording, if it is still on) */
+    undo_pat(sel_trk(), cur_pat(sel_trk()), UNDO_REC_MS);
+    ui.rec_latched = 1;
+    seq.cin_click = 1;
+    seq.rec_at_bar = (uint8_t)(seq_six_to_bar(&seq) < 4 ? 2 : 1);
+    say("RECORDING", "from the next bar");
+    return 1;
+}
+#endif
 /* REC held: the knobs are the record settings (turning one means the release does nothing else) */
 static void rec_knob(int k, int32_t e)
 {
     int trk = sel_trk();
     ui.btn_used |= 1u << B_REC;
+#if BOARD_SMK37
+    rec_first_t = 0;
+#endif
     if (k == 0) {
         proj.metronome = (uint8_t)clampi(proj.metronome + e, 0, 2);
         engine_metronome(proj.metronome);
@@ -2696,6 +2747,11 @@ static void list_change_do(int32_t e)
             proj.rsv[3] = (uint8_t)(d > 0 ? proj.rsv[3] | CC_IN_ENDLESS : proj.rsv[3] & ~CC_IN_ENDLESS);
             mark_dirty();
             break;
+#if BOARD_SMK37
+        case A_KEY_VEL:                          /* (the SMK's own setting, kept with DAW mode's: not the project's) */
+            lsmk_kv_step(d);
+            break;
+#endif
         default: break;
         }
         break;
@@ -3747,6 +3803,9 @@ static void action_run(int a)
     case A_FX_SEND: case A_PUMP_BY: case A_PUMP_REL: case A_PUMP_ACC: case A_LEVEL: case A_SCENE_AT: case A_AUTOSAVE:
     case A_MIDI_OUT: case A_LOOP_FREE: case A_CC_OUT: case A_SCENES_OUT: case A_MIDI_CC: case A_USB_HOST: case A_KIT_FILTER:
     case A_CC_IN: case A_FX_WIDTH:
+#if BOARD_SMK37
+    case A_KEY_VEL:
+#endif
         return;   /* (ALGORITHM sets them; SEL
                                                                                     * leaves the list) */
     case A_REMOVE_NOTE: act_remove_note(lst.sel); break;
@@ -3905,6 +3964,10 @@ static void input(void)
                 ui.btn_used |= m;
                 continue;
             }
+#if BOARD_SMK37
+            if (i != B_REC && (btn >> B_REC & 1u))
+                rec_first_t = 0;                    /* (REC + another: not a tap of REC) */
+#endif
             if ((i == B_REC || i == B_PLAY) && home_held() && !ui.ask) {
                 do_undo(i == B_PLAY);
                 ui.btn_used |= m | 1u << B_HOME;
@@ -3954,6 +4017,12 @@ static void input(void)
                 ui.btn_used |= m;
                 continue;
             }
+#if BOARD_SMK37
+            if (i == B_REC && !ui.ask && rec_twice()) {
+                ui.btn_used |= m;
+                continue;
+            }
+#endif
             if (i == B_REC && playing() && !ui.ask) {
                 rec_down();
                 continue;
@@ -3963,6 +4032,10 @@ static void input(void)
         } else {
             if (ui.card == i + 1u)
                 ui.card = 0;
+#if BOARD_SMK37
+            if (i == B_REC && plat_ms() - ui.btn_t[B_REC] >= REC_TAP_MS)
+                rec_first_t = 0;                    /* (held: not a tap) */
+#endif
             if (i == B_REC && ui.rec_held) {
                 rec_up();
                 continue;
@@ -4056,6 +4129,10 @@ static void leds(void)
         b |= 1u << B_PLAY;
     if (rec)
         b |= 1u << B_REC;
+#if BOARD_SMK37
+    if (seq.rec_at_bar && !seq.rec && (seq.bar16 & 3u) < 2u)   /* waiting for its bar line: REC blinks in time */
+        b |= 1u << B_REC;
+#endif
     if (ui.dirty)
         b |= 1u << B_SAVE;
     for (i = 0; i < NPAGE_BTN; i++)
