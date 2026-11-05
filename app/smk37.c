@@ -11,7 +11,7 @@
  *               (the top row) mute T1-T8 (a tap; held: solo; two taps: a solo that stays), lit while the track plays; pads 9-16 (the bottom row) the drums: the kit's
  *               first eight sounds, whatever track is selected (the kit: the track selected if it is one, else the
  *               kit selected last, else the first), with velocity, recorded into the kit while recording
- *   NOTE REPEAT tapped: note repeat on / off (lit): the drum pads held sound again in time (seq.c rp_*: on the
+ *   NOTE REPEAT tapped: note repeat on / off (lit): the drum pads held sound again in time (seq.c lrp_*: on the
  *               grid while playing, and recorded while recording); held: pads 1-8 pick its rate (1/4 1/8 1/8T 1/16
  *               1/16T 1/32 1/32T 1/64, lit while held; a pick turns it on); held and let go alone: the LFO page (the
  *               FM-1's LFO button, where the SMK prints NOTE REPEAT)
@@ -30,7 +30,8 @@
  * module for the DAW). The keys notes on CHANNEL (OCT- / OCT+ the octave, both: 0); K1..K8 (KNOB BANK: A / B), the
  * faders (FADER BANK: A / B), the pads (KNOB BANK + FADER BANK together: A / B), 13 buttons and the wheels what the map
  * says. K1 is a knob here, not the volume. < and > send when let go. PATCH tapped: LOCAL (the keys, NOTE pads and
- * the pitch wheel also play LOOM-8). PATCH held: K5 CHANNEL, K6 CC MAP (DEFAULT / USER), K7 KNOBS (ABSOLUTE /
+ * the pitch wheel also play LOOM-8). PATCH held: K5 CHANNEL, K6 CC MAP (DEFAULT / USER / REAPER: Mackie Control on the
+ * second USB port, below), K7 KNOBS (ABSOLUTE /
  * RELATIVE), K8 KEY VELOCITY (as Setup's in LOOM-8: the keys' touch, or fixed); + OCT+ the map editor: touch a control, K5 its TYPE, K6 its NUMBER, K7 its CHANNEL; OCT+ the next
  * control, OCT- or PATCH done. Kept in flash (OBJ_DAW): the mode, the settings, the USER map. */
 
@@ -523,6 +524,8 @@ static struct {
     uint32_t sig[5];                    /* the screen's bands as drawn (0: draw) */
 } ld;
 
+static int lrp_active(void);                     /* (the REAPER profile, below) */
+static void lrp_say(const char *what, const char *v);
 static int lsmk_daw_ok(void) { return ld.edit == 0; }   /* the controls send (the editor: they pick) */
 static void lsmk_daw_tx(uint32_t i, uint32_t v)        /* entry i's message at v */
 {
@@ -639,6 +642,11 @@ static void lsmk_daw_key(int k, int vel)        /* k 0..36 (C3..C6), vel 0: let 
         ld.key_note[k] = (uint8_t)n;
         plat_midi_out(daw_note_pkt(daw_ch - 1u, (uint32_t)n, (uint32_t)vel));
         lsmk_daw_touch(DAW_KEYS, (uint32_t)n);
+        if (lrp_active()) {
+            char u[20];
+            num_s(daw_ch, s_cat(num_s((uint32_t)n, s_cat(u, "note ")), " ch "));
+            lrp_say("KEYS", u);
+        }
         if (daw_local && t >= 0 && t < NTRK) {
             int ln = is_drum(t) ? k % DL_NSOUND + 1 : n;
             ld.loc_trk[k] = (uint8_t)t;
@@ -714,6 +722,292 @@ static void lsmk_daw_pads(void)
     }
 }
 
+/* ---- the REAPER profile (CC MAP: REAPER; smk_mcu.h): a Mackie Control surface on the second USB port for REAPER's own
+ * "Mackie Control Universal" surface, the music on the first. The keys, the wheels and LOCAL as DEFAULT's. KNOB BANK:
+ * MIX (the V-pots: the strips' pan, FLIP their volume) or NAV (lit: K1 the jog, K2..K5 scroll and zoom as relative CCs
+ * 102..105 on channel 16, K6 the track before / after (CC 106 / 107), K7 the marker before / after (Mackie's << >>),
+ * K8 undo / redo (Mackie's UNDO / CC 111)). The faders the volumes of strips 1-4, FADER BANK 5-8, each once it
+ * crosses REAPER's value (a pick-up). SEQ the pads' page: DRUMS (notes 36..51 on channel 10, as DEFAULT's), MIXER
+ * (the top row selects strips 1-8, the bottom mutes them; GLOBE held: arm, solo), ACTIONS (F1..F8 and the eight view
+ * buttons: REAPER passes them to its action list, to learn). SEQ PLAY play (stop while REAPER plays), SEQ REC record,
+ * NOTE REPEAT loop, ARP the click, FX flip, PARA scrub, SCALE a marker, CHORD undo, BT save, < > the strips by 8
+ * (GLOBE held: by 1). The lights, the pads and the screen show what REAPER sends back; 3 s of nothing from it: waiting,
+ * and the query (F0 00 00 66 14 01 ..) every 3 s, which makes REAPER send everything again. */
+enum { RP_DRUMS, RP_MIXER, RP_ACTIONS, RP_NPAGE };
+static const char *const RP_PAGE_NAME[RP_NPAGE] = {"DRUMS", "MIXER", "ACTIONS"};
+#define RP_NAV_CH 15u                           /* NAV's CCs: channel 16, on the first port */
+#define RP_NAV_CC 102u                          /* K2..K5: 102..105 (relative, 64 +- the detents); K6 106 / 107; K8 111 */
+static mcu_t lrp_m;                              /* what REAPER sent */
+static struct {
+    uint8_t on;                                 /* the profile in use, last frame (its start: a fresh state, the query) */
+    uint8_t page;                               /* the pads: RP_* */
+    uint8_t pad_note[NPADS];                    /* the note a pad pressed sent (0xFF none), and where: 1 the DAW port */
+    uint8_t pad_daw[NPADS];
+    uint8_t play_note;                          /* SEQ PLAY pressed: PLAY or STOP (its let-go the same) */
+    uint8_t pick;                               /* the strips' faders that took REAPER's value (bit s: they send) */
+    uint8_t fb_seen;                            /* the fader bank the pick-ups are for */
+    uint16_t fsent[8];                          /* what a strip's fader sent last (MCU_NOFADER none), and when */
+    uint32_t fsent_t[8];
+    int32_t vacc[8], nacc[8];                   /* detents not sent yet: the V-pots; NAV's knobs (K1 the jog) */
+    uint32_t query_t, link;                     /* the query sent last (ms | 1); the USB connection it went on */
+    char last[20], lastv[32];                   /* the control touched last, what it did (the screen) */
+    uint32_t last_n;                            /* (counts the touches: the screen redraws on it) */
+    uint8_t drew;                               /* the screen as drawn: 1 REAPER's, 0 DAW mode's */
+} lrp;
+static int lrp_active(void) { return daw_on && daw_user == DAW_MAP_REAPER && !ld.edit; }
+static void lrp_tx(uint32_t pkt) { plat_midi_send(pkt, TO_USB2); }
+static void lrp_btn(uint32_t note, int on) { lrp_tx(mcu_note_pkt(note, (uint32_t)on)); }
+static void lrp_tap(uint32_t note)
+{
+    lrp_btn(note, 1);
+    lrp_btn(note, 0);
+}
+static void lrp_say(const char *what, const char *v)
+{
+    s_cat(lrp.last, what);
+    s_cat(lrp.lastv, v);
+    lrp.last_n++;
+}
+static void lrp_query(void)
+{
+    uint32_t p[4], k;
+    lrp.query_t = plat_ms() | 1u;
+    lrp.link = plat_midi_out_link();
+    if (plat_midi_out_room(TO_USB2) < 8u)
+        return;
+    mcu_query_pkts(p);
+    for (k = 0; k < 4u; k++)
+        lrp_tx(p[k]);
+}
+/* the second port's packets, every frame: REAPER's when the profile is in use, else dropped */
+static void lrp_input(void)
+{
+    uint32_t pkt, n = 0, now = plat_ms(), use = lrp_active() || (daw_on && daw_user == DAW_MAP_REAPER);
+    while (n++ < 1024u && plat_midi2_in(&pkt))
+        if (use)
+            mcu_in(&lrp_m, pkt, now);
+}
+/* a pad let go: its note off (where it went), LOCAL's sound off */
+static void lrp_pad_up(int p)
+{
+    if (lrp.pad_note[p] != 0xFFu) {
+        if (lrp.pad_daw[p])
+            lrp_btn(lrp.pad_note[p], 0);
+        else
+            plat_midi_out(daw_note_pkt(9u, lrp.pad_note[p], 0));
+        lrp.pad_note[p] = 0xFF;
+    }
+    if (ld.pad_loc[p]) {
+        engine_key(ld.pad_loc_trk[p], ld.pad_loc[p], 0, 0);
+        ld.pad_loc[p] = 0;
+    }
+}
+static void lrp_pads_up(void)
+{
+    int p;
+    for (p = 0; p < NPADS; p++)
+        lrp_pad_up(p);
+}
+static void lrp_unpick(void) { lrp.pick = 0; }
+/* every frame in the profile: its start, the query while waiting (and on a new USB connection), the meters' fall,
+ * the faders let go of when REAPER moved a strip on its own (automation, the mouse) */
+static void lrp_service(void)
+{
+    uint32_t now = plat_ms(), s;
+    if (!lrp.on) {
+        mcu_reset(&lrp_m);
+        for (s = 0; s < NPADS; s++)
+            lrp.pad_note[s] = 0xFF;
+        for (s = 0; s < 8u; s++)
+            lrp.fsent[s] = MCU_NOFADER, lrp.vacc[s] = lrp.nacc[s] = 0;
+        lrp.pick = 0;
+        lrp.fb_seen = ld.fb;
+        lrp.on = 1;
+        lrp.drew = 0xFF;
+        lrp_say("REAPER", "Mackie Control on SPIDER DAW");
+        lrp_query();
+    } else if ((!mcu_connected(&lrp_m, now) && now - (lrp.query_t & ~1u) >= MCU_SILENT_MS) ||
+               plat_midi_out_link() != lrp.link)
+        lrp_query();
+    mcu_tick(&lrp_m, now);
+    if (ld.fb != lrp.fb_seen) {                     /* (the other strips: each fader picks up again) */
+        lrp.fb_seen = ld.fb;
+        lrp.pick &= (uint8_t)~(15u << (4u * ld.fb));
+    }
+    for (s = 0; s < 8u; s++) {
+        uint32_t at = lrp_m.fpos[s], sent = lrp.fsent[s];
+        if (lrp.pick >> s & 1u && at != MCU_NOFADER && sent != MCU_NOFADER && now - lrp.fsent_t[s] > 500u &&
+            (at > sent + 512u || at + 512u < sent))
+            lrp.pick &= (uint8_t)~(1u << s);
+    }
+}
+
+/* a fader moved from was to v (0..127): its strip's volume, once it has crossed REAPER's value (or REAPER has not
+ * said one: at once) */
+static void lrp_fader(uint32_t f, uint32_t was, uint32_t v)
+{
+    uint32_t s = 4u * ld.fb + f, v14 = mcu_v14(v), at = lrp_m.fpos[s], w14 = mcu_v14(was);
+    char t[12];
+    num_s(s + 1u, s_cat(t, "STRIP "));
+    if (!(lrp.pick >> s & 1u)) {
+        if (at == MCU_NOFADER || !mcu_connected(&lrp_m, plat_ms()) || (v14 >= at) != (w14 >= at) ||
+            (v14 + 300u > at && v14 < at + 300u))
+            lrp.pick |= (uint8_t)(1u << s);
+        else {
+            lrp_say(t, v14 < at ? "fader: up to pick up" : "fader: down to pick up");
+            return;
+        }
+    }
+    lrp_tx(mcu_fader_pkt(s, v14));
+    lrp.fsent[s] = (uint16_t)v14;
+    lrp.fsent_t[s] = plat_ms();
+    lrp_m.fpos[s] = (uint16_t)v14;                  /* (REAPER follows; it may not echo it) */
+    {
+        char u[16];
+        s_cat(num_s(v * 100u / 127u, s_cat(u, "volume ")), "%");
+        lrp_say(t, u);
+    }
+}
+static void lrp_knob(uint32_t k, int32_t s)
+{
+    char t[4];
+    static const char *const NAV[8] = {"jog", "scroll", "zoom", "tracks scroll", "tracks zoom", "track", "marker",
+                                       "undo / redo"};
+    num_s(k + 1u, s_cat(t, "K"));
+    if (ld.kb)
+        lrp.nacc[k] += s, lrp_say(t, NAV[k]);
+    else {
+        char u[12];
+        lrp.vacc[k] += s;
+        num_s(k + 1u, s_cat(u, mcu_lit(&lrp_m, MCU_FLIP) ? "volume " : "pan "));
+        lrp_say(t, u);
+    }
+}
+/* the knobs' detents out, each frame: the V-pots and the jog relative, NAV's CCs, the steps a few a frame */
+static void lrp_flush(void)
+{
+    uint32_t k;
+    if (plat_midi_out_room(TO_USB2) < 16u || plat_midi_out_room(TO_USB) < 16u)
+        return;
+    for (k = 0; k < 8u; k++) {
+        int32_t a = lrp.vacc[k], n = a > 15 ? 15 : a < -15 ? -15 : a;
+        if (n) {
+            lrp_tx(mcu_rel_pkt(MCU_VPOT0 + k, n));
+            lrp.vacc[k] -= n;
+        }
+    }
+    for (k = 0; k < 8u; k++) {
+        int32_t a = lrp.nacc[k], n;
+        if (!a)
+            continue;
+        if (k == 0u) {                                 /* K1: the jog */
+            n = a > 15 ? 15 : a < -15 ? -15 : a;
+            lrp_tx(mcu_rel_pkt(MCU_JOG, n));
+        } else if (k <= 4u) {                          /* K2..K5: relative CCs, 64 +- n */
+            n = a > 63 ? 63 : a < -63 ? -63 : a;
+            plat_midi_out(daw_cc_pkt(RP_NAV_CH, RP_NAV_CC + k - 1u, (uint32_t)(64 + n)));
+        } else {                                       /* K6..K8: one step a message, four a frame at most */
+            n = a > 4 ? 4 : a < -4 ? -4 : a;
+            for (int32_t i = 0; i < (n < 0 ? -n : n); i++) {
+                if (k == 5u)
+                    plat_midi_out(daw_cc_pkt(RP_NAV_CH, n < 0 ? 106u : 107u, 127u));
+                else if (k == 6u)
+                    lrp_tap(n < 0 ? MCU_REW : MCU_FF);
+                else if (n < 0)
+                    lrp_tap(MCU_UNDO);
+                else
+                    plat_midi_out(daw_cc_pkt(RP_NAV_CH, 111u, 127u));
+            }
+        }
+        lrp.nacc[k] -= n;
+    }
+}
+/* the pads: DRUMS notes on channel 10 (and LOCAL's kit), MIXER and ACTIONS Mackie's buttons */
+static void lrp_pads(void)
+{
+    int p, v;
+    while (plat_pad(&p, &v)) {
+        char t[8];
+        if (p < 0 || p >= NPADS)
+            continue;
+        lrp_pad_up(p);                                  /* (a press after a press: the first let go) */
+        if (!v)
+            continue;
+        num_s((uint32_t)p + 1u, s_cat(t, "PAD "));
+        if (lrp.page == RP_DRUMS) {
+            uint32_t n = p >= 8 ? 36u + (uint32_t)p - 8u : 44u + (uint32_t)p;
+            char u[16];
+            plat_midi_out(daw_note_pkt(9u, n, (uint32_t)v));
+            lrp.pad_note[p] = (uint8_t)n;
+            lrp.pad_daw[p] = 0;
+            s_cat(num_s(n, s_cat(u, "note ")), " ch 10");
+            lrp_say(t, u);
+            if (daw_local && p >= 8) {                 /* LOCAL: the kit's sounds 1-8, as the drum pads */
+                int kit = lsmk_kit();
+                if (kit >= 0) {
+                    ld.pad_loc_trk[p] = (uint8_t)kit;
+                    ld.pad_loc[p] = (uint8_t)(p - 7);
+                    engine_key(kit, p - 7, 1, v);
+                }
+            }
+        } else {
+            uint32_t shift = plat_buttons() >> B_GLO & 1u, s = (uint32_t)p & 7u, n;
+            static const char *const WHAT[2][2][2] = {{{"select", "mute"}, {"arm", "solo"}}, {{"F", "view "}, {"F", "view "}}};
+            char u[16];
+            if (lrp.page == RP_MIXER)
+                n = p < 8 ? (shift ? MCU_REC0 : MCU_SEL0) + s : (shift ? MCU_SOLO0 : MCU_MUTE0) + s;
+            else
+                n = p < 8 ? MCU_F1 + s : MCU_VIEW0 + s;
+            lrp_btn(n, 1);
+            lrp.pad_note[p] = (uint8_t)n;
+            lrp.pad_daw[p] = 1;
+            if (lrp.page == RP_MIXER)
+                num_s(s + 1u, s_cat(s_cat(u, WHAT[0][shift][p >= 8]), " strip "));
+            else
+                num_s(s + 1u, s_cat(u, WHAT[1][0][p >= 8]));
+            lrp_say(t, u);
+        }
+    }
+}
+/* the buttons and knobs (after DAW mode's own: < + >, PATCH, the banks, OCT) */
+static void lrp_controls(uint32_t btn, uint32_t pr, uint32_t rl, uint32_t sb, uint32_t srl, const int32_t *s)
+{
+    static const uint8_t BTN[8][2] = {{B_REC, MCU_RECORD}, {B_LFO, MCU_CYCLE}, {B_ARP, MCU_CLICK}, {B_FX, MCU_FLIP},
+                                      {B_EDIT, MCU_SCRUB}, {B_SEL, MCU_MARKER}, {B_ENV, MCU_UNDO}, {B_SAVE, MCU_SAVE}};
+    static const char *const SAY[8][2] = {{"SEQ REC", "record"}, {"NOTE REPEAT", "loop"}, {"ARP", "click"},
+                                          {"FX", "flip: faders on pan"}, {"PARA", "scrub"}, {"SCALE", "marker"},
+                                          {"CHORD", "undo"}, {"BT", "save"}};
+    uint32_t shift = btn >> B_GLO & 1u, k;
+    if (pr >> B_PLAY & 1u) {                       /* SEQ PLAY: play, or stop while REAPER plays */
+        lrp.play_note = (uint8_t)(mcu_lit(&lrp_m, MCU_PLAY) ? MCU_STOP : MCU_PLAY);
+        lrp_btn(lrp.play_note, 1);
+        lrp_say("SEQ PLAY", lrp.play_note == MCU_STOP ? "stop" : "play");
+    } else if (rl >> B_PLAY & 1u && lrp.play_note)
+        lrp_btn(lrp.play_note, 0);
+    for (k = 0; k < 8u; k++)
+        if (pr >> BTN[k][0] & 1u) {
+            lrp_btn(BTN[k][1], 1);
+            lrp_say(SAY[k][0], k == 3u && mcu_lit(&lrp_m, MCU_FLIP) ? "flip: faders on volume" : SAY[k][1]);
+        } else if (rl >> BTN[k][0] & 1u)
+            lrp_btn(BTN[k][1], 0);
+    if (pr >> B_SEQ & 1u) {                        /* SEQ: the pads' page */
+        lrp_pads_up();
+        lrp.page = (uint8_t)((lrp.page + 1u) % RP_NPAGE);
+        lrp_say("SEQ", RP_PAGE_NAME[lrp.page]);
+    }
+    for (k = 0; k < 2u; k++)                       /* < >: the strips by 8, GLOBE held by 1 (when let go) */
+        if (srl >> (k ? SB_RIGHT : SB_LEFT) & 1u && !ld.lr_both) {
+            lrp_tap(shift ? (k ? MCU_CH_R : MCU_CH_L) : (k ? MCU_BANK_R : MCU_BANK_L));
+            lrp_say(k ? ">" : "<", shift ? (k ? "strips +1" : "strips -1") : (k ? "strips +8" : "strips -8"));
+            lrp_unpick();
+        }
+    if (!(sb & (1u << SB_LEFT | 1u << SB_RIGHT)))
+        ld.lr_both = 0;
+    for (k = 0; k < 8u; k++)
+        if (s[k])
+            lrp_knob(k, s[k]);
+}
+
 /* ---- the continuous controls: the value to send, out at most every DAW_RATE_MS (the last one always) */
 static void lsmk_daw_cv(uint32_t c, uint32_t i, int32_t v)
 {
@@ -760,11 +1054,13 @@ static void lsmk_daw_analog(void)               /* the faders and the wheels */
     uint32_t f, m = plat_modw();
     int32_t b = plat_bend();
     for (f = 0; f < 4u; f++) {
-        uint32_t v = plat_fader((int)f), i = DAW_FADER0 + 4u * ld.fb + f;
+        uint32_t v = plat_fader((int)f), i = DAW_FADER0 + 4u * ld.fb + f, was = ld.fseen[f];
         if (v == ld.fseen[f])
             continue;
         ld.fseen[f] = (uint8_t)v;
-        if (!ld.edit)
+        if (lrp_active())
+            lrp_fader(f, was, v);                   /* (REAPER: a strip's volume, picked up) */
+        else if (!ld.edit)
             lsmk_daw_cv(i, i, (int32_t)v);
         else if (ld.edit == 1u)
             lsmk_daw_touch(i, v);                  /* (the editor: picked, nothing sent) */
@@ -841,7 +1137,7 @@ static void lsmk_daw_controls(void)
         if (s[4])
             daw_ch = (uint8_t)clampi(daw_ch + s[4], 1, 16);
         if (s[5])
-            daw_user = (uint8_t)(s[5] > 0);
+            daw_user = (uint8_t)clampi((int)daw_user + (s[5] > 0 ? 1 : -1), 0, (int)DAW_MAP_REAPER);
         if (s[6])
             daw_rel = (uint8_t)(s[6] > 0);
         if (s[4] || s[5] || s[6])
@@ -901,6 +1197,10 @@ static void lsmk_daw_controls(void)
     /* OCT- / OCT+: the keys' octave (both: 0) */
     if (pr & oct)
         ld.oct = (btn & oct) == oct ? 0 : (int8_t)clampi(ld.oct + (pr >> B_OCTUP & 1u ? 1 : -1), -3, 3);
+    if (lrp_active()) {                             /* the REAPER profile: its own jobs for the buttons and knobs */
+        lrp_controls(btn, pr, rl, sb, srl, s);
+        return;
+    }
     /* the 13 buttons; < and > when let go, unless both were down */
     for (b = 0; b < DAW_NBTN; b++) {
         int id = LSMK_DAW_BTN[b];
@@ -994,7 +1294,7 @@ static void lsmk_daw_draw(void)
         num_s(daw_ch, s_cat(t, "CH "));
         cv_text(84, 4, &FONT_S, t, K_TEXT);
         cv_text(84, 21, &FONT_XS, daw_local ? "LOCAL ON" : "LOCAL OFF", daw_local ? K_TEXT : K_DIM);
-        text_r(228, 4, &FONT_S, daw_user ? "USER MAP" : "DEFAULT MAP", K_TEXT);
+        text_r(228, 4, &FONT_S, daw_user == DAW_MAP_REAPER ? "REAPER" : daw_user ? "USER MAP" : "DEFAULT MAP", K_TEXT);
         text_r(228, 21, &FONT_XS, daw_rel ? "knobs relative" : "knobs absolute", K_DIM);
         cv_rect(0, 39, 240, 1, K_LINE);
         cv_blit(0, 0);
@@ -1110,6 +1410,174 @@ static void lsmk_daw_draw(void)
     }
 }
 
+/* ---- the REAPER profile's screen and lights (PATCH held: DAW mode's settings, as in every map) */
+static void lsmk_daw_redraw(uint32_t which)     /* the screen about to be REAPER's (1) or DAW mode's (0): new, all */
+{
+    uint32_t k;
+    if (lrp.drew == which)
+        return;
+    lrp.drew = (uint8_t)which;
+    for (k = 0; k < 5u; k++)
+        ld.sig[k] = 0;
+    lcd_fill(0, 0, 240, 240, K_BG);
+}
+static uint16_t lrp_565(uint32_t rgb)
+{
+    return (uint16_t)((rgb >> 19 & 31u) << 11 | (rgb >> 10 & 63u) << 5 | (rgb >> 3 & 31u));
+}
+static uint32_t lrp_hash(uint32_t h, const void *p, uint32_t n)
+{
+    const uint8_t *b = (const uint8_t *)p;
+    while (n--)
+        h = hash_u(h, *b++);
+    return h;
+}
+static void lrp_draw(void)
+{
+    uint32_t now = plat_ms(), conn = (uint32_t)mcu_connected(&lrp_m, now), h, s, first = 1;
+    char t[40], u[40];
+    if (ld.btn >> B_HOME & 1u) {                   /* PATCH held: the settings */
+        lsmk_daw_redraw(0);
+        lsmk_daw_draw();
+        return;
+    }
+    lsmk_daw_redraw(1);
+    if (lrp_m.assign[0] >= '0' && lrp_m.assign[0] <= '9' && lrp_m.assign[1] >= '0' && lrp_m.assign[1] <= '9')
+        first = (uint32_t)(lrp_m.assign[0] - '0') * 10u + (uint32_t)(lrp_m.assign[1] - '0');
+    /* band 0, 0..39: REAPER, its transport, the time */
+    h = lrp_hash(hash_u(0x52u, conn | (uint32_t)lrp_m.led[MCU_PLAY] << 1 | (uint32_t)lrp_m.led[MCU_RECORD] << 9 |
+                                   (uint32_t)lrp_m.led[MCU_CYCLE] << 17 | (uint32_t)!!lrp_m.led[MCU_CLICK] << 25 |
+                                   (uint32_t)!!lrp_m.led[MCU_BEATS] << 26), lrp_m.tc, sizeof lrp_m.tc);
+    if (h != ld.sig[0]) {
+        ld.sig[0] = h;
+        cv_begin(240, 40, K_BG);
+        cv_text(12, 4, &FONT_S, "REAPER", K_TEXT);
+        s_cat(s_cat(s_cat(t, !conn ? "waiting" : mcu_lit(&lrp_m, MCU_RECORD) ? "recording"
+                                 : mcu_lit(&lrp_m, MCU_PLAY) ? "playing" : "stopped"),
+                    conn && mcu_lit(&lrp_m, MCU_CYCLE) ? "  loop" : ""), conn && mcu_lit(&lrp_m, MCU_CLICK) ? "  click" : "");
+        cv_text(12, 21, &FONT_XS, t, conn && mcu_lit(&lrp_m, MCU_RECORD) ? K_REC : K_DIM);
+        if (conn && mcu_time(&lrp_m, u))
+            text_r(228, cap_y(0, 40, &FONT_B), &FONT_B, u, K_TEXT);
+        cv_rect(0, 39, 240, 1, K_LINE);
+        cv_blit(0, 0);
+    }
+    /* band 1, 40..119: the eight strips, two rows of four (the faders' row framed): name, ring, meter */
+    h = lrp_hash(lrp_hash(lrp_hash(hash_u(0x53u, conn | ld.fb << 1 | (uint32_t)lrp_m.clip << 2), lrp_m.lcd, 56), lrp_m.ring,
+                        8), lrp_m.meter, 8);
+    h = lrp_hash(h, lrp_m.led, 0x20);
+    if (h != ld.sig[1]) {
+        ld.sig[1] = h;
+        cv_begin(240, 80, K_BG);
+        if (!conn) {
+            text_c(120, 6, &FONT_B, "Waiting for REAPER", K_TEXT);
+            text_c(120, 30, &FONT_XS, "Control surface: Mackie Control", K_DIM);
+            text_c(120, 44, &FONT_XS, "Universal, MIDI in and out", K_DIM);
+            text_c(120, 58, &FONT_XS, "MIDIIN2 / MIDIOUT2 (SPIDER SMK-37)", K_DIM);
+        } else {
+            cv_frame(1, (int32_t)ld.fb * 40, 238, 40, 5, K_LINE, K_BG);
+            for (s = 0; s < 8u; s++) {
+                int32_t x = 4 + (int32_t)(s % 4u) * 58, y = (int32_t)(s / 4u) * 40;
+                uint32_t named = (uint32_t)mcu_name(&lrp_m, s, t), ring = lrp_m.ring[s] & 15u, m = lrp_m.meter[s];
+                uint16_t ink = trk_ink((int)s);
+                if (mcu_lit(&lrp_m, MCU_SEL0 + s))
+                    cv_round(x, y + 3, 56, 34, 4, K_PANEL);
+                text_fit(x + 4, y + 4, &FONT_XS, named ? t : "-", 33,
+                         !named ? K_FAINT : mcu_lit(&lrp_m, MCU_MUTE0 + s) ? K_FAINT : K_TEXT);
+                if (mcu_lit(&lrp_m, MCU_REC0 + s))
+                    cv_round(x + 46, y + 7, 6, 6, 3, K_REC);
+                if (mcu_lit(&lrp_m, MCU_SOLO0 + s))
+                    cv_round(x + 38, y + 7, 6, 6, 3, lrp_565(0xFFC000u));
+                cv_rect(x + 4, y + 23, 48, 1, K_LINE);
+                if (ring)
+                    cv_rect(x + 4 + (int32_t)((ring > 11u ? 10u : ring - 1u) * 44u / 10u), y + 20, 4, 7, ink);
+                cv_rect(x + 4, y + 30, 48, 3, K_PANEL2);
+                if (m)
+                    cv_rect(x + 4, y + 30, (int32_t)(m * 48u / 13u), 3, (lrp_m.clip >> s & 1u) || m >= 12u ? K_REC
+                                                                          : lrp_565(m >= 10u ? 0xFFB000u : 0x30C060u));
+            }
+        }
+        cv_blit(0, 40);
+    }
+    /* band 2, 120..151: the strips' tracks, the pads' page, the knobs' bank, the octave */
+    h = hash_u(hash_u(hash_u(0x54u, first | conn << 8), lrp.page | ld.kb << 4), (uint32_t)(ld.oct + 8));
+    if (h != ld.sig[2]) {
+        ld.sig[2] = h;
+        cv_begin(240, 32, K_BG);
+        if (conn)
+            num_s(first + 7u, s_cat(num_s(first, s_cat(t, "TRACKS ")), "-"));
+        else
+            s_cat(t, "TRACKS -");
+        cv_text(12, 8, &FONT_XS, t, K_TEXT);
+        s_cat(s_cat(u, "PADS "), RP_PAGE_NAME[lrp.page % RP_NPAGE]);
+        cv_text(100, 8, &FONT_XS, u, K_TEXT);
+        num_i(ld.oct, s_cat(s_cat(t, ld.kb ? "NAV" : "MIX"), ld.oct > 0 ? "  OCT +" : "  OCT "));
+        text_r(228, 8, &FONT_XS, t, K_TEXT);
+        cv_blit(0, 120);
+    }
+    /* band 3, 152..211: the control touched last, what it did */
+    h = hash_u(0x55u, lrp.last_n);
+    if (h != ld.sig[3]) {
+        ld.sig[3] = h;
+        cv_begin(240, 60, K_BG);
+        cv_rect(0, 0, 240, 1, K_LINE);
+        text_fit(12, 10, &FONT_B, lrp.last, 216, K_TEXT);
+        text_fit(12, 34, &FONT_S, lrp.lastv, 216, K_DIM);
+        cv_blit(0, 152);
+    }
+    /* band 4, 212..239: what the page's pads and GLOBE do */
+    h = hash_u(0x56u, lrp.page | (ld.btn >> B_GLO & 1u) << 4);
+    if (h != ld.sig[4]) {
+        ld.sig[4] = h;
+        cv_begin(240, 28, K_BG);
+        cv_rect(0, 0, 240, 1, K_LINE);
+        text_c(120, 7, &FONT_XS, ld.btn >> B_GLO & 1u ? "GLOBE:  < > by 1   pads arm, solo"
+                                 : lrp.page == RP_MIXER ? "top: select   bottom: mute   GLOBE"
+                                 : lrp.page == RP_ACTIONS ? "learn each pad in the action list"
+                                                         : "SEQ pads   KNOB BANK nav   PATCH", K_DIM);
+        cv_blit(0, 212);
+    }
+}
+static void lrp_lights(void)
+{
+    static const uint8_t L[8][2] = {{B_PLAY, MCU_PLAY}, {B_REC, MCU_RECORD}, {B_LFO, MCU_CYCLE}, {B_ARP, MCU_CLICK},
+                                    {B_FX, MCU_FLIP}, {B_EDIT, MCU_SCRUB}, {B_ENV, MCU_UNDO}, {B_SAVE, MCU_SAVE}};
+    uint32_t now = plat_ms(), held = plat_pads_held(), blink = now >> 8 & 1u, shift = ld.btn >> B_GLO & 1u, p, k;
+    uint32_t conn = (uint32_t)mcu_connected(&lrp_m, now), lit = 0;
+    char nm[8];
+    for (p = 0; p < NPADS; p++) {
+        uint32_t c, lv = 48u, s = p & 7u;
+        if (lrp.page == RP_DRUMS)
+            c = 0x2060FFu;
+        else if (lrp.page == RP_ACTIONS)
+            c = 0x8040FFu;
+        else {                                     /* MIXER: REAPER's selects, mutes (GLOBE: arms, solos) */
+            uint32_t n = p < 8u ? (shift ? MCU_REC0 : MCU_SEL0) + s : (shift ? MCU_SOLO0 : MCU_MUTE0) + s,
+                     v = lrp_m.led[n];
+            c = p < 8u ? (shift ? 0xFF1800u : 0xFFFFFFu) : (shift ? 0xFFB000u : 0xFF1800u);
+            if (!conn || !mcu_name(&lrp_m, s, nm))
+                c = 0x101010u, v = 0;              /* (no track there) */
+            lv = v == 1u ? (blink ? 256u : 64u) : v ? 256u : 40u;
+        }
+        if (held >> p & 1u)
+            lv = 256u;
+        plat_pad_rgb((int)p, (((c >> 16) & 255u) * lv >> 8) << 16 | (((c >> 8) & 255u) * lv >> 8) << 8 |
+                                 ((c & 255u) * lv >> 8));
+    }
+    for (k = 0; k < 8u; k++) {
+        uint32_t v = conn ? lrp_m.led[L[k][1]] : 0u;
+        if (v == 127u || (v && blink))
+            lit |= 1u << L[k][0];
+    }
+    lit |= ld.btn & (1u << B_SEL | 1u << B_GLO);   /* (held: SCALE, GLOBE) */
+    if (lrp.page != RP_DRUMS)
+        lit |= 1u << B_SEQ;
+    if (daw_local)
+        lit |= 1u << B_HOME;
+    lit |= (ld.oct < 0 ? 1u << B_OCTDN : 0u) | (ld.oct > 0 ? 1u << B_OCTUP : 0u);
+    plat_lights(lit, 0, 0, 0, 0);
+    plat_smk_leds((ld.kb ? 1u << SB_KNOB_BANK : 0u) | (ld.fb ? 1u << SB_FADER_BANK : 0u));
+}
+
 /* ---- in and out */
 static void lsmk_synth_quiet(void)              /* LOOM-8's side: the pads', outer keys' notes off, the bend 0 */
 {
@@ -1131,6 +1599,8 @@ static void lsmk_daw_quiet(void)                /* DAW mode's notes off (keys, p
     int k, p;
     for (k = 0; k < LSMK_NKEY; k++)
         lsmk_daw_key(k, 0);
+    if (lrp.on)
+        lrp_pads_up();                              /* (the REAPER profile's pads: their own notes) */
     for (p = 0; p < NPADS; p++) {
         if (plat_pads_held() >> p & 1u && daw_ent(ld.pad_ent[p]).type == DT_NOTE)
             lsmk_daw_tx(ld.pad_ent[p], 0);
@@ -1195,6 +1665,7 @@ static void lsmk_daw_set(int on)
         lsmk.latch = 0;
     }
     daw_on = (uint8_t)on;
+    lrp.drew = 0xFF;
     for (k = 0; k < 5; k++)
         ld.sig[k] = 0;
     lcd_fill(0, 0, 240, 240, K_BG);
@@ -1217,19 +1688,37 @@ static int lsmk_daw_frame(void)
             ld.dirty = 0;
         }
     }
+    lrp_input();                                    /* (the second USB port: read always, kept for REAPER) */
     if (!daw_on) {
+        lrp.on = 0;
         lsmk_daw_save();
         return 0;
     }
     lsmk_daw_controls();
     if (!daw_on)                                   /* (< + >: LOOM-8 again, from the next frame) */
         return 1;
+    if (lrp_active())
+        lrp_service();
+    else if (lrp.on) {                              /* (the profile left: its pads let go) */
+        lrp_pads_up();
+        lrp.on = 0;
+    }
     lsmk_daw_keys();
-    lsmk_daw_pads();
+    if (lrp_active())
+        lrp_pads();
+    else
+        lsmk_daw_pads();
     lsmk_daw_analog();
     lsmk_daw_flush();
-    lsmk_daw_draw();
-    lsmk_daw_lights();
+    if (lrp_active()) {
+        lrp_flush();
+        lrp_draw();
+        lrp_lights();
+    } else {
+        lsmk_daw_redraw(0);
+        lsmk_daw_draw();
+        lsmk_daw_lights();
+    }
     lsmk_daw_save();
     ui.frame++;
     return 1;

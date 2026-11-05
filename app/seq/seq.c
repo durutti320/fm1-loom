@@ -3233,15 +3233,18 @@ static void punch_update(seq_t *s, const seq_sink_t *o)
 static void do_start(seq_t *s, int from_top, const seq_sink_t *o)
 {
     int t;
+    int32_t pos_h = s->req_pos > 0 ? s->req_pos - 1 : 0;   /* (a Song Position Pointer's: half-sixteenths) */
+    s->req_pos = 0;
     if (from_top) {
         int at = s->req_at;
         bar_end(s, 1, o);
         for (t = 0; t < NSEQT; t++)
             track_reset(s, t);
         s->req_at = 0;
-        if (at > 0) {                 /* from a page: each track from the step it would be on, that many steps of the
-                                       * track asked for in (its scale: others at other speeds, at the same time) */
-            int32_t h = (int32_t)at * ts_halves(tpat(s, s->req_at_trk % NSEQT));
+        if (at > 0 || pos_h > 0) {    /* from a page: each track from the step it would be on, that many steps of the
+                                       * track asked for in (its scale: others at other speeds, at the same time);
+                                       * from a Song Position Pointer, that many sixteenths */
+            int32_t h = at > 0 ? (int32_t)at * ts_halves(tpat(s, s->req_at_trk % NSEQT)) : pos_h;
             for (t = 0; t < NSEQT; t++) {
                 const tpat_t *tp = tpat(s, t);
                 int f, e, p = (int)(h / ts_halves(tp)) % pat_len(tp);
@@ -3257,6 +3260,10 @@ static void do_start(seq_t *s, int from_top, const seq_sink_t *o)
         origins_zero(s);
     }
     bar_len_update(s);
+    if (from_top && pos_h > 0) {      /* (the bar count from there too: cues and the click's accent on the DAW's bars) */
+        s->bar_six = (uint32_t)pos_h / 2u % s->bar_len;
+        s->bar16 = (uint8_t)(s->bar_six & 15u);
+    }
     for (t = 0; t < NSEQT; t++)
         ext_arm(s, t);
     s->six_to_next = s->ext ? NEVER : 0;
@@ -3615,7 +3622,7 @@ void seq_advance(seq_t *s, uint32_t k, const seq_sink_t *o)
     }
     if (s->req_cont) {
         s->req_cont = 0;
-        do_start(s, 0, o);
+        do_start(s, s->req_pos > 0, o);   /* (after a Song Position Pointer: from there) */
     }
     if (s->req_scene != 0xFF) {       /* a scene now */
         uint8_t next[NSEQT];
@@ -3815,12 +3822,17 @@ void seq_start(seq_t *s, int from_start)
 {
     s->req_at = 0;
     if (from_start)
-        s->req_start = 1;
+        s->req_pos = 0, s->req_start = 1;
     else
         s->req_cont = 1;
 }
 void seq_stop(seq_t *s) { s->req_stop = 1; }
 void seq_continue(seq_t *s) { s->req_cont = 1; }
+void seq_song_pos(seq_t *s, int six)
+{
+    if (!s->playing && six >= 0)      /* (the MIDI spec: while stopped only) */
+        s->req_pos = 2 * six + 1;
+}
 void seq_ext_clock(seq_t *s)
 {
     if (s->clock == SEQ_CLK_RECEIVE)

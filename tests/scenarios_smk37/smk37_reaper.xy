@@ -1,0 +1,274 @@
+# SPIDER's DAW mode, the REAPER profile (app/smk_mcu.h): Mackie Control on the second USB port (USB2 here) for
+# REAPER's built-in "Mackie Control Universal" surface, the keys, drum pads and wheels on the first (USB). The script
+# plays REAPER's part, sending what its surface sends back (REAPER SDK csurf_mcu.cpp), and checks each message
+# SPIDER sends, byte for byte: the query, the transport, the buttons, the V-pots and the jog, NAV's CCs, the faders'
+# pick-up, the pads' three pages, the lights from REAPER's, waiting again after 3 s of nothing, kept in flash.
+wait 300
+smkbtn < down
+smkbtn > down
+wait 60
+smkbtn > up
+smkbtn < up
+wait 60
+expect daw 1
+# REAPER's feedback before the profile is in use: dropped (the second port never reaches the sound)
+midi USB2 90 5E 7F
+wait 40
+expect rconn 0
+# PATCH held, K6 (CC MAP) twice clockwise: DEFAULT -> USER -> REAPER
+press HOME
+wait 40
+spin K2 1
+wait 40
+spin K2 1
+wait 40
+shot smk_reaper_settings.png
+release HOME
+wait 40
+expect dawuser 2
+expect reaper 1
+# at once the query that makes REAPER send everything again: F0 00 00 66 14 01 58 59 5A F7
+expect_out USB2 F0 00 00
+expect_out USB2 66 14 01
+expect_out USB2 58 59 5A
+expect rconn 0
+shot smk_reaper_wait.png
+out
+# REAPER answers: the names (the LCD's top line), the bank (01), the time in beats (1.1.00), the lights (strip 1
+# selected, 2 muted, 3 armed, 4 soloed: REAPER blinks a solo), the rings, the meters, strip 1's fader at 0x3000
+sysex USB2 F0 00 00 66 14 12 00 4B 69 63 6B 20 20 20 53 6E 61 72 65 20 20 48 61 74 73 20 20 20 42 61 73 73 20 20 20 4B 65 79 73 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 F7
+midi USB2 B0 4B 30
+midi USB2 B0 4A 31
+midi USB2 90 72 7F
+midi USB2 B0 40 30
+midi USB2 B0 41 30
+midi USB2 B0 42 30
+midi USB2 B0 45 31
+midi USB2 B0 47 31
+midi USB2 90 18 7F
+midi USB2 90 11 7F
+midi USB2 90 02 7F
+midi USB2 90 0B 01
+midi USB2 B0 30 06
+midi USB2 B0 31 03
+midi USB2 B0 32 0A
+midi USB2 D0 0B 00
+midi USB2 D0 18 00
+midi USB2 D0 2C 00
+midi USB2 E0 00 60
+wait 40
+expect rconn 1
+# (Mackie's lights are notes: none of them plays SPIDER, LOCAL or not)
+expect voices 0
+shot smk_reaper.png
+# SEQ PLAY: play; while REAPER plays: stop
+tap PLAY
+wait 20
+expect_out USB2 90 5E 7F
+expect_out USB2 90 5E 00
+midi USB2 90 5E 7F
+wait 40
+expect litPLAY 1
+out
+tap PLAY
+wait 20
+expect_out USB2 90 5D 7F
+expect_out USB2 90 5D 00
+expect_no_out USB2 90 5E 7F
+midi USB2 90 5E 00
+wait 40
+expect litPLAY 0
+# the buttons with one Mackie job each: SEQ REC record, NOTE REPEAT loop, ARP click, FX flip, PARA scrub, SCALE a
+# marker, CHORD undo, BT save
+tap REC
+tap LFO
+tap ARP
+tap FX
+tap EDIT
+tap SEL
+tap ENV
+tap SAVE
+wait 20
+expect_out USB2 90 5F 7F
+expect_out USB2 90 5F 00
+expect_out USB2 90 56 7F
+expect_out USB2 90 59 7F
+expect_out USB2 90 32 7F
+expect_out USB2 90 65 7F
+expect_out USB2 90 54 7F
+expect_out USB2 90 51 7F
+expect_out USB2 90 50 7F
+# their lights: REAPER's (loop on; the click blinking)
+midi USB2 90 56 7F
+wait 40
+expect litLFO 1
+expect litARP 0
+out
+# < >: the strips by 8, GLOBE held by 1 (when let go)
+smktap <
+smktap >
+wait 20
+expect_out USB2 90 2E 7F
+expect_out USB2 90 2E 00
+expect_out USB2 90 2F 7F
+press GLO
+wait 20
+smktap >
+wait 20
+release GLO
+wait 20
+expect_out USB2 90 31 7F
+expect_out USB2 90 31 00
+out
+# the knobs, MIX: the V-pots, relative (K1 CC 16, K2 CC 17, K3 anticlockwise 0x43)
+k1 1
+spin SELECT 2
+spin ALGO -3
+wait 40
+expect_out USB2 B0 10 01
+expect_out USB2 B0 11 02
+expect_out USB2 B0 12 43
+out
+# KNOB BANK: NAV. K1 the jog (USB2 CC 60); K2..K5 CC 102..105 on channel 16 (USB), relative 64 +- n; K6 the track
+# after / before CC 107 / 106; K7 the marker after / before (Mackie's >> <<); K8 redo CC 111 / undo (Mackie's)
+smktap KNOBBANK
+wait 20
+k1 2
+spin SELECT 1
+spin ALGO -1
+spin PRESET 1
+spin K1 1
+wait 40
+expect_out USB2 B0 3C 02
+expect_out USB BF 66 41
+expect_out USB BF 67 3F
+expect_out USB BF 68 41
+expect_out USB BF 69 41
+out
+spin K2 1
+wait 40
+expect_out USB BF 6B 7F
+spin K2 -1
+wait 40
+expect_out USB BF 6A 7F
+spin K3 1
+wait 40
+expect_out USB2 90 5C 7F
+spin K3 -1
+wait 40
+expect_out USB2 90 5B 7F
+spin K4 1
+wait 40
+expect_out USB BF 6F 7F
+spin K4 -1
+wait 40
+expect_out USB2 90 51 7F
+smktap KNOBBANK
+wait 20
+out
+# the faders: strip 1 (REAPER at 0x3000, about 96): nothing until the fader crosses it, then its volume (pitch bend)
+fader 0 40
+wait 20
+expect_no_out USB2 E0 28 28
+expect rpick 0
+shot smk_reaper_pickup.png
+fader 0 110
+wait 20
+expect_out USB2 E0 6E 6E
+expect rpick 1
+fader 0 100
+wait 20
+expect_out USB2 E0 64 64
+# strip 2: REAPER said no position: at once
+fader 1 50
+wait 20
+expect_out USB2 E1 32 32
+# FADER BANK: strips 5-8 (fader 3: strip 8)
+smktap FADERBANK
+wait 20
+fader 3 70
+wait 20
+expect_out USB2 E7 46 46
+smktap FADERBANK
+wait 20
+out
+# the pads, DRUMS: notes on channel 10 (the first port), as DEFAULT's
+expect rpage 0
+tappad 8 100
+expect_out USB 99 24 64
+expect_out USB 89 24 00
+tappad 0 90
+expect_out USB 99 2C 5A
+# SEQ: MIXER. The top row selects strips 1-8, the bottom mutes them; GLOBE held: arm, solo
+tap SEQ
+wait 20
+expect rpage 1
+expect litSEQ 1
+out
+tappad 0
+tappad 9
+expect_out USB2 90 18 7F
+expect_out USB2 90 18 00
+expect_out USB2 90 11 7F
+press GLO
+wait 20
+tappad 2
+tappad 11
+release GLO
+wait 20
+expect_out USB2 90 02 7F
+expect_out USB2 90 0B 7F
+# their colours: REAPER's (strip 1 selected, 2 not; strip 2 muted; strip 6 has no track: dark)
+expect rpad0 >200
+expect rpad1 <80
+expect rpad9 >200
+expect rpad8 <80
+expect rpad5 <20
+shot smk_reaper_mixer.png
+out
+# SEQ: ACTIONS. F1..F8 on the top row, the eight view buttons below (REAPER passes them on to learn)
+tap SEQ
+wait 20
+expect rpage 2
+tappad 0
+tappad 15
+expect_out USB2 90 36 7F
+expect_out USB2 90 45 7F
+tap SEQ
+wait 20
+expect rpage 0
+# the keys: notes on CHANNEL (the first port)
+key 0 down 100
+wait 20
+expect_out USB 90 35 64
+key 0 up
+wait 20
+out
+# 3 s of nothing from REAPER: waiting, and the query again
+wait 3600
+expect rconn 0
+expect_out USB2 66 14 01
+shot smk_reaper_lost.png
+# kept in flash (flags: DAW 1, REAPER 16; CHANNEL 1)
+wait 2000
+expect dawobj 1701
+reboot
+wait 300
+expect daw 1
+expect dawuser 2
+expect reaper 1
+# PATCH held, K6 anticlockwise: USER, then DEFAULT; the faders CCs again
+press HOME
+wait 40
+spin K2 -1
+wait 40
+spin K2 -1
+wait 40
+release HOME
+wait 40
+expect dawuser 0
+expect reaper 0
+out
+fader 1 90
+wait 20
+expect_out USB B0 15 5A

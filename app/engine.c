@@ -947,6 +947,10 @@ static void midi_in(uint32_t pkt)
     case 0xFA: seq_start(&seq, 1); return;
     case 0xFB: seq_continue(&seq); return;
     case 0xFC: seq_stop(&seq); return;
+    case 0xF2:                                       /* Song Position Pointer: the next Continue from there */
+        if (seq.clock == SEQ_CLK_RECEIVE)
+            seq_song_pos(&seq, d1 | d2 << 7);
+        return;
     default: break;
     }
     if (ty == 0x90 && d2 == 0)

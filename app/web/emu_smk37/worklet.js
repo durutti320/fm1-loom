@@ -70,6 +70,7 @@ class Spider extends AudioWorkletProcessor {
       case "bend": ex.web_bend(m.v | 0); break;
       case "modw": ex.web_modw(m.v); break;
       case "boot": if (ex.web_spider_boot) ex.web_spider_boot(); break;
+      case "midi2": if (ex.web_midi2_in) for (const p of m.pkts) ex.web_midi2_in(p >>> 0); break;   // the second USB port
     }
   }
 
@@ -93,6 +94,7 @@ class Spider extends AudioWorkletProcessor {
     const n = ex.web_out_n();
     if (n) {                                          // the MIDI it sent (USB-MIDI packets)
       msg.midi = new Uint32Array(this.mem.buffer, ex.web_out_pkts(), n).slice();
+      if (ex.web_out_to) msg.to = new Uint32Array(this.mem.buffer, ex.web_out_to(), n).slice();   // each one's port
       ex.web_out_clear();
     }
     const writes = ex.web_store_writes();

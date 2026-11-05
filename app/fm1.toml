@@ -26,6 +26,8 @@ smk37_usb_product = "SPIDER SMK-37"
 smk37_ble = false
 smk37_bt_audio = false
 smk37_usb_host = false
+smk37_usb_midi_ports = 2               # a second USB MIDI port: DAW mode's REAPER profile speaks Mackie Control on it
+smk37_usb_midi_name2 = "SPIDER DAW"    # (its name where the computer shows one; Windows: MIDIIN2 (SPIDER SMK-37))
 smk37_resources = ""                   # (no resource region on the SMK-37 yet: its store has no 88 KB to spare; the 909
                                        # cymbals are silent there, large type uses the faces built in)
 # the DSP and the sequencer at -O2, apart (as LOOM-8's own build had them); bench.c: the profiler, empty unless XY_BENCH=1

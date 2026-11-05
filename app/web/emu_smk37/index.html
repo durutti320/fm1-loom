@@ -131,6 +131,7 @@ body.learn [data-learn] { cursor: crosshair; }
     <div class="hdr-actions">
       <a href="qrg.html" title="The controls on one page, to print (A4 landscape)">Cheat sheet</a>
       <button id="boot" type="button" hidden disabled title="Play the boot animation and its sound again">Boot again</button>
+      <button id="fakereaper" type="button" disabled title="A pretend REAPER on the second USB port: try DAW mode's REAPER profile (PATCH held, K6 to REAPER)">Pretend REAPER: off</button>
       <button id="reset" type="button" title="Forget the projects saved in this browser and start from the factory settings">Factory reset</button>
     </div>
   </header>
@@ -738,9 +739,12 @@ function midiText(pkt) {
   if (ty === 0xC0) return `${raw}  ch ${String(ch).padStart(2)}  program ${d1}`;
   return raw;
 }
-function logMidi(pkts) {
+function logMidi(pkts, to) {
   let added = false;
-  for (const p of pkts) { const t = midiText(p); if (t) { midiLines.unshift(t); added = true; } }
+  pkts.forEach((p, i) => {
+    const t = (to && to[i] & 16) ? (p & 15) >= 4 && (p & 15) <= 7 ? null : midiText(p) : midiText(p);
+    if (t) { midiLines.unshift(to && to[i] & 16 ? `<span>DAW</span> ${t}` : t); added = true; }
+  });
   if (!added) return;
   midiLines.length = Math.min(midiLines.length, 40);
   midiBox.innerHTML = midiLines.map((l) => `<div>${l}</div>`).join("");
@@ -783,7 +787,7 @@ async function switchOn() {
           if (m.fb) drawScreen(m.fb);
           drawLights(m.buttons, m.smk);
           drawPads(m.pads);
-          if (m.midi) logMidi(m.midi);
+          if (m.midi) { logMidi(m.midi, m.to); if (m.to) fakeReaperHears(m.midi, m.to); }
           vol.textContent = `Volume ${Math.round(100 * m.volume / 4096)}%`;
           if (m.load !== undefined) cpu.textContent = `LOOM-8 uses ${m.load}% of this computer's time`;
           if (m.store) saveStore(m.store);
@@ -795,6 +799,7 @@ async function switchOn() {
     await ac.resume();
     document.getElementById("start").hidden = true;
     document.getElementById("boot").disabled = false;
+    frBtn.disabled = false;
     state.textContent = ac.sampleRate === 44100 ? "On." : `On (the browser runs audio at ${ac.sampleRate} Hz).`;
     sync();
   } catch (err) {
@@ -805,6 +810,93 @@ async function switchOn() {
 }
 document.getElementById("go").addEventListener("click", switchOn);
 document.getElementById("boot").addEventListener("click", () => send({ type: "boot" }));
+// ---------------------------------------------------------------- a pretend REAPER (the second USB port)
+// What REAPER's own Mackie Control surface sends back (its csurf_mcu.cpp), well enough to try the REAPER profile here:
+// eight tracks, their names, pan and volume, select, mute, solo, arm, play, record, loop, click, the time in beats.
+const fr = { on: false, timer: 0, play: false, rec: false, loop: false, click: false, flip: false, bank: 0, beat: 0,
+  names: ["Kick", "Snare", "Hats", "Bass", "Gtr L", "Gtr R", "Keys", "Vox", "Spider", "Room", "Bus", "Verb"],
+  sel: 0, mute: new Set(), solo: new Set(), arm: new Set([3]), vol: [], pan: [], meter: [] };
+for (let t = 0; t < 12; t++) { fr.vol[t] = 11000 + 300 * t; fr.pan[t] = 64; fr.meter[t] = 0; }
+const frBtn = document.getElementById("fakereaper");
+const PK = (a, b, c) => (a >> 4) | a << 8 | b << 16 | c << 24;
+function frSend(pkts) { if (fr.on) send({ type: "midi2", pkts }); }
+function frSysex(bytes) {
+  const out = [];
+  for (let i = 0; i < bytes.length; i += 3) {
+    const k = Math.min(3, bytes.length - i), end = i + k === bytes.length;
+    out.push((end ? (k === 3 ? 7 : 4 + k) : 4) | bytes[i] << 8 | (bytes[i + 1] || 0) << 16 | (bytes[i + 2] || 0) << 24);
+  }
+  return out;
+}
+function frAll() {                                // everything, as after REAPER's reset
+  const t0 = fr.bank, pk = [], text = [];
+  for (let s = 0; s < 8; s++) text.push(...[...(fr.names[t0 + s] || "").padEnd(7).slice(0, 7)].map((c) => c.charCodeAt(0)));
+  pk.push(...frSysex([0xF0, 0, 0, 0x66, 0x14, 0x12, 0, ...text, 0xF7]));
+  for (let s = 0; s < 8; s++) {
+    const t = t0 + s, has = t < fr.names.length;
+    pk.push(PK(0x90, 0x18 + s, has && fr.sel === t ? 127 : 0), PK(0x90, 0x10 + s, has && fr.mute.has(t) ? 127 : 0),
+      PK(0x90, 0x08 + s, has && fr.solo.has(t) ? 1 : 0), PK(0x90, 0x00 + s, has && fr.arm.has(t) ? 127 : 0));
+    const v = fr.flip ? fr.pan[t] << 7 : fr.vol[t] || 0, r = fr.flip ? (fr.vol[t] || 0) >> 7 : fr.pan[t];
+    pk.push(PK(0xE0 | s, v & 127, v >> 7 & 127), PK(0xB0, 0x30 + s, has ? 1 + ((r * 11) >> 7) : 0));
+  }
+  const b = String(t0 + 1).padStart(2, "0");
+  pk.push(PK(0xB0, 0x4B, b.charCodeAt(0)), PK(0xB0, 0x4A, b.charCodeAt(1)), PK(0x90, 0x72, 127));
+  pk.push(PK(0x90, 0x5E, fr.play ? 127 : 0), PK(0x90, 0x5D, fr.play ? 0 : 127), PK(0x90, 0x5F, fr.rec ? 127 : 0),
+    PK(0x90, 0x56, fr.loop ? 127 : 0), PK(0x90, 0x59, fr.click ? 127 : 0), PK(0x90, 0x32, fr.flip ? 1 : 0));
+  frSend(pk);
+}
+function frTick() {                               // the time (bars.beats.ticks) and the meters, ten times a second
+  if (fr.play) fr.beat += 0.2;
+  const bar = Math.floor(fr.beat / 4) + 1, bt = Math.floor(fr.beat % 4) + 1, tk = Math.floor((fr.beat % 1) * 1000);
+  const ten = `${String(bar).padStart(3, " ")}${String(bt).padStart(2, " ")}  ${String(tk).padStart(3, "0")}`;
+  const pk = [];
+  for (let x = 0; x < 10; x++) { const c = ten[9 - x]; pk.push(PK(0xB0, 0x40 + x, c === " " ? 0 : c.charCodeAt(0))); }
+  for (let s = 0; s < 8; s++) {
+    const t = fr.bank + s;
+    if (fr.play && t < fr.names.length && !fr.mute.has(t)) pk.push(PK(0xD0, s << 4 | Math.min(13, 6 + ((Math.random() * 7) | 0)), 0));
+  }
+  frSend(pk);
+}
+function fakeReaperHears(pkts, to) {              // what SPIDER sent it on the second port
+  if (!fr.on) return;
+  let all = false;
+  pkts.forEach((p, i) => {
+    if (!(to[i] & 16)) return;
+    const st = p >>> 8 & 255, d1 = p >>> 16 & 127, d2 = p >>> 24 & 127, cin = p & 15;
+    if (cin === 4 && st === 0xF0) { all = true; return; }      // the query: everything again
+    if ((st & 0xF0) === 0xE0) { const t = fr.bank + (st & 15), v = d1 | d2 << 7; if (fr.flip) fr.pan[t] = v >> 7; else fr.vol[t] = v; return; }
+    if (st === 0xB0 && d1 >= 0x10 && d1 < 0x18) {
+      const t = fr.bank + d1 - 0x10, n = (d2 & 15) * (d2 & 64 ? -1 : 1);
+      if (fr.flip) fr.vol[t] = Math.max(0, Math.min(16383, fr.vol[t] + n * 300)); else fr.pan[t] = Math.max(0, Math.min(127, fr.pan[t] + n * 4));
+      all = true; return;
+    }
+    if (st === 0xB0 && d1 === 0x3C) { fr.beat = Math.max(0, fr.beat + (d2 & 15) * (d2 & 64 ? -1 : 1) * 0.25); return; }
+    if (st !== 0x90 || !d2) return;
+    const s = d1 & 7, t = fr.bank + s, flip = (set) => (set.has(t) ? set.delete(t) : set.add(t));
+    if (d1 >= 0x18 && d1 < 0x20) fr.sel = t;
+    else if (d1 >= 0x10 && d1 < 0x18) flip(fr.mute);
+    else if (d1 >= 0x08 && d1 < 0x10) flip(fr.solo);
+    else if (d1 < 0x08) flip(fr.arm);
+    else if (d1 === 0x5E) fr.play = true;
+    else if (d1 === 0x5D) { fr.play = false; fr.rec = false; }
+    else if (d1 === 0x5F) { fr.rec = !fr.rec; if (fr.rec) fr.play = true; }
+    else if (d1 === 0x56) fr.loop = !fr.loop;
+    else if (d1 === 0x59) fr.click = !fr.click;
+    else if (d1 === 0x32) fr.flip = !fr.flip;
+    else if (d1 === 0x2E || d1 === 0x2F) fr.bank = Math.max(0, Math.min(fr.names.length - 1, fr.bank + (d1 === 0x2F ? 8 : -8)));
+    else if (d1 === 0x30 || d1 === 0x31) fr.bank = Math.max(0, Math.min(fr.names.length - 1, fr.bank + (d1 === 0x31 ? 1 : -1)));
+    else if (d1 === 0x5B || d1 === 0x5C) fr.beat = Math.max(0, d1 === 0x5C ? (Math.floor(fr.beat / 16) + 1) * 16 : (Math.ceil(fr.beat / 16) - 1) * 16);
+    else return;
+    all = true;
+  });
+  if (all) frAll();
+}
+frBtn.addEventListener("click", () => {
+  fr.on = !fr.on;
+  frBtn.textContent = `Pretend REAPER: ${fr.on ? "on" : "off"}`;
+  clearInterval(fr.timer);
+  if (fr.on) { frAll(); fr.timer = setInterval(frTick, 100); }
+});
 const reset = document.getElementById("reset");
 reset.addEventListener("click", () => {
   if (reset.dataset.armed) { try { localStorage.removeItem(STORE_KEY); } catch {} location.reload(); }

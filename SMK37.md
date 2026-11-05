@@ -74,7 +74,7 @@ module for the DAW). The mode is kept: the SMK starts in DAW mode if it was left
   `<` `>` send when let go. A CC TOGGLE flips once a press.
 - **PATCH** tapped: **LOCAL** on / off (PATCH lit: on). On: the keys also play the track selected, NOTE pads the kit,
   the pitch wheel bends the track. Off (the default): LOOM-8 plays only what comes in.
-- **PATCH held:** K5 CHANNEL, K6 CC MAP (left DEFAULT, right USER), K7 KNOBS (left ABSOLUTE, right RELATIVE),
+- **PATCH held:** K5 CHANNEL, K6 CC MAP (DEFAULT, USER, REAPER: a detent a step), K7 KNOBS (left ABSOLUTE, right RELATIVE),
   K8 KEY VELOCITY (as Setup's: the screen shows it and the last key's velocity while PATCH is held), OCTAVE+ the map
   editor.
 - **The map editor** (your own map, USER): touch a control (turn a knob, move a fader or a wheel, hit a pad, press a
@@ -106,6 +106,57 @@ CC is 127 while held, 0 when let go.
 Not here (Snoop37 has them): TRS MIDI out, the web editor's DAW map tab, RESET MAP (CC MAP DEFAULT is the map as
 shipped; the USER map stays as you left it).
 
+### The REAPER profile (CC MAP: REAPER)
+
+SPIDER shows up as **two USB MIDI ports**: **SPIDER SMK-37** (the music: keys, drum pads, wheels, clock, SPIDER as a
+sound module) and a second one for the DAW's control surface (Windows: **MIDIIN2 / MIDIOUT2 (SPIDER SMK-37)**; macOS
+and Linux name it **SPIDER DAW**). With CC MAP on **REAPER**, SPIDER speaks **Mackie Control** on the second port to
+REAPER's built-in *Mackie Control Universal* surface, and shows what REAPER sends back: the tracks' names, their
+pan, meters, select, mute, solo and arm, the transport's lights, the time. The keys, the drum pads, the wheels and
+LOCAL work as in the DEFAULT map, on the first port. (`app/smk_mcu.h`; REAPER's side: its SDK's
+`reaper_csurf/csurf_mcu.cpp`.)
+
+| Control | REAPER profile |
+|---|---|
+| Keys, wheels | notes on CHANNEL, pitch bend, CC 1 (first port) |
+| K1–K8, KNOB BANK unlit (MIX) | the V-pots: strips 1–8's pan (volume with FX: flip) |
+| K1, KNOB BANK lit (NAV) | the jog: the edit cursor (with PARA, scrub) |
+| K2–K5 (NAV) | CC 102–105, channel 16, relative (64 ± the detents: REAPER's *Relative 2*): learn *View: Scroll horizontally*, *View: Zoom horizontally*, *View: Scroll vertically*, *View: Zoom vertically* (the *MIDI CC relative/mousewheel* ones) |
+| K6 (NAV) | CC 106 / 107 (127 a detent): learn *Track: Go to previous track* / *next track* |
+| K7 (NAV) | the marker before / after (Mackie's << >>: nothing to learn) |
+| K8 (NAV) | anticlockwise undo (Mackie's UNDO), clockwise CC 111: learn *Edit: Redo* |
+| FADER 1–4 | strips 1–4's volume, FADER BANK lit 5–8 (pan with flip). A fader waits until it crosses REAPER's value (the screen says up or down), then follows: nothing jumps |
+| SEQ PLAY | play; while REAPER plays, stop |
+| SEQ REC · NOTE REPEAT · ARP · FX · PARA | record · loop · metronome · flip · scrub |
+| SCALE · CHORD · BT | a marker · undo · save |
+| `<` `>` | the strips by 8 (GLOBE held: by 1), when let go |
+| SEQ | the pads' page: DRUMS → MIXER → ACTIONS (SEQ lit off DRUMS) |
+| Pads, DRUMS | notes 36–51 on channel 10, as DEFAULT (LOCAL: the kit too) |
+| Pads, MIXER | top row: select strips 1–8 (white); bottom row: mute (red). GLOBE held: arm (red), solo (amber, blinking as REAPER sends it). A pad with no track: dark |
+| Pads, ACTIONS | Mackie's F1–F8 (top) and its eight view buttons (bottom), which REAPER hands to its action list: learn each to any action |
+| GLOBE | held: SHIFT (above) |
+| PATCH | as in every map (held: the settings screen) |
+
+The lights follow REAPER: SEQ PLAY playing, SEQ REC recording, NOTE REPEAT loop, ARP click, FX flip, PARA scrub,
+CHORD undo (a flash), BT saved (a second). The screen: REAPER and its transport, the time (bars.beats.ticks, or
+min:sec.ms), the eight strips in two rows of four (the faders' row framed, the selected strip filled; name, pan
+mark, meter; a red dot armed, an amber one soloed, a muted name faint), the strips' tracks, the pads' page, the
+knobs' bank, and the control touched last. Nothing from REAPER for 3 s: **Waiting for REAPER**, and every 3 s the
+query (`F0 00 00 66 14 01 58 59 5A F7`) after which REAPER sends everything again (as it does for a real Mackie
+when it powers up). What comes in on the second port never plays SPIDER.
+
+**In REAPER** (once): Preferences → Audio → MIDI Devices: **SPIDER SMK-37** in on (and *for control messages*), out
+on; leave the second port (MIDIIN2 / MIDIOUT2) off there. Preferences → Control/OSC/web → Add → **Mackie Control
+Universal**: MIDI input MIDIIN2 (SPIDER SMK-37), output MIDIOUT2 (SPIDER SMK-37); leave *Map F1–F8 to markers* off (the
+ACTIONS pads). Then learn the NAV CCs above in the action list (Add…, turn the knob; K2–K5: CC mode *Relative 2*). Set
+recording tracks' inputs to SPIDER SMK-37 channel 1 (the keys) or 10 (the pads), not all channels, so NAV's channel
+16 never lands in a take.
+
+**Song Position Pointer** (SYNTH mode, CLOCK: receive): stopped, a DAW's F2 then Continue plays from its place: each
+track at the step it would be on there, in its loop, and the bar count with it (a song in Arrange starts from its
+first slot). In REAPER: Preferences → Audio → MIDI Devices, the SPIDER SMK-37 output: *Send clock to this device*
+(and SPP where it is offered on its own).
+
 ## Storage
 
 The SMK-37 has less flash to write than the FM-1, around its calibration and stock data: 120 KB of store and 160 KB
@@ -118,6 +169,10 @@ The split is one constant (`app/app.h NPROJ`, with `APP_STORE_MAP` and `dsp/samp
 about 192 KB of samples, three about 88 KB.
 
 ## On GitHub, and in the browser
+
+The emulator's **Pretend REAPER** button plays REAPER's part on the second port (twelve tracks, their names, pan,
+volume, select, mute, solo, arm, the transport, the time in beats, the meters while playing): DAW mode, PATCH held,
+K6 to REAPER, and the REAPER profile works as on the unit. What SPIDER sends there shows in the MIDI list as DAW.
 
 Each push to the branch `loom8-smk37` builds the packages (Actions, the newest **LOOM-8 SMK-37 firmware** run,
 **packages**: the three `.fwsc`, the installer, the backup tool and `START-HERE.txt`) and the emulator, onto the branch
@@ -135,8 +190,10 @@ BOARD=smk37 ./build.sh --host           # the simulator: app/build/host/loom-smk
 ```
 
 The simulator takes the SMK's controls in a script: `pad`, `tappad`, `outer`, `fader`, `bend`, `modw`, `k1`, `smkbtn`,
-`smktap`, `keyvel`, and `pads` prints the pads' colours (`tests/scenarios_smk37/`; `smk37_daw.xy` checks DAW mode's
-MIDI out byte by byte; `smk37_recbar.xy` the double-tapped REC, its steps and its clicks; `smk37_keyvel.xy` KEY
+`smktap`, `keyvel`, and `pads` prints the pads' colours; `midi USB2 ..` and `sysex USB2 F0 .. F7` come in on the second
+port, `expect_out USB2 ..` checks what went out on it (`tests/scenarios_smk37/`; `smk37_daw.xy` checks DAW mode's
+MIDI out byte by byte; `smk37_reaper.xy` the REAPER profile both ways, playing REAPER's part; `smk37_spp.xy` Song
+Position Pointer; `tests/smk_mcu_test.c` the Mackie messages; `smk37_recbar.xy` the double-tapped REC, its steps and its clicks; `smk37_keyvel.xy` KEY
 VELOCITY).
 
 ## Install, and the way back

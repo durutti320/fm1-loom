@@ -125,6 +125,7 @@ static int lsmk_daw_frame(void);
 static int lsmk_nr_release(uint32_t held_ms);
 static int lsmk_nr_lit(void);
 #include "smk_daw.h"                             /* DAW mode's map and messages (daw_on: smk37.c's frame instead) */
+#include "smk_mcu.h"                             /* DAW mode's REAPER profile: Mackie Control on the second USB port */
 #else
 #define KEY_VEL(k) 127
 #endif

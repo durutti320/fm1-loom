@@ -1,0 +1,58 @@
+# MIDI Song Position Pointer (engine.c midi_in, seq.c seq_song_pos): on an external clock (Setup's CLOCK: receive, a
+# new project's), stopped, F2 then Continue plays from there (as a DAW starting mid-song sends them): each track at
+# the step it would be on then, in its loop, and the bar count with it; a Start forgets it; while playing it is ignored
+wait 300
+expect clock 2
+expect playing 0
+# sixteenth 5, Continue, the first clock: step 6 (0-based 5), the bar's sixteenth 5
+midi F2 05 00
+midi FB
+midi F8
+wait 20
+expect playing 1
+expect step 1 5
+expect bar16 5
+midi F8
+midi F8
+midi F8
+midi F8
+midi F8
+midi F8
+wait 20
+expect step 1 6
+midi FC
+wait 20
+expect playing 0
+# sixteenth 20 (a 16-step pattern: its step 5, 0-based 4; the bar's sixteenth 4)
+midi F2 14 00
+midi FB
+midi F8
+wait 20
+expect step 1 4
+expect bar16 4
+# while playing: ignored (the next stop and Continue go on from where it stopped)
+midi F2 00 00
+midi F8
+midi F8
+midi F8
+midi F8
+midi F8
+midi F8
+wait 20
+expect step 1 5
+midi FC
+wait 20
+# a Song Position Pointer, then a Start: from the top
+midi F2 09 00
+midi FA
+midi F8
+wait 20
+expect step 1 0
+expect bar16 0
+midi FC
+wait 20
+# a plain Continue (no pointer): where it stopped
+midi FB
+midi F8
+wait 20
+expect step 1 1

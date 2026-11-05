@@ -516,6 +516,25 @@ int app_expect(const char *what, int *got)
         *got = daw_ch;
     else if (!strcmp(what, "dawuser"))
         *got = daw_user;
+    else if (!strcmp(what, "reaper"))               /* DAW mode's REAPER profile in use (smk_mcu.h) */
+        *got = lrp_active();
+    else if (!strcmp(what, "rconn"))                /* REAPER heard from within 3 s */
+        *got = mcu_connected(&lrp_m, plat_ms());
+    else if (!strcmp(what, "rpage"))                /* its pads' page: 0 DRUMS, 1 MIXER, 2 ACTIONS */
+        *got = lrp.page;
+    else if (!strcmp(what, "rpick"))                /* the strips whose fader took REAPER's value (bit s) */
+        *got = lrp.pick;
+    else if (!strncmp(what, "rpad", 4) && what[4]) {   /* rpadP: pad P's brightest channel, 0..255 */
+        uint32_t c = hsmk_rgb[atoi(what + 4) & 15], r = c >> 16, g = c >> 8 & 255u, b = c & 255u;
+        *got = (int)(r > g ? (r > b ? r : b) : (g > b ? g : b));
+    } else if (!strncmp(what, "lit", 3) && what[3]) {  /* litNAME: the button's light (the script's names: PLAY ..) */
+        static const char *const N[] = {"FX", "SEL", "ENV", "LFO", "EDIT", "GLO", "HOME", "SAVE", "ARP", "SEQ", "PLAY",
+                                        "REC", "OCT-", "OCT+"};
+        int i;
+        for (i = 0; i < (int)(sizeof N / sizeof N[0]) && strcmp(N[i], what + 3); i++)
+            ;
+        *got = i < (int)(sizeof N / sizeof N[0]) ? (int)(lit_btn >> i & 1u) : -1;
+    }
     else if (!strcmp(what, "pads_drums"))           /* KNOB BANK: the pads drum pads on Steps */
         *got = lsmk.pad_drums;
     else if (!strcmp(what, "rec"))                  /* live recording on (the keys write steps) */

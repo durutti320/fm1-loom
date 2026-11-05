@@ -50,7 +50,9 @@ typedef struct {
 static uint8_t daw_on;                    /* MODE: 0 SYNTH, 1 DAW */
 static uint8_t daw_ch = 1;                /* CHANNEL 1..16: the keys, and every entry with channel 0 */
 static uint8_t daw_local;                 /* LOCAL: 1 ON (the keys and NOTE pads also play LOOM-8), 0 OFF (the default) */
-static uint8_t daw_user;                  /* CC MAP: 0 DEFAULT, 1 USER */
+static uint8_t daw_user;                  /* CC MAP: 0 DEFAULT, 1 USER, 2 REAPER (smk_mcu.h: Mackie Control on the
+                                           * second USB port; the keys, drum pads and wheels as DEFAULT's) */
+#define DAW_MAP_REAPER 2u
 static uint8_t daw_rel;                   /* KNOBS: 0 ABSOLUTE (0..127), 1 RELATIVE (64 +- the steps) */
 /* KEY VELOCITY: how hard the keys play (all 37, in LOOM-8 and in DAW mode; the pads keep their own). The touches read
  * the stroke (contact to contact) through the unit's own curves at a time base of 0.1 ms x KV_TOUCH (fm1-base
@@ -125,7 +127,7 @@ static daw_ent_t daw_ent(uint32_t i)      /* entry i of the map in use */
     daw_ent_t z = {DT_OFF, 0, 0};
     if (i >= DAW_N)
         return z;
-    return daw_user ? daw_umap[i] : daw_default(i);
+    return daw_user == 1u ? daw_umap[i] : daw_default(i);
 }
 static uint32_t daw_chan(const daw_ent_t *e) { return (e->ch ? e->ch - 1u : (daw_ch - 1u)) & 15u; }   /* 0..15 */
 /* the next / previous type control i has (a knob turn), round */
@@ -231,7 +233,7 @@ static int daw_cv_due(const daw_cv_t *c, uint32_t now, uint32_t rel)
 #define DAW_MAGIC 0x31574144u             /* "DAW1" */
 typedef struct {
     uint32_t magic;
-    uint8_t flags;                        /* bit 0 DAW mode, 1 LOCAL ON, 2 CC MAP USER, 3 KNOBS RELATIVE */
+    uint8_t flags;                        /* bit 0 DAW mode, 1 LOCAL ON, 2 CC MAP USER, 3 KNOBS RELATIVE, 4 CC MAP REAPER */
     uint8_t ch, n, rsv;                   /* CHANNEL; the entries that follow (DAW_N); KEY VELOCITY + 1 */
     daw_ent_t map[DAW_N];                 /* the USER map */
 } daw_store_t;
@@ -241,7 +243,8 @@ static void daw_store_fill(daw_store_t *s)
     for (i = 0; i < sizeof *s; i++)
         ((uint8_t *)s)[i] = 0;                /* (the padding too: saves compare the bytes) */
     s->magic = DAW_MAGIC;
-    s->flags = (uint8_t)((daw_on & 1u) | (daw_local & 1u) << 1 | (daw_user & 1u) << 2 | (daw_rel & 1u) << 3);
+    s->flags = (uint8_t)((daw_on & 1u) | (daw_local & 1u) << 1 | (daw_user == 1u) << 2 | (daw_rel & 1u) << 3 |
+                         (daw_user == DAW_MAP_REAPER) << 4);
     s->ch = daw_ch;
     s->n = DAW_N;
     s->rsv = (uint8_t)(daw_kv + 1u);
@@ -265,7 +268,7 @@ static int daw_store_take(const uint8_t *b, uint32_t len)
         n = (len - 8u) / 3u;
     daw_on = (uint8_t)(s.flags & 1u);
     daw_local = (uint8_t)((s.flags >> 1) & 1u);
-    daw_user = (uint8_t)((s.flags >> 2) & 1u);
+    daw_user = (uint8_t)((s.flags >> 4) & 1u ? DAW_MAP_REAPER : (s.flags >> 2) & 1u);
     daw_rel = (uint8_t)((s.flags >> 3) & 1u);
     daw_ch = (uint8_t)(s.ch >= 1u && s.ch <= 16u ? s.ch : 1u);
     daw_kv = (uint8_t)(s.rsv >= 1u && s.rsv <= KV_N ? s.rsv - 1u : KV_NORMAL);

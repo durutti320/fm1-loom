@@ -272,6 +272,7 @@ typedef struct {
     volatile uint8_t req_start, req_stop, req_cont, req_from_start;
     volatile int16_t req_at;          /* seq_start_at: the step the start is from (0: step 1) */
     volatile uint8_t req_at_trk;      /* and the track whose step it is (its scale: the others' steps at that time) */
+    volatile int32_t req_pos;         /* seq_song_pos: a Continue's place, half-sixteenths + 1 (0: where it stopped) */
     uint32_t rng;
     uint32_t step_tick;               /* sixteenths since start (the metronome, the arp grid) */
     uint8_t metro_beat;
@@ -343,6 +344,9 @@ void seq_start_at(seq_t *s, int trk, int step);   /* from the top, but from trac
 void seq_stop(seq_t *s);
 void seq_continue(seq_t *s);
 void seq_ext_clock(seq_t *s);                  /* one 24-ppqn tick */
+void seq_song_pos(seq_t *s, int six);          /* MIDI Song Position Pointer (sixteenths), stopped: the next Continue
+                                                * plays from there (each track at the step it would be on then, in its
+                                                * loop, and the bar count with it); a Start forgets it */
 void seq_cue_scene(seq_t *s, int scene, int at_end);   /* at the next bar line, or at the end of track 1's
                                                           * pattern (now, if stopped) */
 int seq_cue_left(const seq_t *s);              /* sixteenths before the cued scene's (0: the next), -1 none */
