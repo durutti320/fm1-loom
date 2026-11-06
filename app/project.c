@@ -237,7 +237,7 @@ void project_device_put(void)
 }
 
 #if BOARD_SMK37
-#include "kits.h"                       /* (GKIT_TWEED: SPIDER's new project plays the acoustic kit) */
+#include "kits.h"                       /* (GKIT_ACOUSTIC: SPIDER's new project plays the acoustic kit) */
 #endif
 /* a new project's tracks, by engine */
 #if BOARD_SMK37
@@ -260,9 +260,9 @@ static void track_sound_new(trk_t *tr, int t)
             for (j = 0; j < DP_N; j++)
                 tr->par[TP_DRUM(k, j)] = DL_DEFAULT_KIT[k][j];
         }
-#ifdef GKIT_TWEED
-        for (k = 0; k < DL_NSOUND; k++) {             /* SPIDER: Tweed, the acoustic kit (as ui.c kit_factory) */
-            const uint8_t *g = GKIT[GKIT_TWEED][k];
+#ifdef GKIT_ACOUSTIC
+        for (k = 0; k < DL_NSOUND; k++) {             /* SPIDER: the acoustic kit (as ui.c kit_factory) */
+            const uint8_t *g = GKIT[GKIT_ACOUSTIC][k];
             tr->par[TP_DRUM(k, DP_MODEL)] = g[0];
             for (int j = 0; j < 4; j++) {
                 tr->par[TP_DRUM(k, DP_K1 + j)] = g[1 + j];
@@ -278,7 +278,11 @@ static void track_sound_new(trk_t *tr, int t)
         tr->par[TP_D] = 0;                            /* funk 0, attack 0, random 0, length 64 */
         tr->par[TP_S] = 0;
         tr->par[TP_R] = 64;
+#ifdef GKIT_ACOUSTIC
+        set_name(tr, GKIT_NAME[GKIT_ACOUSTIC]);       /* (named for its kit, as picking one names it) */
+#else
         set_name(tr, "kit");
+#endif
     } else if (t == 1 && ORDER[t] == EG_KNIT && !EG_DROPPED(EG_KNIT)) {
         apply_preset(tr, preset_named(EG_KNIT, "sub"));     /* knit's round sub under everything */
     } else {

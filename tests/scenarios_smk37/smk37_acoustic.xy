@@ -1,4 +1,4 @@
-# SPIDER's acoustic kit, Tweed (tools/gen_kits.py; its samples VCSL's, CC0: tools/prep_acoustic.py, built in after the
+# SPIDER's acoustic kit, "acoustic" (tools/gen_kits.py; its samples VCSL's, CC0: tools/prep_acoustic.py, built in after the
 # user slots, dsp/sample.c SMP_XTRA): a new project's T1; its eleven keys on the sample model, samples 48.. (16 factory,
 # 32 user before them), each sounding; the kit's key on the screen named for its sample
 wait 300
@@ -88,4 +88,4 @@ expect peak_db_max -12
 tap EDIT
 wait 100
 expect page Engine
-shot tweed_kick.png
+shot acoustic_kick.png

@@ -196,7 +196,7 @@ static uint32_t rhythm_step(const rhythm_t *r, int i, int *vel)
 static int rhythm_kit(const rhythm_t *r)
 {
     for (int k = 0; k < NFKITS; k++)
-        if (s_eq(kit_name(k), r->kit))
+        if (s_eq(kit_id(k), r->kit))                 /* (by LOOM-8's name: SPIDER shows another) */
             return k;
     return -1;
 }

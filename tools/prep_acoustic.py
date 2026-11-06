@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MPL-2.0
-"""SPIDER's acoustic kit (the SMK-37 build: tools/gen_samples.py ACOUSTIC, tools/gen_kits.py "Tweed"): eleven drum
+"""SPIDER's acoustic kit (the SMK-37 build: tools/gen_samples.py ACOUSTIC, tools/gen_kits.py "Acoustic"): eleven drum
 recordings from Versilian Studios' VCSL, CC0 1.0 (github.com/sgossner/VCSL), as SLOOP keeps them
 (github.com/isod89/sloop-fm1, assets/samples-cc0/KIT: mono, cut, normalised; its ATTRIBUTION.txt names each source
 file). Here each is mixed to mono, resampled to the rate the firmware keeps it at, cut to its length with the last

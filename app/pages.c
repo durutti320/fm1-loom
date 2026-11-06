@@ -2841,7 +2841,8 @@ static void proj_slot_text(int slot, char *t)     /* "Proj 2", "Proj 3 (open)", 
 #include "kits.h"
 #define NFKITS (1 + NGKITS)
 #define NKITS (NFKITS + NUSER_KITS)
-static const char *kit_name(int k) { return k == 0 ? "Loom" : GKIT_NAME[k - 1]; }
+static const char *kit_name(int k) { return k == 0 ? KIT0_NAME : GKIT_NAME[k - 1]; }   /* (as shown) */
+static const char *kit_id(int k) { return k == 0 ? "Loom" : GKIT_ID[k - 1]; }   /* (LOOM-8's name: rhythms.h's) */
 #include "rhythms.h"                               /* SPIDER's rhythms (list_steps: RHYTHM, RHYTHM + KIT) */
 static void kit_label(int k, char *t)              /* "Loom", "K2 deep", "K3 (empty)" */
 {
@@ -2973,7 +2974,7 @@ static void list_steps(int trk)
         const rhythm_t *r = &RHYTHM[ui.pick_rhythm % NRHYTHM];
         list_head("rhythm");
         list_add(ACTION_NAME[A_RHYTHM], r->name, LK_PICK, A_RHYTHM);
-        list_add(ACTION_NAME[A_RHYTHM_KIT], r->kit, LK_ACTION, A_RHYTHM_KIT);
+        list_add(ACTION_NAME[A_RHYTHM_KIT], rhythm_kit(r) >= 0 ? kit_name(rhythm_kit(r)) : r->kit, LK_ACTION, A_RHYTHM_KIT);
     }
     list_head("pattern");
     if (to >= 0)

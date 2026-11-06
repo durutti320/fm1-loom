@@ -120,7 +120,7 @@ BUDGET = 100 * 1024                                  # B: the image's room for t
 SAMPLE_DIR = Path(__file__).resolve().parents[1] / "app" / "samples"
 # SPIDER's acoustic kit (the SMK-37 build only, BOARD=smk37: app/samples/acoustic/, tools/prep_acoustic.py: VCSL by
 # Versilian Studios, CC0), built into its image as samples of their own after the user slots (dsp/sample.h SMP_NXTRA:
-# index SMP_NFACT + SMP_NUSER + i, so no sample number before them moves); the Tweed kit plays them
+# index SMP_NFACT + SMP_NUSER + i, so no sample number before them moves); the acoustic kit plays them
 # (tools/gen_kits.py). Each at its file's rate: name on the screen, file
 SMK = os.environ.get("BOARD", "fm1").lower().replace("-", "") == "smk37"
 ACOUSTIC = [("ac kick", "kick.wav"), ("ac snare", "snare.wav"), ("ac hat", "hat.wav"), ("ac open", "open.wav"),

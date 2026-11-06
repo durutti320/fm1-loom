@@ -56,10 +56,15 @@ the velocity up (x 1.2 .. x 2.4; normal x 1.6, at most 127): on that unit the ha
 normal's time base, and with the gain they reach 127. The line above it shows the last key: its velocity and its stroke
 in ms (DAW mode: on the screen while PATCH is held). Kept with DAW mode's settings (OBJ_DAW), not in a project.
 
-**A new project** is T1 kit (**Tweed**, an acoustic kit: VCSL's drums, CC0, built in), T2 mono, T3 poly, T4 acid, T5
+**A new project** is T1 kit (**acoustic**: VCSL's drums, CC0, built in), T2 mono, T3 poly, T4 acid, T5
 fm, T6 the sampler, T7 a second poly, T8 a second mono; NEW PROJECT (PATCH, SCALE's list) gives that every time (RANDOM
 SOUNDS deals a random band). A project from LOOM-8, or one an earlier SPIDER saved with LOOM-8's tracks in it (knit ..
 voile, which SPIDER leaves out), loads each such track as SPIDER's own for that place.
+
+**The kits** (a kit track's KIT list) go by what they are: **acoustic**, **909** (the 909's own circuits and
+cymbals), **909 mix** (its samples, other toms and bells), **analog** (LOOM-8's own models), **machinedrum**,
+**electro**, **tight**, **dry**, **dusty**, **rubber**, **metal**, **crushed**. They are LOOM-8's Loom, Nylon .. Twill
+(the FM-1's build keeps those names; `tools/gen_kits.py SPIDER_NAME`). A track takes its kit's name.
 
 Not on the SMK-37: TRS MIDI IN (the SMK's jack is a MIDI output; its pin is a key row there). MIDI in works over USB.
 LOOM-8's Bluetooth (MIDI and audio) and its USB MIDI host are off in the SMK-37 build for now: the SMK's radio, and
