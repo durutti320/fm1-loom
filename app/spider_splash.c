@@ -581,9 +581,14 @@ static void spd_add(float *c, uint32_t rgb, float a)
     c[1] += (float)(rgb >> 8 & 255u) * a;
     c[2] += (float)(rgb & 255u) * a;
 }
-static uint32_t spd_rgb565(uint16_t c)          /* (as smk37.c lsmk_rgb) */
+static uint32_t spd_rgb565(uint16_t c)          /* (as smk37.c lsmk_rgb: for the LEDs, the gamma undone) */
 {
     uint32_t r = (c >> 11) << 3 | (c >> 13), g = ((c >> 5) & 0x3Fu) << 2 | ((c >> 9) & 3u), b = (c & 0x1Fu) << 3 | ((c >> 2) & 7u);
+    uint32_t mx = r > g ? (r > b ? r : b) : (g > b ? g : b);
+    if (mx) {
+        uint32_t m2 = mx * mx;
+        r = r * r * r / m2, g = g * g * g / m2, b = b * b * b / m2;
+    }
     return r << 16 | g << 8 | b;
 }
 static int spd_pad_at(float a)                  /* the pad in direction a from the hub */

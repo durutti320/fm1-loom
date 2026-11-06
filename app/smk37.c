@@ -423,9 +423,18 @@ static void lsmk_poll(void)
 }
 
 /* the pads' and the SMK buttons' lights, after leds() */
-static uint32_t lsmk_rgb(uint16_t c, uint32_t lv)  /* an RGB565 ink at lv / 256 */
+/* an RGB565 ink as the pads' LEDs show it, at lv / 256. The screen's values are gamma-coded and an LED's are linear, so
+ * as they were a pale ink's every channel lit and the colour washed out to white: each channel cubed (the gamma
+ * undone: 2.8 is the usual for such LEDs), then scaled back so the brightest keeps its value (amber 228,182,82 ->
+ * 228,116,10; cold blue 104,142,232 -> 20,53,232; a grey stays a grey) */
+static uint32_t lsmk_rgb(uint16_t c, uint32_t lv)
 {
     uint32_t r = (c >> 11) << 3 | (c >> 13), g = ((c >> 5) & 0x3Fu) << 2 | ((c >> 9) & 3u), b = (c & 0x1Fu) << 3 | ((c >> 2) & 7u);
+    uint32_t mx = r > g ? (r > b ? r : b) : (g > b ? g : b);
+    if (mx) {
+        uint32_t m2 = mx * mx;
+        r = r * r * r / m2, g = g * g * g / m2, b = b * b * b / m2;   /* (x^3 / 255^2, the brightest back to mx) */
+    }
     return (r * lv >> 8) << 16 | (g * lv >> 8) << 8 | (b * lv >> 8);
 }
 /* the pads at rest away from Steps (nothing held): the mutes lit while their track plays, the drums dim in the kit's
