@@ -56,23 +56,25 @@ smkbtn < up
 wait 60
 expect daw 1
 out
-# the keys: notes on CHANNEL 1, C3 = 48 (F3, the FM-1's first key, is 53)
-key 0 down 100
+# the keys: notes on CHANNEL 1, C3 = 48 (F3, the FM-1's first key, is 53); KEY VELOCITY normal: x 1.6 (60 -> 95)
+keyvel 0 60
+key 0 down 60
 wait 20
-expect_out USB 90 35 64
+expect_out USB 90 35 5F
 key 0 up
 wait 20
 expect_out USB 80 35 00
-outer 0 90
+outer 0 50
 wait 20
-expect_out USB 90 30 5A
+expect_out USB 90 30 4F
 outer 0 0
 wait 20
 # OCT+: an octave up
 tap OCT+
-key 0 down 100
+keyvel 0 60
+key 0 down 60
 wait 20
-expect_out USB 90 41 64
+expect_out USB 90 41 5F
 key 0 up
 tap OCT-
 wait 20
@@ -141,9 +143,10 @@ release HOME
 wait 20
 expect dawch 2
 expect local 1
-key 0 down 100
+keyvel 0 60
+key 0 down 60
 wait 20
-expect_out USB 91 35 64
+expect_out USB 91 35 5F
 key 0 up
 wait 20
 # the map editor: PATCH held + OCT+; touch FADER 2, K6 its number +5 (CC 26), OCT- done: the USER map in use

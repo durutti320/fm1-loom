@@ -194,7 +194,12 @@ int main(void)
         daw_kv = KV_HEAVY;
         daw_store_take(b, sizeof s);
         check(daw_kv == KV_NORMAL, "out of range: NORMAL");
-        check(daw_kv_vel(80) == 80 && daw_kv_vel(0) == 0, "a touch: the velocity as played");
+        check(daw_kv_vel(80) == 127 && daw_kv_vel(50) == 79 && daw_kv_vel(1) == 1 && daw_kv_vel(0) == 0,
+              "NORMAL: the velocity read x 1.6 (80, the hardest on Cam's unit, 127), a let-go 0");
+        daw_kv = KV_HEAVY;
+        check(daw_kv_vel(80) == 80 && daw_kv_vel(127) == 127, "HEAVY: the velocity as read");
+        daw_kv = KV_LIGHTEST;
+        check(daw_kv_vel(53) == 127 && daw_kv_vel(20) == 48, "LIGHTEST: x 2.4");
         daw_kv = KV_FIX100;
         check(daw_kv_vel(12) == 100 && daw_kv_vel(0) == 0, "FIXED 100: every press 100, a let-go stays 0");
         daw_kv = KV_FIX127;
@@ -204,6 +209,9 @@ int main(void)
         for (int i = 1; i < KV_FIX100; i++)
             up &= KV_TOUCH[i] > KV_TOUCH[i - 1];
         check(up && KV_TOUCH[KV_HEAVY] == 1, "the touches rise, HEAVY the earlier builds' reading");
+        for (int i = 1; i < KV_FIX100; i++)
+            up &= KV_GAIN[i] > KV_GAIN[i - 1];
+        check(up && KV_GAIN[KV_HEAVY] == 64, "the gains rise, HEAVY none");
     }
     {
         char n[20];

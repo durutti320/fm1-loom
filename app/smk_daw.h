@@ -56,20 +56,26 @@ static uint8_t daw_user;                  /* CC MAP: 0 DEFAULT, 1 USER, 2 REAPER
 static uint8_t daw_rel;                   /* KNOBS: 0 ABSOLUTE (0..127), 1 RELATIVE (64 +- the steps) */
 /* KEY VELOCITY: how hard the keys play (all 37, in LOOM-8 and in DAW mode; the pads keep their own). The touches read
  * the stroke (contact to contact) through the unit's own curves at a time base of 0.1 ms x KV_TOUCH (fm1-base
- * plat_key_touch): HEAVY the reading the earlier builds had (a hard stroke about 80 on the unit this was made on),
- * NORMAL (the default) four times as light, where that stroke reads near 127; FIXED: every key that velocity. Kept
- * with DAW mode's settings (daw_store_t.rsv: KEY VELOCITY + 1; 0, older data: NORMAL) */
+ * plat_key_touch), and the velocity read is then taken up by KV_GAIN / 64 (at most 127): HEAVY the reading the
+ * earlier builds had; NORMAL (the default) the touch four times as light and x 1.6, since on Cam's unit the hardest
+ * strokes still read about 80 at the touch alone (2026-11-06): with the gain they reach 127, whatever the touch did;
+ * FIXED: every key that velocity. Kept with DAW mode's settings (daw_store_t.rsv: KEY VELOCITY + 1; 0, older data:
+ * NORMAL) */
 enum { KV_HEAVY, KV_FIRM, KV_MEDIUM, KV_NORMAL, KV_LIGHT, KV_LIGHTER, KV_LIGHTEST, KV_FIX100, KV_FIX127, KV_N };
 static const char *const KV_NAME[KV_N] = {"heavy", "firm", "medium", "normal", "light", "lighter", "lightest",
                                           "fixed 100", "fixed 127"};
 static const uint8_t KV_TOUCH[KV_N] = {1, 2, 3, 4, 5, 6, 8, 4, 4};
+static const uint8_t KV_GAIN[KV_N] = {64, 76, 88, 102, 116, 132, 154, 64, 64};   /* x 64: 1, 1.2 .. 1.6 .. 2.4 */
 static uint8_t daw_kv = KV_NORMAL;
 /* a key's velocity as played (1..127; 0 a let-go, kept) -> the one it plays at KEY VELOCITY */
 static uint32_t daw_kv_vel(uint32_t v)
 {
     if (!v)
         return 0;
-    return daw_kv == KV_FIX100 ? 100u : daw_kv == KV_FIX127 ? 127u : v > 127u ? 127u : v;
+    if (daw_kv == KV_FIX100 || daw_kv == KV_FIX127)
+        return daw_kv == KV_FIX100 ? 100u : 127u;
+    v = v * KV_GAIN[daw_kv % KV_N] / 64u;
+    return v > 127u ? 127u : v ? v : 1u;
 }
 static daw_ent_t daw_umap[DAW_N] PLAT_POOL;   /* the USER map (the pool: zeroed at boot; smk37.c fills it) */
 

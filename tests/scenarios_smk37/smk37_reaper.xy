@@ -238,9 +238,10 @@ tap SEQ
 wait 20
 expect rpage 0
 # the keys: notes on CHANNEL (the first port)
-key 0 down 100
+keyvel 0 60
+key 0 down 60
 wait 20
-expect_out USB 90 35 64
+expect_out USB 90 35 5F
 key 0 up
 wait 20
 out
