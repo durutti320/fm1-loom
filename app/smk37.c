@@ -241,13 +241,17 @@ static void lsmk_outer(void)
             if (t < 0 || t >= NTRK || ui.ask)
                 continue;
             n = is_drum(t) ? i % DL_NSOUND + 1 : clampi(KEY_BASE + OUTER_NOTE_OFS(i) + ui.oct * 12, 1, 127);
-            if (lsmk.out_note[i])
+            if (lsmk.out_note[i]) {
                 engine_key(lsmk.out_trk[i], lsmk.out_note[i], 0, 0);
+                outer_note(lsmk.out_trk[i], lsmk.out_note[i], 0);
+            }
             lsmk.out_trk[i] = (uint8_t)t;
             lsmk.out_note[i] = (uint8_t)n;
             engine_key(t, n, 1, (int)daw_kv_vel((uint32_t)v));
+            outer_note(t, n, 1);                   /* (with the keyboard's: shown held, a step's, step record's) */
         } else if (lsmk.out_note[i]) {
             engine_key(lsmk.out_trk[i], lsmk.out_note[i], 0, 0);
+            outer_note(lsmk.out_trk[i], lsmk.out_note[i], 0);
             lsmk.out_note[i] = 0;
         }
     }
@@ -1597,6 +1601,7 @@ static void lsmk_synth_quiet(void)              /* LOOM-8's side: the pads', out
     for (i = 0; i < NOUTER; i++)
         if (lsmk.out_note[i]) {
             engine_key(lsmk.out_trk[i], lsmk.out_note[i], 0, 0);
+            chord_del(lsmk.out_note[i]);
             lsmk.out_note[i] = 0;
         }
     if (lsmk.bend_trk < NTRK)

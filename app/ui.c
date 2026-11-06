@@ -1431,6 +1431,29 @@ static void keyboard_down(int k)
             step_rec_key(note);
     }
 }
+#if BOARD_SMK37
+/* SPIDER: a note of the SMK-37's outer keys (C3..E3, G#5..C6, past the FM-1's 27), sounding already (smk37.c
+ * lsmk_outer): held with the keyboard's, so the screen shows it among the notes held (Steps' head), a step tapped takes
+ * it and step record writes it, as a key of the 27 would */
+static void outer_note(int trk, int note, int on)
+{
+    int srec = ui.rec_armed && !playing();
+    if (!on) {
+        chord_del(note);
+        if (srec)
+            step_rec_key_up();
+        return;
+    }
+    chord_add(note);
+    if (!is_drum(trk) && !is_aux(sel_trk())) {
+        for (int i = 0; i < SN && i < ui.nchord; i++)
+            ui.rem[i] = ui.chord[i];
+        ui.nrem = (uint8_t)(ui.nchord > SN ? SN : ui.nchord);
+    }
+    if (srec && !is_aux(sel_trk()))
+        step_rec_key(note);
+}
+#endif
 /* the Bar page, SEQ held: black keys 1-4 are the bars. One jumps there at the next bar line (and plays on through the
  * pattern), two held loop that range, one tapped twice loops that bar; all queued for the bar line while playing */
 #define BAR_TAP_MS 350

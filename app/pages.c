@@ -2128,7 +2128,7 @@ static void draw_tag(void)
     int32_t r = 232, x, w;
     uint32_t h;
     int big = band != &BANDS[0], st = big && steps_page(ui.page) && is_seqt(sel_trk()) && sel_trk() != AUX_WEAVE;
-    char nm[NAME_LEN + 2], hd[48];
+    char nm[NAME_LEN + 2], hd[56];
     int nb = 0, pb = -1;
     page_tag(t);
     h = hash_s(hash_u(2166136261u, ui.page | (uint32_t)n << 8 | (uint32_t)big << 7), t);
@@ -3723,8 +3723,9 @@ static void draw_weave_steps(void)
     }
     cv_blit(0, MAIN_Y);
 }
-/* the Steps page's head: an instrument's name (nm) and what a step takes (t: its sound, or the notes held); an aux
- * track's in t alone ("fx: ...", "chord: ...") */
+/* the Steps page's head: an instrument's name (nm) and what a step takes (t: its sound, or the notes held: while keys
+ * are held all of them, up to eight, from the lowest; a step takes the first four); an aux track's in t alone
+ * ("fx: ...", "chord: ..."). t: room for 48 */
 static void steps_head(int trk, char *nm, char *t)
 {
     char *e = t;
@@ -3748,11 +3749,23 @@ static void steps_head(int trk, char *nm, char *t)
         return;
     } else
         e = s_cat(t, "chord: ");
-    for (int i = 0; i < ui.nrem && i < SN && (is_aux(trk) || pl_type(trk) != PL_RAND); i++) {   /* (the random
+    {
+        uint8_t nt[8];
+        int n = ui.nchord ? ui.nchord : ui.nrem, i, j;
+        if (n > (ui.nchord ? 8 : SN))
+            n = ui.nchord ? 8 : SN;
+        for (i = 0; i < n; i++) {                    /* (low to high) */
+            uint8_t v = ui.nchord ? ui.chord[i] : ui.rem[i];
+            for (j = i; j > 0 && nt[j - 1] > v; j--)
+                nt[j] = nt[j - 1];
+            nt[j] = v;
+        }
+        for (i = 0; i < n && e - t < 40 && (is_aux(trk) || pl_type(trk) != PL_RAND); i++) {   /* (the random
                                                      * player: no notes held for its steps) */
-        if (i)
-            e = s_cat(e, " ");
-        e = note_name(ui.rem[i], e);
+            if (i)
+                e = s_cat(e, " ");
+            e = note_name(nt[i], e);
+        }
     }
 }
 static void draw_steps_as(void);
@@ -3774,7 +3787,7 @@ static void draw_steps_as(void)
     const tpat_t *tp = tpat(trk);
     uint32_t h = hash_u(hash_u(2166136261u, 0x57u), (uint32_t)trk | (uint32_t)pt << 4 | (uint32_t)ui.bar << 8 |
                                           (uint32_t)ui.held << 10 | (uint32_t)ui.dsound << 26);
-    char t[40];
+    char t[56];
     h = hash_u(h, (uint32_t)ph | (uint32_t)playing() << 8 | (uint32_t)ui.rec_armed << 9 | (uint32_t)ui.cursor << 16 |
                       (uint32_t)ui.lockpg << 24 | (uint32_t)(seq.rec_wait != 0) << 30);
     h = hash_u(h, ui.trickpg | (uint32_t)ui.rem_fx << 16 | (uint32_t)(ui.frame / 8 & 1u) << 31);
@@ -3782,6 +3795,8 @@ static void draw_steps_as(void)
     h = hash_s(hash_u(h, proj.trk[trk].par[TP_ENGINE]), proj.trk[trk].name);   /* the sound's name, shown */
     for (int i = 0; i < 4; i++)
         h = hash_u(h, ui.rem[i]);
+    for (int i = 0; i < 8; i++)                      /* (the keys held: the head shows them all) */
+        h = hash_u(h, i < ui.nchord ? ui.chord[i] + 1u : 0u);
     h = hash_u(h, lane_count(pats.lane));
     if (!is_seqt(trk)) {
         h = hash_u(h, 0xFEu);
@@ -3799,11 +3814,14 @@ static void draw_steps_as(void)
     if (band == &BANDS[0]) {                         /* the sound and what a step takes (large type: on the tag) */
         char nm[NAME_LEN + 2];
         int32_t x = ST_X + 2;
+        int big = ui.nchord > SN && !drum;           /* (a chord past four held: its notes the head's width) */
         steps_head(trk, nm, t);
+        if (big)
+            nm[0] = 0;
         if (nm[0])
             x = text_fit(x, 0, &FONT_XS, nm, 96, K_TEXT) + 8;
         if (t[0])
-            text_fit(x, 0, &FONT_XS, t, (nm[0] ? 168 : 232) - x, K_DIM);
+            text_fit(x, 0, &FONT_XS, t, (nm[0] || big ? 168 : 232) - x, K_DIM);
     }
     if (band == &BANDS[0]) {
         int nb = (tp->len + 15) / 16, pb = ph / 16;

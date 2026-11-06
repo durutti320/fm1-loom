@@ -545,6 +545,10 @@ int app_expect(const char *what, int *got)
         *got = seq.rec_at_bar;
     else if (!strcmp(what, "steprec"))              /* step record armed */
         *got = ui.rec_armed;
+    else if (!strcmp(what, "held"))                 /* the keys held together now (ui.chord: the notes) */
+        *got = ui.nchord;
+    else if (!strncmp(what, "rem", 3) && isnum(what + 3))   /* remN: the Nth note a step tapped takes (0 none) */
+        *got = atoi(what + 3) >= 1 && atoi(what + 3) <= ui.nrem ? ui.rem[atoi(what + 3) - 1] : 0;
     else if (!strcmp(what, "bar16"))                /* the sixteenth of the bar playing, 0..15 */
         *got = seq.bar16;
     else if (!strcmp(what, "kv"))                   /* KEY VELOCITY (smk_daw.h KV_*) */

@@ -28,7 +28,7 @@ is DAW mode's REAPER profile), also on the emulator's site as `qrg.html` (the em
 | SMK-37 | LOOM-8 |
 | --- | --- |
 | Keys F3..G5 (the middle 27) | the FM-1's 27 keys, **with velocity** (the unit's own factory curves, at **KEY VELOCITY**: below). On Steps and Bar they play the track (the pads are the cells there); a step's pad held on a kit: the black keys its sounds |
-| Keys C3..E3, G#5..C6 (the outer 10) | more notes on the track the keys play, with velocity; on a kit, its keys |
+| Keys C3..E3, G#5..C6 (the outer 10) | more notes on the track the keys play, with velocity; on a kit, its keys. As the middle 27's: shown among the notes held (Steps: up to eight, low to high), a step tapped takes them, step record writes them |
 | 16 pads, on Steps and Bar (SEQ) | the bar's 16 cells, pads 1-8 the top row, 9-16 the bottom: everything the white keys do there (a tap, a hold, a later one for the length). Lit in the track's colour: a step with notes dim, the step playing bright, a step held white |
 | 16 pads, every other page | pads 1-8 (top row): T1-T8, lit while the track plays: a tap mutes or unmutes, held solos while held (more held: more), two taps solo and it stays (a tap ends it). Pads 9-16 (bottom row): the drums, the kit's first eight sounds whatever track is selected (the track selected if it is a kit, else the kit selected last), with velocity, recorded into the kit while recording |
 | NOTE REPEAT | tapped: note repeat on / off (lit): a drum pad held sounds again in time, recorded while recording. Held + pads 1-8: its rate (1/4 1/8 1/8T 1/16 1/16T 1/32 1/32T 1/64). Held and let go alone: the LFO page |
