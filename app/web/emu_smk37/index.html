@@ -110,6 +110,8 @@ kbd { font: 600 .82em var(--mono); background: var(--body); border: 1px solid va
 .midi div span { color: var(--muted); }
 .midi .empty { color: var(--muted); white-space: normal; }
 .inrow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+#samples.over { outline: 2px dashed currentColor; outline-offset: 6px; }
+.smplist { margin: 4px 0 0; padding-left: 1.4em; font-size: 14px; }
 select { font: 500 .95rem var(--ui); color: var(--bone); background: var(--body); border: 1px solid var(--rule); border-radius: 8px;
          padding: .35em .6em; max-width: 100%; }
 .heard { font: 400 .82rem var(--mono); color: var(--bone); min-height: 1.5em; margin: 0; overflow-wrap: anywhere;
@@ -132,7 +134,7 @@ body.learn [data-learn] { cursor: crosshair; }
       <a href="qrg.html" title="The controls on one page, to print (A4 landscape)">Cheat sheet</a>
       <button id="boot" type="button" hidden disabled title="Play the boot animation and its sound again">Boot again</button>
       <button id="fakereaper" type="button" disabled title="A pretend REAPER on the second USB port: try DAW mode's REAPER profile (PATCH held, K6 to REAPER)">Pretend REAPER: off</button>
-      <button id="reset" type="button" title="Forget the projects saved in this browser and start from the factory settings">Factory reset</button>
+      <button id="reset" type="button" title="Forget the projects and samples kept in this browser and start from the factory settings">Factory reset</button>
     </div>
   </header>
   <div class="status" id="status"><span id="state">Off. Sound starts when you switch it on.</span><span id="vol"></span><span id="cpu"></span></div>
@@ -184,6 +186,20 @@ body.learn [data-learn] { cursor: crosshair; }
         the drums); <a href="midicheck.html">MIDI check</a>: DAW mode's controls one by one. From M-VAVE's SMK OPEN, choose <b>Pads: SMK OPEN</b> (its pads 1–11 play, 12–16 send nothing; only
         channels 1 and 10 play, so its own sequencer, if running, does not). For the rest, <b>Learn a control</b>: click a knob, fader, pad or button here, then move or press yours.</p>
       <p class="heard" id="heard"></p>
+    </section>
+    <section id="samples">
+      <h2>Samples</h2>
+      <p>Your own samples, up to 32 in SPIDER's 180 KB. They come after its own: turn the sample engine's sample knob
+        (PARA, then K5), or a drum key's on the sample model, past the factory ones to user 1, user 2 and so on. Here they
+        stay in this browser. For the keyboard itself: <a href="samples/">the samples page</a> (Chrome or Edge, the
+        SMK-37 by USB with SPIDER on it).</p>
+      <div class="inrow">
+        <button id="smpAdd" type="button">Add samples</button>
+        <button id="smpClear" type="button" hidden>Remove them all</button>
+        <input type="file" id="smpFiles" multiple accept="audio/*,.wav,.aif,.aiff,.mp3,.flac,.ogg,.m4a" hidden aria-label="Samples to add">
+      </div>
+      <p id="smpState" role="status">No samples of your own yet. WAV, AIFF, MP3 and FLAC files work; drop them here too.</p>
+      <ol id="smpList" class="smplist"></ol>
     </section>
     <section>
       <h2>MIDI out</h2>
@@ -792,7 +808,7 @@ async function switchOn() {
           if (m.load !== undefined) cpu.textContent = `LOOM-8 uses ${m.load}% of this computer's time`;
           if (m.store) saveStore(m.store);
           window.emuLast = m;
-        }
+        } else if (m.type === "bankdone") window.dispatchEvent(new CustomEvent("spider-bank", { detail: m }));
       };
       node.port.postMessage({ type: "load", wasm, store: loadStore() }, [wasm]);
     });
@@ -802,6 +818,7 @@ async function switchOn() {
     frBtn.disabled = false;
     state.textContent = ac.sampleRate === 44100 ? "On." : `On (the browser runs audio at ${ac.sampleRate} Hz).`;
     sync();
+    window.dispatchEvent(new Event("spider-on"));   // (the samples kept in this browser go in: the module below)
   } catch (err) {
     node = null;
     go.disabled = false; go.textContent = "Switch on";
@@ -899,7 +916,97 @@ frBtn.addEventListener("click", () => {
 });
 const reset = document.getElementById("reset");
 reset.addEventListener("click", () => {
-  if (reset.dataset.armed) { try { localStorage.removeItem(STORE_KEY); } catch {} location.reload(); }
+  if (reset.dataset.armed) { try { localStorage.removeItem(STORE_KEY); localStorage.removeItem("spider-emu-bank"); } catch {} location.reload(); }
   else { reset.dataset.armed = "1"; reset.textContent = "Click again to forget your projects"; }
 });
+</script>
+<script type="module">
+// SPIDER's samples in the emulator: files dropped or picked become a user bank as the samples page builds it
+// (loom_samples.js beside this page, for the SMK-37's 180 KB), kept in this browser and handed to the firmware as an
+// upload would leave it (worklet.js "bank", app/web.c web_bank). The samples already there are kept as stored.
+import { setBoard, build, keptOf, cleanName, noteFromName, BANK_HDR, BANK_MAX_DATA, BANK_N } from "./loom_samples.js";
+setBoard("smk37");
+const KEY = "spider-emu-bank";
+const $ = (id) => document.getElementById(id);
+let img = null;
+try {
+  const b64 = localStorage.getItem(KEY);
+  if (b64) img = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+} catch { img = null; }
+function keep() {
+  try {
+    if (!img) { localStorage.removeItem(KEY); return; }
+    let s = "";
+    for (let i = 0; i < img.length; i += 0x8000) s += String.fromCharCode(...img.subarray(i, i + 0x8000));
+    localStorage.setItem(KEY, btoa(s));
+  } catch { say("Kept for this visit only: this browser would not store the samples."); }
+}
+function say(t) { $("smpState").textContent = t; }
+function render() {
+  const items = img ? keptOf(img) : [];
+  $("smpList").innerHTML = "";
+  items.forEach((it, i) => {
+    const li = document.createElement("li");
+    li.textContent = `user ${i + 1}: ${it.name} (${(it.n / it.rate).toFixed(2)} s at ${(it.rate / 1000).toFixed(it.rate % 1000 ? 2 : 0)} kHz)`;
+    $("smpList").appendChild(li);
+  });
+  $("smpClear").hidden = !items.length;
+  return items;
+}
+function hand() { if (window.send) window.send({ type: "bank", img: img ? img.slice() : new Uint8Array(0) }); }
+window.addEventListener("spider-on", () => { if (img) hand(); });
+window.addEventListener("spider-bank", (e) => {
+  const n = e.detail.n, used = img ? img.length - BANK_HDR : 0;
+  say(n < 0 ? "This SPIDER could not take the samples." : n ? `${n} sample${n === 1 ? "" : "s"} of your own in SPIDER: ` +
+      `${(used / 1024).toFixed(0)} of ${(BANK_MAX_DATA / 1024).toFixed(0)} KB.` : "No samples of your own now.");
+});
+async function decode(f) {
+  const ab = await new OfflineAudioContext(1, 1, 44100).decodeAudioData(await f.arrayBuffer());
+  const n = ab.length, x = new Float64Array(n), chs = [];
+  for (let c = 0; c < ab.numberOfChannels; c++) chs.push(ab.getChannelData(c));
+  for (let i = 0; i < n; i++) { let a = 0; for (const ch of chs) a += ch[i]; x[i] = a / chs.length; }
+  return { x, sr: ab.sampleRate };
+}
+async function add(files) {
+  const items = img ? keptOf(img) : [], bad = [];
+  if (!files.length) return;
+  say("Reading the files…");
+  for (const f of files) {
+    if (items.length >= BANK_N) { bad.push(`${f.name} (${BANK_N} at most)`); continue; }
+    try {
+      const { x, sr } = await decode(f);
+      if (x.length < 2) throw new Error("no audio");
+      const stem = f.name.replace(/\.[^.]*$/, "");
+      items.push({ name: cleanName(stem), x, sr, loop: null, root: noteFromName(stem), bars: 0, rate: null });
+    } catch { bad.push(f.name); }
+  }
+  try {
+    img = build(items).img;
+  } catch (e) {
+    say(`Too much for SPIDER's bank: ${e.message.replace(/^too long: /, "")}. Add fewer or shorter samples.`);
+    return;
+  }
+  keep();
+  render();
+  if (bad.length) say(`Couldn't add ${bad.join(", ")}.`);
+  if (window.send && window.emuLast) hand();
+  else if (!bad.length) say("Added: switch SPIDER on above to play them.");
+}
+$("smpAdd").addEventListener("click", () => $("smpFiles").click());
+$("smpFiles").addEventListener("change", (e) => { add([...e.target.files]); e.target.value = ""; });
+const box = $("samples");
+box.addEventListener("dragover", (e) => { e.preventDefault(); box.classList.add("over"); });
+box.addEventListener("dragleave", () => box.classList.remove("over"));
+box.addEventListener("drop", (e) => { e.preventDefault(); box.classList.remove("over"); add([...e.dataTransfer.files]); });
+$("smpClear").addEventListener("click", () => {
+  img = null;
+  keep();
+  render();
+  if (window.send && window.emuLast) hand();
+  else say("No samples of your own now.");
+});
+{
+  const n = render().length;
+  if (n) say(`${n} sample${n === 1 ? "" : "s"} kept in this browser: they go in when SPIDER is switched on.`);
+}
 </script>

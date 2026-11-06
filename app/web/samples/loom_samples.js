@@ -489,22 +489,26 @@ export async function findLink(midi, wait = 1000) {
   // the names the backup page and the installer take (Windows may call the port "USB-MIDI", or keep an earlier name,
   // and names the two ends apart: "LOOM-8 FM-1" in, "MIDIOUT2 (LOOM-8 FM-1)" out); never probe other gear
   const outs = [...midi.outputs.values()].filter((o) => o.state !== "disconnected");
+  // (SPIDER: "SPIDER SMK-37" its first port, "MIDIIN2 (SPIDER SMK-37)" the second, DAW mode's Mackie Control: last)
   const ins = [...midi.inputs.values()].filter((i) => i.state !== "disconnected" &&
-    /loom|fm-?1|felucca|composite|sinco|usb-midi/i.test(i.name || ""))
-    .sort((a, b) => /loom/i.test(b.name) - /loom/i.test(a.name));
+    /loom|fm-?1|felucca|spider|smk|composite|sinco|usb-midi/i.test(i.name || ""))
+    .sort((a, b) => (/loom|spider/i.test(b.name) - /loom|spider/i.test(a.name)) ||
+                    (/^MIDI(?:IN|OUT)\d|\s2$/i.test(a.name) - /^MIDI(?:IN|OUT)\d|\s2$/i.test(b.name)));
   const base = (s) => (s || "").replace(/\s+\d+$/, "").replace(/^MIDI(?:IN|OUT)\d*\s*\((.*)\)$/i, "$1");
   for (const input of ins) {
+    // its output: the one of its name, else those of its device (SPIDER has two: the one that answers), else the only
     const same = outs.filter((o) => base(o.name) === base(input.name));
-    const output = outs.find((o) => o.name === input.name) || (same.length === 1 ? same[0] : null) ||
-      (outs.length === 1 ? outs[0] : null);
-    if (!output) continue;
-    try { await input.open(); await output.open(); } catch (_) { continue; }   // another app holds it: the next
-    const l = new Link(input, output);
-    try {
-      await l.retry(25, [], wait);
-      setBoard(/smk/i.test(input.name) ? "smk37" : "fm1");   // (the SMK-37's smaller bank: its port says SMK-37)
-      return l;
-    } catch (_) { l.close(); }
+    const cands = [...new Set([outs.find((o) => o.name === input.name), ...same, ...(outs.length === 1 ? outs : [])])]
+      .filter(Boolean);
+    for (const output of cands) {
+      try { await input.open(); await output.open(); } catch (_) { continue; }   // another app holds it: the next
+      const l = new Link(input, output);
+      try {
+        await l.retry(25, [], wait);
+        setBoard(/smk/i.test(input.name) ? "smk37" : "fm1");   // (the SMK-37's smaller bank: its port says SMK-37)
+        return l;
+      } catch (_) { l.close(); }
+    }
   }
   return null;
 }

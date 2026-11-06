@@ -226,6 +226,19 @@ print(json.dumps([[c, a] for c, a, _, _ in ls.frames(img)]))`));
   }
   const { midi } = fm1([["LOOM-8 FM-1", "LOOM-8 FM-1", 1]], { busy: true });
   check("findLink: a port another app holds is passed over", (await L.findLink(midi, 50)) === null);
+  // SPIDER on the SMK-37: two ports, the second DAW mode's Mackie Control (never answers); its bank the SMK's 180 KB
+  const spider = [
+    ["SPIDER: its ports by name", [["SPIDER SMK-37", "SPIDER SMK-37", 1], ["MIDIIN2 (SPIDER SMK-37)", "MIDIOUT2 (SPIDER SMK-37)"]]],
+    ["SPIDER: the second port first, the ends numbered", [["MIDIIN2 (SPIDER SMK-37)", "MIDIOUT3 (SPIDER SMK-37)"],
+                                                          ["SPIDER SMK-37", "MIDIOUT2 (SPIDER SMK-37)", 1]]],
+  ];
+  for (const [what, names] of spider) {
+    const { midi: m } = fm1(names);
+    const l = await L.findLink(m, 50);
+    check(`findLink: ${what}`, !!l && /^SPIDER/.test(l.input.name) && L.BANK_SIZE === 180 * 1024);
+    if (l) l.close();
+  }
+  L.setBoard("fm1");
 }
 console.log(bad ? "SAMPLES WEB FAILED" : "samples web: as loom_samples.py");
 process.exit(bad ? 1 : 0);

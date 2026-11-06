@@ -71,6 +71,16 @@ class Spider extends AudioWorkletProcessor {
       case "modw": ex.web_modw(m.v); break;
       case "boot": if (ex.web_spider_boot) ex.web_spider_boot(); break;
       case "midi2": if (ex.web_midi2_in) for (const p of m.pkts) ex.web_midi2_in(p >>> 0); break;   // the second USB port
+      case "bank": {                                   // the page's samples: a user bank, as an upload leaves it (web.c)
+        let n = -1;
+        if (ex.web_bank) {
+          const img = new Uint8Array(m.img || 0);
+          if (img.length) new Uint8Array(this.mem.buffer, ex.web_bank_buf(), img.length).set(img);
+          n = ex.web_bank(img.length);
+        }
+        this.port.postMessage({ type: "bankdone", n });
+        break;
+      }
     }
   }
 
