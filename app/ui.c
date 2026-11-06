@@ -3500,7 +3500,9 @@ static void do_new_proj(void)
     engine_transport(0);
     engine_panic();
     project_defaults();
+#if !BOARD_SMK37                                 /* (SPIDER: its own layout every time; RANDOM SOUNDS deals a band) */
     project_random_sounds(plat_ms() * 2654435761u ^ proj_seed++);   /* a band of its own each time */
+#endif
     after_load();
     ui.dirty = 1;
     proj_slot = PROJ_NOSLOT;                     /* its slot: the first free one; none free, SAVE TO picks one */

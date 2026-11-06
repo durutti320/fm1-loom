@@ -236,16 +236,87 @@ void project_device_put(void)
     proj.usb_full = dev.usb;
 }
 
-void project_defaults(void)
-{
 #if BOARD_SMK37
-    static const uint8_t ORDER[NTRK] = {EG_DRUMLINE, EG_MONO, EG_POLY, EG_ACID, EG_FM, EG_SAMPLE, EG_POLY,
-                                        EG_MONO};     /* SPIDER: its kit, mono bass, poly, acid, fm, the sampler, a
+#include "kits.h"                       /* (GKIT_TWEED: SPIDER's new project plays the acoustic kit) */
+#endif
+/* a new project's tracks, by engine */
+#if BOARD_SMK37
+static const uint8_t ORDER[NTRK] = {EG_DRUMLINE, EG_MONO, EG_POLY, EG_ACID, EG_FM, EG_SAMPLE, EG_POLY,
+                                    EG_MONO};         /* SPIDER: its kit, mono bass, poly, acid, fm, the sampler, a
                                                        * second poly and mono (their second presets) */
 #else
-    static const uint8_t ORDER[NTRK] = {EG_DRUMLINE, EG_KNIT, EG_RAYON, EG_JACQUARD, EG_KNIT, EG_BELLOWS, EG_CANE,
-                                        EG_VOILE};
+static const uint8_t ORDER[NTRK] = {EG_DRUMLINE, EG_KNIT, EG_RAYON, EG_JACQUARD, EG_KNIT, EG_BELLOWS, EG_CANE,
+                                    EG_VOILE};
 #endif
+/* track t's sound as a new project has it (ORDER): the engine, its preset (the kit: the default kit), the name */
+static void track_sound_new(trk_t *tr, int t)
+{
+    int k;
+    sound_default(tr->par, ORDER[t]);
+    tr->name[0] = 0;
+    if (ORDER[t] == EG_DRUMLINE) {
+        for (k = 0; k < DL_NSOUND; k++) {
+            int j;
+            for (j = 0; j < DP_N; j++)
+                tr->par[TP_DRUM(k, j)] = DL_DEFAULT_KIT[k][j];
+        }
+#ifdef GKIT_TWEED
+        for (k = 0; k < DL_NSOUND; k++) {             /* SPIDER: Tweed, the acoustic kit (as ui.c kit_factory) */
+            const uint8_t *g = GKIT[GKIT_TWEED][k];
+            tr->par[TP_DRUM(k, DP_MODEL)] = g[0];
+            for (int j = 0; j < 4; j++) {
+                tr->par[TP_DRUM(k, DP_K1 + j)] = g[1 + j];
+                tr->par[TP_DRUMX(k, j)] = g[5 + j];
+            }
+            tr->par[TP_DRUM(k, DP_VOLUME)] = g[9];
+            tr->par[TP_DRUM(k, DP_PAN)] = g[10];
+            tr->par[TP_DRUM(k, DP_MODE)] = g[11];
+            tr->par[TP_DRUM(k, DP_DECAY)] = g[12];
+        }
+#endif
+        tr->par[TP_A] = 0;                            /* the track-wide drum envelope, neutral (drumline.c): */
+        tr->par[TP_D] = 0;                            /* funk 0, attack 0, random 0, length 64 */
+        tr->par[TP_S] = 0;
+        tr->par[TP_R] = 64;
+        set_name(tr, "kit");
+    } else if (t == 1 && ORDER[t] == EG_KNIT && !EG_DROPPED(EG_KNIT)) {
+        apply_preset(tr, preset_named(EG_KNIT, "sub"));     /* knit's round sub under everything */
+    } else {
+        int f = preset_first(ORDER[t]);
+#if BOARD_SMK37
+        if (t >= 5 && f >= 0 && (ORDER[t] == EG_POLY || ORDER[t] == EG_MONO))
+            f++;                                      /* (the second poly and mono: their second presets) */
+#endif
+        apply_preset(tr, f);
+    }
+    if (!tr->name[0])
+        set_name(tr, EG_NAME[ORDER[t]]);
+    tr->par[TP_ENGINE] = ORDER[t];                    /* (a preset carries its engine; the kit keeps its own) */
+}
+#if BOARD_SMK37
+/* SPIDER: a track of LOOM-8's band, which SPIDER cannot play: one on an engine it leaves out (knit .. voile), or one
+ * an earlier SPIDER (2026-11-04..06) loaded as a plain poly under its LOOM-8 sound's name and saved so (LOOM-8's new
+ * project: sub, rayon, jacquard, knit, bellows, cane, voile; SPIDER's own "sub" is a mono) */
+static int lo8_track(const trk_t *tr)
+{
+    static const char *const LO8[] = {"knit", "rayon", "jacquard", "bellows", "cane", "voile", "sub"};
+    if (EG_DROPPED(tr->par[TP_ENGINE]))
+        return 1;
+    if (tr->par[TP_ENGINE] != EG_FALLBACK)
+        return 0;
+    for (uint32_t k = 0; k < sizeof LO8 / sizeof LO8[0]; k++) {
+        int i = 0;
+        while (i < NAME_LEN && LO8[k][i] && tr->name[i] == LO8[k][i])
+            i++;
+        if (!LO8[k][i] && (i == NAME_LEN || !tr->name[i]))
+            return 1;
+    }
+    return 0;
+}
+#endif
+
+void project_defaults(void)
+{
     int t, k;
     uint8_t *z = (uint8_t *)&proj, keep = proj.magic == PROJ_MAGIC;   /* (a project before it: the FM-1's settings
                                                                      * carried over; at the first start, none) */
@@ -274,31 +345,7 @@ void project_defaults(void)
     proj.trk_sel = 0;
     for (t = 0; t < NTRK; t++) {
         trk_t *tr = &proj.trk[t];
-        sound_default(tr->par, ORDER[t]);
-        if (ORDER[t] == EG_DRUMLINE) {
-            for (k = 0; k < DL_NSOUND; k++) {
-                int j;
-                for (j = 0; j < DP_N; j++)
-                    tr->par[TP_DRUM(k, j)] = DL_DEFAULT_KIT[k][j];
-            }
-            tr->par[TP_A] = 0;                            /* the track-wide drum envelope, neutral (drumline.c): */
-            tr->par[TP_D] = 0;                            /* funk 0, attack 0, random 0, length 64 */
-            tr->par[TP_S] = 0;
-            tr->par[TP_R] = 64;
-            set_name(tr, "kit");
-        } else if (t == 1 && ORDER[t] == EG_KNIT && !EG_DROPPED(EG_KNIT)) {
-            apply_preset(tr, preset_named(EG_KNIT, "sub"));     /* knit's round sub under everything */
-        } else {
-            int f = preset_first(ORDER[t]);
-#if BOARD_SMK37
-            if (t >= 5 && f >= 0 && (ORDER[t] == EG_POLY || ORDER[t] == EG_MONO))
-                f++;                                      /* (the second poly and mono: their second presets) */
-#endif
-            apply_preset(tr, f);
-        }
-        if (!tr->name[0])
-            set_name(tr, EG_NAME[ORDER[t]]);
-        tr->par[TP_ENGINE] = ORDER[t];                    /* (a preset carries its engine; the kit keeps its own) */
+        track_sound_new(tr, t);
         tr->par[TP_BRAIN] = t ? 1 : 0;                    /* the melodic tracks follow the brain from the start
                                                            * (the notebook: "several tracks are routed by default") */
         tr->par[TP_CHAN] = 1;                             /* MIDI OUT on: track N's notes on channel N
@@ -365,10 +412,12 @@ static int settings_valid(settings_t *s)
         s->trk[t].name[NAME_LEN - 1] = 0;
         if (t < NTRK && p[TP_ENGINE] >= NENGINE)
             return 0;
-        if (t < NTRK && EG_DROPPED(p[TP_ENGINE])) {   /* (SPIDER: a LOOM-8 project's knit .. voile: poly's sound) */
-            sound_default(p, EG_FALLBACK);
-            p[TP_ENGINE] = EG_FALLBACK;
-        }
+#if BOARD_SMK37
+        if (t < NTRK && lo8_track(&s->trk[t]))       /* (a LOOM-8 project's knit .. voile: SPIDER's sound for the
+                                                      * track, as its new project has it; the mix, the player and the
+                                                      * notes stay) */
+            track_sound_new(&s->trk[t], t);
+#endif
         if (t >= AUX_FX1 && p[TP_ENGINE] >= NFXPICK)
             return 0;
         if (t < NTRK)

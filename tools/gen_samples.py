@@ -17,6 +17,7 @@ and play the bank's entries of the factory set, the same bytes (sampleio.ima_enc
 tests and the emulator keep it built in (SMP_FACT_BUILTIN, dsp/sample.c).
 """
 import math
+import os
 import struct
 import sys
 import wave
@@ -117,6 +118,24 @@ RECORDINGS = [("classic", "classic.wav", 16000, 1), ("heat", "heat.wav", 16000, 
               ("ecstasy", "ecstasy.wav", 16000, 1)]
 BUDGET = 100 * 1024                                  # B: the image's room for the factory bank
 SAMPLE_DIR = Path(__file__).resolve().parents[1] / "app" / "samples"
+# SPIDER's acoustic kit (the SMK-37 build only, BOARD=smk37: app/samples/acoustic/, tools/prep_acoustic.py: VCSL by
+# Versilian Studios, CC0), built into its image as samples of their own after the user slots (dsp/sample.h SMP_NXTRA:
+# index SMP_NFACT + SMP_NUSER + i, so no sample number before them moves); the Tweed kit plays them
+# (tools/gen_kits.py). Each at its file's rate: name on the screen, file
+SMK = os.environ.get("BOARD", "fm1").lower().replace("-", "") == "smk37"
+ACOUSTIC = [("ac kick", "kick.wav"), ("ac snare", "snare.wav"), ("ac hat", "hat.wav"), ("ac open", "open.wav"),
+            ("ac clap", "clap.wav"), ("ac tom lo", "tom_lo.wav"), ("ac tom hi", "tom_hi.wav"), ("ac conga", "conga.wav"),
+            ("ac shaker", "shaker.wav"), ("ac crash", "crash.wav"), ("ac rim", "rim.wav")]
+XTRA_BUDGET = 44 * 1024                              # B: what the acoustic kit may take of SPIDER's image
+
+
+def xtra():
+    """the built-in samples after the user slots (SPIDER: the acoustic kit; the FM-1: none), as build()'s rows"""
+    out = []
+    for name, f in ACOUSTIC if SMK else []:
+        sr, x, _ = sio.read_any_wav(SAMPLE_DIR / "acoustic" / f)
+        out.append((name, sio.to_int16(sio.emphasis(x)), 60, None, 0, sr))
+    return out
 
 
 def names():
@@ -246,6 +265,31 @@ def main():
         lines.append(f"    {{{a}u, {c}u, {n}u}},")
     lines.append("};")
     lines.append("#endif")
+    # the built-in samples after the user slots (SPIDER's acoustic kit; none on the FM-1)
+    xadp, xck, xrows = bytearray(), [], []
+    for name, s, root, loop, bars, rate in xtra():
+        adp, ck = sio.ima_encode(s)
+        xrows.append((name, len(xadp), len(xck), len(s), rate))
+        xadp += adp
+        xck += ck
+    if len(xadp) + 4 * len(xck) > XTRA_BUDGET:
+        sys.exit(f"gen_samples: the acoustic kit {len(xadp) + 4 * len(xck)} B, over its {XTRA_BUDGET // 1024} KB")
+    lines.append(f"#define SMP_NXTRA {len(xrows)}   /* built-in samples after the user slots (SPIDER: its acoustic kit) */")
+    if xrows:
+        lines.append(f"static const uint8_t SMP_XTRA_ADP[{len(xadp)}] = {{")
+        for i in range(0, len(xadp), 24):
+            lines.append("    " + ", ".join(str(b) for b in xadp[i:i + 24]) + ",")
+        lines.append("};")
+        lines.append(f"static const uint32_t SMP_XTRA_CK[{len(xck)}] = {{")
+        for i in range(0, len(xck), 8):
+            lines.append("    " + ", ".join(f"0x{c:08X}u" for c in xck[i:i + 8]) + ",")
+        lines.append("};")
+        lines.append("/* name, ADPCM offset, checkpoint index, samples, rate */")
+        lines.append("static const struct { const char *name; uint32_t adp, ck, n; uint16_t rate; } "
+                     "SMP_XTRA[SMP_NXTRA] = {")
+        for name, a, c, n, rate in xrows:
+            lines.append(f'    {{"{name}", {a}u, {c}u, {n}u, {rate}}},')
+        lines.append("};")
     Path(sys.argv[1]).parent.mkdir(parents=True, exist_ok=True)
     Path(sys.argv[1]).write_text("\n".join(lines) + "\n")
     if len(sys.argv) > 2:
@@ -257,7 +301,14 @@ def main():
                 w.setsampwidth(2)
                 w.setframerate(rate)
                 w.writeframes(struct.pack("<%dh" % len(s), *s))
-    print(f"samples: {len(rows)}, {total} B")
+        for name, s, root, loop, bars, rate in xtra():
+            with wave.open(str(d / f"{name}.wav"), "wb") as w:
+                w.setnchannels(1)
+                w.setsampwidth(2)
+                w.setframerate(rate)
+                w.writeframes(struct.pack("<%dh" % len(s), *s))
+    print(f"samples: {len(rows)}, {total} B" + (f"; after the user slots {len(xrows)}, {len(xadp) + 4 * len(xck)} B"
+                                                if xrows else ""))
 
 
 if __name__ == "__main__":

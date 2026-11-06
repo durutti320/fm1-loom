@@ -3,7 +3,8 @@
  * ADPCM at 22050 Hz) and the user bank in flash (216 KB over three windows, uploaded over USB with
  * tools/loom_samples.py), mono IMA ADPCM at each sample's own rate (4000..48000 Hz: the tool offers 11025, 16000,
  * 22050 and 32000), read in place (the user bank through the XIP plaintext window). One index space:
- * 0..SMP_NFACT-1 the factory samples, then SMP_NUSER user slots (empty ones play nothing).
+ * 0..SMP_NFACT-1 the factory samples, then SMP_NUSER user slots (empty ones play nothing), then (SPIDER: its acoustic
+ * kit, samples.h SMP_NXTRA) more built in, numbered after the user slots so no number before them moves.
  *
  * Every SMP_BLK samples a checkpoint holds the decoder's state, so a voice reads any sample through a
  * small cache (smp_cache_t, 80 bytes: a window of SMP_WIN + 1 decoded samples and the decoder's state after
@@ -103,8 +104,9 @@ typedef struct {
 } smp_cache_t;
 
 extern const uint16_t smp_nslots;
-static inline int smp_slots(void) { return smp_nslots; }   /* factory + user slots: a knob's range (inline: the
-                                                            * note-start code in RAM reads it: size_fns.py) */
+static inline int smp_slots(void) { return smp_nslots; }   /* factory + user slots (+ SPIDER's acoustic kit): a knob's
+                                                            * range (inline: the note-start code in RAM reads it:
+                                                            * size_fns.py) */
 int smp_factory(void);                    /* the factory samples */
 const smp_t *smp_get(int i);              /* 0: nothing there (an empty user slot, the bank being written) */
 extern const smp_t *(*volatile smp_get_far)(int i);   /* the same through a pointer: for the note-start code in

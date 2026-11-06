@@ -117,6 +117,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 - The recorded instruments (`app/samples/piano.wav`, `upright.wav`, `strings.wav`, `brass.wav`, `flute.wav`,
   `orch_hit.wav`) are cut from the Versilian Studios Chamber Orchestra 2 Community Edition (VSCO 2 CE,
   github.com/sgossner/VSCO-2-CE), CC0 1.0, by `tools/prep_recordings.py`.
+- SPIDER's acoustic kit, Tweed (`app/samples/acoustic/`: kick, snare, hats, clap, toms, conga, shaker, crash, side
+  stick; the SMK-37 build only) is cut from Versilian Studios' VCSL (github.com/sgossner/VCSL), CC0 1.0, by way of
+  SLOOP (github.com/isod89/sloop-fm1, `assets/samples-cc0/KIT`), by `tools/prep_acoustic.py`;
+  `app/samples/acoustic/ATTRIBUTION.txt` names each source file.
 - The reverb's PlayStation modes come from schwung-psxverb, and
   knit's unison from NuSaw (Copyright (c) 2026 Charles Vestal), under the MIT License:
 

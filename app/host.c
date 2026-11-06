@@ -1729,6 +1729,17 @@ int app_host_cmd(const char *cmd, const char *a, const char *b, const char *c, c
         }
         fclose(f);
     }
+    else if (!strcmp(cmd, "trkraw")) {             /* trkraw T ENGINE NAME: track T's engine number and name as they
+                                                     * are stored, nothing else told (a project another firmware saved:
+                                                     * then projsave and reboot) */
+        int t = atoi(a) - 1;
+        if (t < 0 || t >= NTRK || !*b || !*c)
+            host_die("trkraw T ENGINE NAME", "");
+        proj.trk[t].par[TP_ENGINE] = (uint8_t)atoi(b);
+        memset(proj.trk[t].name, 0, NAME_LEN);
+        for (int i = 0; c[i] && i < NAME_LEN - 1; i++)
+            proj.trk[t].name[i] = c[i] == '_' ? ' ' : c[i];
+    }
     else if (!strcmp(cmd, "projsave")) {           /* projsave SLOT [NAME]: saved into slot 1..3 (as SAVE there) */
         int slot = atoi(a) - 1;
         if (slot < 0 || slot >= NPROJ) {

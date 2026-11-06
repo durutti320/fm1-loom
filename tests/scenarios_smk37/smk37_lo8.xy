@@ -1,0 +1,39 @@
+# a project from LOOM-8 (its new project's band: sub on knit, rayon, jacquard, knit, bellows, cane, voile), as saved by
+# LOOM-SMK or by an earlier SPIDER (which loaded those tracks as a plain poly under the old names): loaded, each such
+# track is SPIDER's own for that place (project.c lo8_track, track_sound_new), a track of SPIDER's own stays. NEW
+# PROJECT: SPIDER's layout every time (no random band)
+wait 300
+trkraw 2 0 sub
+trkraw 3 11 glass
+trkraw 4 2 jacquard
+trkraw 5 11 knit
+trkraw 6 11 bellows
+trkraw 7 4 cane
+trkraw 8 11 voile
+projsave 1 lo8
+reboot
+wait 300
+expect par1.engine 8
+expect par2.engine 12
+expect par3.engine 11
+expect name3 103
+expect par4.engine 10
+expect par5.engine 13
+expect par6.engine 6
+expect par7.engine 11
+expect par8.engine 12
+expect name7 112
+shot lo8_loaded.png
+projnew
+wait 100
+expect par2.engine 12
+expect par3.engine 11
+expect par4.engine 10
+expect par5.engine 13
+expect par6.engine 6
+expect par7.engine 11
+expect par8.engine 12
+projnew
+wait 100
+expect par4.engine 10
+expect par5.engine 13

@@ -51,9 +51,15 @@ is DAW mode's REAPER profile), also on the emulator's site as `qrg.html` (the em
 DAW mode alike (the pads keep their own). The keys time each stroke from the first contact to the second and read it
 through the unit's factory curves; KEY VELOCITY sets the time base they read it at: **heavy** (0.1 ms, the reading
 before 4 November, where a hard stroke gave about 80 on the unit this was made on), firm, medium, **normal** (the
-default, 0.4 ms: that stroke near 127), light, lighter, lightest (0.8 ms); or **fixed 100** / **fixed 127**. The line
-above it shows the last key: its velocity and its stroke in ms (DAW mode: on the screen while PATCH is held). Kept with
-DAW mode's settings (OBJ_DAW), not in a project.
+default, 0.4 ms), light, lighter, lightest (0.8 ms); or **fixed 100** / **fixed 127**. Each step past heavy also takes
+the velocity up (x 1.2 .. x 2.4; normal x 1.6, at most 127): on that unit the hardest strokes still read about 80 at
+normal's time base, and with the gain they reach 127. The line above it shows the last key: its velocity and its stroke
+in ms (DAW mode: on the screen while PATCH is held). Kept with DAW mode's settings (OBJ_DAW), not in a project.
+
+**A new project** is T1 kit (**Tweed**, an acoustic kit: VCSL's drums, CC0, built in), T2 mono, T3 poly, T4 acid, T5
+fm, T6 the sampler, T7 a second poly, T8 a second mono; NEW PROJECT (PATCH, SCALE's list) gives that every time (RANDOM
+SOUNDS deals a random band). A project from LOOM-8, or one an earlier SPIDER saved with LOOM-8's tracks in it (knit ..
+voile, which SPIDER leaves out), loads each such track as SPIDER's own for that place.
 
 Not on the SMK-37: TRS MIDI IN (the SMK's jack is a MIDI output; its pin is a key row there). MIDI in works over USB.
 LOOM-8's Bluetooth (MIDI and audio) and its USB MIDI host are off in the SMK-37 build for now: the SMK's radio, and

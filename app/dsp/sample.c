@@ -12,6 +12,9 @@
 #define SMP_FACT_BUILTIN 0
 #endif
 #include "samples.h"                      /* build/gen: tools/gen_samples.py */
+#ifndef SMP_NXTRA
+#define SMP_NXTRA 0                       /* (a table made before the built-in samples after the user slots) */
+#endif
 _Static_assert(SMP_FACT_BREAK == SMP_BREAK, "the break's place in the factory bank (sample.h SMP_BREAK)");
 _Static_assert(SMP_FACT_NSET == SMP_NFENT && SMP_FACT_NSET == SMP_BREAK, "the factory set: the rows before the breaks, its entries in the bank (sample.h SMP_NFENT)");
 
@@ -24,6 +27,9 @@ static const int16_t IMA_STEP[89] = {
 static const int8_t IMA_IDX[8] = {-1, -1, -1, -1, 2, 4, 6, 8};
 
 static smp_t fact[SMP_NFACT];
+#if SMP_NXTRA
+static smp_t xtra[SMP_NXTRA];             /* built in after the user slots (samples.h SMP_XTRA: SPIDER's acoustic kit) */
+#endif
 static uint8_t fact_ready;
 static smp_t user[SMP_NENT];              /* the bank's entries, in its order */
 static volatile uint8_t user_n;           /* how many */
@@ -71,6 +77,22 @@ static void fact_init(void)
         }
 #endif
     }
+#if SMP_NXTRA
+    for (i = 0; i < SMP_NXTRA; i++) {
+        smp_t *s = &xtra[i];
+        s->adp = SMP_XTRA_ADP + SMP_XTRA[i].adp;
+        s->ck = SMP_XTRA_CK + SMP_XTRA[i].ck;
+        s->n = s->split = SMP_XTRA[i].n;
+        s->adp2 = 0;
+        s->rate = SMP_XTRA[i].rate;
+        s->ls = s->le = 0;
+        s->root = 60;
+        s->bars = 0;
+        for (k = 0; k < SMP_NAME - 1 && SMP_XTRA[i].name[k]; k++)
+            s->name[k] = SMP_XTRA[i].name[k];
+        s->name[k] = 0;
+    }
+#endif
     for (i = 0; i < SMP_NUSER; i++) {           /* "user 1" .. "user 32" */
         char *e = empty_name[i];
         const char *w = "user ";
@@ -84,7 +106,7 @@ static void fact_init(void)
     fact_ready = 1;
 }
 
-const uint16_t smp_nslots = SMP_NFACT + SMP_NUSER;
+const uint16_t smp_nslots = SMP_NFACT + SMP_NUSER + SMP_NXTRA;
 int smp_factory(void) { return SMP_NFACT; }
 int smp_user_count(void) { return user_n; }
 int smp_user_slots(void) { return vis_n; }
@@ -104,6 +126,11 @@ const smp_t *smp_get(int i)
     i -= SMP_NFACT;
     if (i >= 0 && i < (int)vis_n)
         return &user[vis[i]];
+#if SMP_NXTRA
+    i -= SMP_NUSER;
+    if (i >= 0 && i < SMP_NXTRA)
+        return &xtra[i];
+#endif
     return 0;
 }
 
@@ -117,7 +144,7 @@ const char *smp_name(int i)
     if (i >= 0 && i < SMP_NFACT)
         return fact[i].name;                  /* a moved one not installed: still its name */
     i -= SMP_NFACT;
-    return i >= 0 && i < SMP_NUSER ? empty_name[i] : "-";
+    return i >= 0 && i < SMP_NUSER ? empty_name[i] : "-";   /* (an empty user slot; SMP_XTRA are always there) */
 }
 
 /* n IMA steps from the state (*pred, *idx) at sample i; the samples into out (0: only the state moves) */

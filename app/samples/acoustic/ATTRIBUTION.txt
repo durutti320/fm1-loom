@@ -1,0 +1,16 @@
+SPIDER's acoustic kit (tools/prep_acoustic.py): drum recordings from VCSL by Versilian Studios
+Licence: CC0 1.0 Universal (public domain dedication), https://creativecommons.org/publicdomain/zero/1.0/
+Source: https://github.com/sgossner/VCSL, by way of SLOOP (https://github.com/isod89/sloop-fm1,
+assets/samples-cc0/KIT: mono, cut, normalised). Here: mono, resampled, cut and faded, normalised.
+
+kick.wav  <-  sgossner/VCSL: Membranophones/Struck Membranophones/Bass Drum 1/BDrumNew_hit_v5_rr1_Sum.wav  (16000 Hz, 0.45 s)
+snare.wav  <-  sgossner/VCSL: Membranophones/Struck Membranophones/Snare Drum, Modern 1/Snare2_HitSN_v7_rr1_Mid.wav  (22050 Hz, 0.38 s)
+hat.wav  <-  sgossner/VCSL: Idiophones/Struck Idiophones/Hi-Hat Cymbal/HiHat_HitC_v3_rr1_Mid.wav  (22050 Hz, 0.22 s)
+open.wav  <-  sgossner/VCSL: Idiophones/Struck Idiophones/Hi-Hat Cymbal/HiHat_HitO_rr1_Mid.wav  (22050 Hz, 0.48 s)
+clap.wav  <-  sgossner/VCSL: Idiophones/Struck Idiophones/Claps/Clap_rr1.wav  (22050 Hz, 0.32 s)
+tom_lo.wav  <-  sgossner/VCSL: Membranophones/Struck Membranophones/Tom 2/Stick/TomL_HitS_v4_rr1_Mid.wav  (16000 Hz, 0.48 s)
+tom_hi.wav  <-  sgossner/VCSL: Membranophones/Struck Membranophones/Tom 1/Stick/TomH_HitS_v4_rr1_Mid.wav  (16000 Hz, 0.42 s)
+conga.wav  <-  sgossner/VCSL: Membranophones/Struck Membranophones/Conga/Conga_HitN_v2_rr1_Sum.wav  (16000 Hz, 0.34 s)
+shaker.wav  <-  sgossner/VCSL: Idiophones/Struck Idiophones/Shaker, Small/Mid_ShakerDouble_Down_rr1.wav  (22050 Hz, 0.26 s)
+crash.wav  <-  sgossner/VCSL: Idiophones/Struck Idiophones/Suspended Cymbal 2/susCymb2_hit_f1.wav  (16000 Hz, 0.70 s)
+rim.wav  <-  sgossner/VCSL: Membranophones/Struck Membranophones/Legacy Snares/OldSnare/snare_rim.wav  (22050 Hz, 0.20 s)
