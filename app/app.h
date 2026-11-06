@@ -35,11 +35,11 @@
  * what a development build saved in slots 1 to 3 and the presets carry over (the sample bank moved: upload it
  * again) */
 #if BOARD_SMK37
-/* the M-VAVE SMK-37 (fm1-base BOARD=smk37): 120 KB of store (0x9D000..0xBAFFF) and 160 KB of big data (USRFLASH
- * 0xC2000..0xE9FFF), never the unit's calibration in between: two project slots (16 objects, 128 KB: 15 in the store,
- * the panel calibration at the start of USRFLASH), the user sample bank in USRFLASH after it, 144 KB (dsp/sample.h),
- * and DAW mode's settings and USER map at its end (OBJ_DAW, 0xE8000; app/smk37.c). The split chosen: two slots
- * (NPROJ 1 would leave ~192 KB of samples, 3 ~88 KB) */
+/* the M-VAVE SMK-37 (fm1-base BOARD=smk37): 120 KB of store (0x9D000..0xBAFFF) and 196 KB of big data (USRFLASH
+ * 0xC2000..0xE9FFF, and 0xEB000..0xF3FFF, the gap the stock layout leaves), never the unit's calibration in between: two
+ * project slots (16 objects, 128 KB: 15 in the store, the panel calibration at the start of USRFLASH), the user sample
+ * bank in USRFLASH after it and in the gap, 180 KB (dsp/sample.h), and DAW mode's settings and USER map at USRFLASH's
+ * end (OBJ_DAW, 0xE8000; app/smk37.c). The split chosen: two slots (NPROJ 1 would leave ~228 KB of samples, 3 ~124 KB) */
 #define NPROJ 2                         /* project slots in flash */
 #else
 #define NPROJ 3                         /* project slots in flash */

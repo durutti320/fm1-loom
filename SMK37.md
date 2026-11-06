@@ -159,14 +159,16 @@ first slot). In REAPER: Preferences → Audio → MIDI Devices, the SPIDER SMK-3
 
 ## Storage
 
-The SMK-37 has less flash to write than the FM-1, around its calibration and stock data: 120 KB of store and 160 KB
-of USRFLASH. This build has **two project slots** (the FM-1 has three), a **144 KB user sample bank** (the FM-1:
-216 KB), and DAW mode's settings and map (8 KB). Load a bank built for the SMK:
-`tools/loom_samples.py load --board=smk37 ...` (the samples page picks the board from the keyboard's port name). An
-FM-1 bank is refused by the SMK and the other way round.
+The SMK-37 has less flash to write than the FM-1, around its calibration and stock data: 120 KB of store, 160 KB
+of USRFLASH and the 36 KB the stock layout leaves unused after it (0xEB000..0xF3FFF, in no region of the stock
+package). This build has **two project slots** (the FM-1 has three), a **180 KB user sample bank** (the FM-1:
+216 KB; the factory samples are built into SPIDER, so the whole bank is yours), and DAW mode's settings and map
+(8 KB). Load a bank built for the SMK: `tools/loom_samples.py load --board=smk37 ...` (the samples page picks the
+board from the keyboard's port name). An FM-1 bank is refused by the SMK and the other way round; a bank made for
+the 144 KB of earlier builds still plays (the same bytes).
 
 The split is one constant (`app/app.h NPROJ`, with `APP_STORE_MAP` and `dsp/sample.h SMP_REG*`): one slot would leave
-about 192 KB of samples, three about 88 KB.
+about 228 KB of samples, three about 124 KB.
 
 ## On GitHub, and in the browser
 

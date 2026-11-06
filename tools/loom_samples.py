@@ -27,7 +27,8 @@
 load, build and syx add the factory set after the samples given (if no SPEC says where: "factory"), so a load
 never leaves the kits silent; --no-factory leaves it out; --make-room puts samples kept as stored (bank:FILE) at a
 lower rate when the bank would not fit otherwise. Its 12 entries are not user slots: user 1 is still the
-first sample given. It takes 86 KB of the bank.
+first sample given. It takes 86 KB of the bank. SPIDER (--board=smk37) has the factory set built in: there it is left
+out unless a SPEC names "factory", so the whole bank is yours.
 
 Each file becomes one sample: mixed to mono, resampled to its rate (a windowed-sinc anti-alias filter first),
 pre-emphasised for the playback's linear interpolation (flat to 0.4 x its rate as it plays), its peak normalised, IMA
@@ -468,7 +469,7 @@ ROOM = False                                        # --make-room (args_of)
 def args_of(argv):
     """[--rate R] [--no-factory] [--all] [--make-room] rest -> (rate or None, factory, rest); --make-room sets ROOM"""
     global ROOM
-    factory = True
+    factory = sio.BOARD != "smk37"                 # (SPIDER: the factory set built into the firmware)
     while argv[:1] and argv[0] in ("--no-factory", "--all", "--make-room"):
         if argv[0] == "--make-room":
             ROOM = True
@@ -497,7 +498,7 @@ def main():
         sys.exit(__doc__)
     cmd = sys.argv[1]
     argv = sys.argv[2:]
-    if argv[:1] and argv[0].startswith("--board="):   # --board=smk37: the M-VAVE SMK-37's smaller bank (144 KB)
+    if argv[:1] and argv[0].startswith("--board="):   # --board=smk37: the M-VAVE SMK-37's smaller bank (180 KB)
         sio.set_board(argv[0].split("=", 1)[1])
         argv = argv[1:]
     elif os.environ.get("BOARD"):

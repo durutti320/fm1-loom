@@ -82,6 +82,7 @@ done
 # the M-VAVE SMK-37 build (BOARD=smk37: fm1-base's SMK target, app/smk37.c) in its own simulator: its pads, faders,
 # outer keys and wheels (tests/scenarios_smk37/*.xy); the FM-1 simulator built again after it (the layout sweep uses it)
 run host-build-smk37 sh -c "BOARD=smk37 sh build.sh --host"
+run sample-bank-smk37-full env PY="$PY" sh tests/make_smk37_bank.sh   # (smk37_bank.xy's: past the 144 KB, the old bank)
 for s in tests/scenarios_smk37/*.xy; do
     n=$(basename "$s" .xy)
     rm -rf "$B/scenarios/$n" && mkdir -p "$B/scenarios/$n"

@@ -124,9 +124,12 @@ jobs:
         bash -euo pipefail > /tmp/l8-test.log 2>&1 <<'EOF' || rc=$?
         BOARD=smk37 ./build.sh --host
         mkdir -p /tmp/l8-scenarios
+        sh tests/make_smk37_bank.sh > /dev/null   # (smk37_bank.xy's banks: the 180 KB filled, one made for 144 KB)
         for s in tests/scenarios_smk37/*.xy; do app/build/host/*-smk37_host "$s" /tmp/l8-scenarios; done
         cc -std=c99 -Wall -Wno-unused-function -o /tmp/smk_daw_test tests/smk_daw_test.c
         /tmp/smk_daw_test
+        cc -std=c99 -Wall -Wno-unused-function -o /tmp/smk_mcu_test tests/smk_mcu_test.c
+        /tmp/smk_mcu_test
         python3 tests/smk37_backup_test.py
         python3 tests/smk37_rescue_test.py
         EOF

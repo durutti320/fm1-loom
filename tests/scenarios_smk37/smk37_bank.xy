@@ -1,0 +1,37 @@
+# SPIDER's user sample bank, 180 KB (dsp/sample.h SMP_REG*): USRFLASH's two windows, then the gap the stock layout
+# leaves before its resources (0xEB000..0xF3FFF, plat.h PLAT_XDATA1). A bank filled past the 144 KB of earlier builds
+# (tests/make_smk37_bank.sh: eight samples, the seventh running on into the third window, the eighth, the sweep, in
+# it) is taken whole (its CRC over all three windows: "user 8") and plays to its last sample on T6, the sampler (the
+# sweep, rising: quiet at first)
+wait 300
+samples build/gen/user_bank_smk37_full.bin
+expect user 8
+expect rate8 32000
+expect par6.engine 6
+turn ALGO 5
+wait 60
+expect trk 6
+param 6 E1 23
+wait 60
+tap EDIT
+wait 60
+shot bank_last.png
+peakreset
+key 12 down
+wait 300
+key 12 up
+wait 200
+expect peak_db_min -50
+expect peak_db_max -0.5
+param 6 E1 22
+wait 60
+peakreset
+key 12 down
+wait 300
+key 12 up
+wait 200
+expect peak_db_min -50
+# a bank made for the 144 KB of the builds before (2026-11-04..06): still taken (the same bytes, its windows end to end)
+samples build/gen/user_bank_smk37_v144.bin
+expect user 2
+expect rate2 16000

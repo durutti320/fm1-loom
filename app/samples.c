@@ -157,7 +157,7 @@ static uint32_t sb_end(void)
 {
     uint32_t len = sb_rd32(sb_hdr + 8), cnt = sb_hdr[6], crc;
     if (sb_rd32(sb_hdr) != SMP_BANK_MAGIC || !SMP_BANK_VER_OK(sb_hdr[4]) || sb_hdr[5] || !cnt || cnt > SMP_NENT ||
-        len > SMP_BANK_SIZE - SMP_BANK_HDR || sb_rd32(sb_hdr + 16) != SMP_BANK_SIZE)
+        len > SMP_BANK_SIZE - SMP_BANK_HDR || !SMP_BANK_SIZE_OK(sb_rd32(sb_hdr + 16)))
         return 5;
     if (smp_bank_crc(len, &crc) || crc != sb_rd32(sb_hdr + 12))
         return 6;

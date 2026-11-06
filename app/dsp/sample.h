@@ -40,14 +40,18 @@
 #define SMP_NAME 12
 #define SMP_NREG 3                        /* the bank's windows, in the order it fills them */
 #if BOARD_SMK37
-/* the SMK-37 (app.h): USRFLASH between the panel calibration's pair and DAW mode's (OBJ_DAW), 0xC4000..0xE7FFF,
- * 144 KB, as three windows end to end (the bank's three, so its format and its tool stay as they are; tools/sampleio.py --board smk37) */
+/* the SMK-37 (app.h): USRFLASH between the panel calibration's pair and DAW mode's (OBJ_DAW), 0xC4000..0xE7FFF
+ * (144 KB, as two windows end to end), then fm1-base's PLAT_XDATA1, the gap the stock layout leaves before its
+ * resources, 0xEB000..0xF3FFF (36 KB): 180 KB (tools/sampleio.py --board smk37). A bank made for the 144 KB before
+ * (2026-11-04..06: 72, 64 and 8 KB at 0xC4000, 0xD6000, 0xE6000) lies on the same bytes at the same virtual offsets
+ * (its last two windows are the second here, end to end), so it still plays (SMP_BANK_SIZE_OK) */
 #define SMP_REG0 0xC4000u
 #define SMP_REG0_SIZE (72u * 1024u)       /* (sizes in KB: as hex, 0x1xxxx reads as a register to the build's check) */
 #define SMP_REG1 0xD6000u
-#define SMP_REG1_SIZE (64u * 1024u)
-#define SMP_REG2 0xE6000u
-#define SMP_REG2_SIZE (8u * 1024u)
+#define SMP_REG1_SIZE (72u * 1024u)
+#define SMP_REG2 0xEB000u
+#define SMP_REG2_SIZE (36u * 1024u)
+#define SMP_BANK_SIZE_OK(n) ((n) == SMP_BANK_SIZE || (n) == 144u * 1024u)   /* (the bank's size it was made for) */
 #else
 #define SMP_REG0 0xC1000u                 /* the data area after the projects, up to the calibration: 108 KB */
 #define SMP_REG0_SIZE 0x1B000u
@@ -56,7 +60,10 @@
 #define SMP_REG2 0x93000u                 /* PLAT_XDATA0: 16 KB */
 #define SMP_REG2_SIZE 0x4000u
 #endif
-#define SMP_BANK_SIZE (SMP_REG0_SIZE + SMP_REG1_SIZE + SMP_REG2_SIZE)   /* 216 KB (SMK-37: 144 KB) */
+#define SMP_BANK_SIZE (SMP_REG0_SIZE + SMP_REG1_SIZE + SMP_REG2_SIZE)   /* 216 KB (SMK-37: 180 KB) */
+#ifndef SMP_BANK_SIZE_OK
+#define SMP_BANK_SIZE_OK(n) ((n) == SMP_BANK_SIZE)
+#endif
 #define SMP_BANK_BASE SMP_REG0            /* flash offset of the bank's header */
 #define SMP_BANK_HDR 2048u                /* the header; the data follows */
 #define SMP_BANK_MAGIC 0x504D534Cu        /* "LSMP" */
