@@ -442,7 +442,7 @@ static uint32_t lsmk_rgb(uint16_t c, uint32_t lv)
     return (r * lv >> 8) << 16 | (g * lv >> 8) << 8 | (b * lv >> 8);
 }
 /* the pads at rest away from Steps (nothing held): the mutes lit while their track plays, the drums dim in the kit's
- * ink (dark with no kit). Also SPIDER's boot's last picture (spider_splash.c), so the UI takes over without a jump */
+ * ink (dark with no kit) */
 static void lsmk_pad_rest(uint32_t *col)
 {
     int c, kit = lsmk_kit();
@@ -450,20 +450,6 @@ static void lsmk_pad_rest(uint32_t *col)
         col[c] = c >= NTRK ? 0u : lsmk_rgb(trk_ink(c), seq.mute >> c & 1u ? 10u : 200u);
     for (c = 8; c < NPADS; c++)
         col[c] = kit < 0 ? 0u : lsmk_rgb(trk_ink(kit), 44u);
-}
-/* the pads as the UI opens (the Steps page, bar 1, the track selected; stopped, nothing held): the boot's last
- * picture. A track without steps: the pads at rest */
-static void lsmk_pad_boot(uint32_t *col)
-{
-    int t = sel_trk(), c;
-    const tpat_t *tp;
-    if (!is_seqt(t)) {
-        lsmk_pad_rest(col);
-        return;
-    }
-    tp = tpat(t);
-    for (c = 0; c < NPADS; c++)
-        col[c] = c < tp->len && t != AUX_WEAVE && step_on(&tp->st[c], t) ? lsmk_rgb(trk_ink(t), 56u) : 0u;
 }
 static void lsmk_lights(void)
 {

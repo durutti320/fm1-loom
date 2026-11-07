@@ -10,7 +10,7 @@
 #include "dsp/fx.h"
 
 #if BOARD_SMK37
-#define APP_NAME "SPIDER"              /* the M-VAVE SMK-37 build: LOOM-8 as SPIDER (its boot: spider_splash.c) */
+#define APP_NAME "SPIDER"              /* the M-VAVE SMK-37 build: LOOM-8 as SPIDER */
 #else
 #define APP_NAME "LOOM-8"
 #endif
@@ -119,9 +119,7 @@ void app_say(const char *a, const char *b);
 #define APP_SPLASH                      /* the name over the eight tracks' inks woven as threads */
 void app_splash(void);
 #if BOARD_SMK37
-#define APP_SPLASH_LATE                 /* SPIDER's boot, its sound and its pads, the platform up (spider_splash.c) */
-void app_splash_late(int show);
-#define APP_WEB                         /* the browser build's own exports (web.c: SPIDER's boot) */
+#define APP_WEB                         /* the browser build's own exports (web.c: SPIDER's samples) */
 #endif
 #define APP_REDRAW                      /* the screen mirror lost a part (or a viewer came): every band again */
 void app_redraw(void);

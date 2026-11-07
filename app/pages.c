@@ -34,7 +34,7 @@ static const theme_t THEMES[] = {
 #if BOARD_SMK37
     /* SPIDER's (the SMK-37 build, its default): a web at night, near-black and violet, bone text, blood for recording;
      * the inks jewel tones (crimson, ember, amber, absinthe, verdigris, cold blue, amethyst, orchid), as in its boot
-     * (spider_splash.c SPD_INK); the page buttons, the knobs and the footer's controls take them too (page_ink) */
+     * (as its old boot had them); the page buttons, the knobs and the footer's controls take them too (page_ink) */
     {"web", RGB(10, 8, 14), RGB(26, 20, 34), RGB(42, 32, 54), RGB(54, 42, 68), RGB(98, 84, 116),
      RGB(170, 158, 186), RGB(236, 228, 214), RGB(140, 120, 164), RGB(222, 30, 56), RGB(222, 204, 194),
      {RGB(214, 44, 64), RGB(232, 112, 52), RGB(228, 182, 82), RGB(142, 202, 92), RGB(72, 182, 162), RGB(104, 142, 232),
