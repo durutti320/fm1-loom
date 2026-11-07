@@ -30,8 +30,6 @@ smk37_usb_midi_ports = 2               # a second USB MIDI port: DAW mode's REAP
 smk37_usb_midi_name2 = "SPIDER DAW"    # (its name where the computer shows one; Windows: MIDIIN2 (SPIDER SMK-37))
 smk37_resources = ""                   # (no resource region on the SMK-37 yet: its store has no 88 KB to spare; the 909
                                        # cymbals are silent there, large type uses the faces built in)
-smk37_usb_audio_48k = false            # USB audio at 44.1 kHz only: the 48 kHz resampling on the SMK crackled
-                                       # (Windows shared mode opens at 48); the computer resamples instead
 # the DSP and the sequencer at -O2, apart (as LOOM-8's own build had them); bench.c: the profiler, empty unless XY_BENCH=1
 o2 = ["dsp/synth.c", "dsp/drumline.c", "dsp/digisophie.c", "dsp/sample.c", "dsp/fx.c", "dsp/bass303.c", "dsp/d909.c", "dsp/bench.c", "seq/pattern.c", "seq/seq.c"]
 unity_opt = "z"                                   # the UI and the platform at -Oz (11 KB; the DSP and the sequencer stay -O2)
