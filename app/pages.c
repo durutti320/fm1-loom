@@ -3038,6 +3038,36 @@ static void list_home(int keep)
     list_add(ACTION_NAME[A_PANIC], 0, LK_ACTION, A_PANIC);
 }
 /* EDIT: the sound's actions (EDIT only: the other buttons' lists are their knobs) */
+/* the list's PRESET pick, from i, d of the given engine's factory presets on (d 0: i if it is one, else the engine's
+ * first; none: i). SPIDER keeps the list to the track's own engine (Cam, 7 Nov): acid shows acid's sounds */
+static int preset_pick_eng(int eng, int i, int d)
+{
+    int n = NPRESETS, k, j;
+    if (n <= 0)
+        return 0;
+    i = (i % n + n) % n;
+    if (PRESETS[i].par[TP_ENGINE] != eng) {
+        for (k = 0; k < n && PRESETS[k].par[TP_ENGINE] != eng; k++)
+            ;
+        if (k == n)
+            return i;
+        i = k;
+    }
+    for (; d; d -= d > 0 ? 1 : -1)
+        for (k = 0, j = i; k < n; k++) {
+            j = (j + (d > 0 ? 1 : n - 1)) % n;
+            if (PRESETS[j].par[TP_ENGINE] == eng) {
+                i = j;
+                break;
+            }
+        }
+    return i;
+}
+#if BOARD_SMK37
+#define PRESET_PICK(t_) preset_pick_eng(proj.trk[t_].par[TP_ENGINE], ui.pick_preset, 0)
+#else
+#define PRESET_PICK(t_) ((int)(ui.pick_preset % NPRESETS))
+#endif
 static void list_sound(int trk)
 {
     static char slot_t[24], fol_t[24], kit_t[24], nm[NTRK][16], from_t[24], key_t[24];
@@ -3079,7 +3109,7 @@ static void list_sound(int trk)
     } else if (!is_aux(trk)) {
         list_head("sound");
         if (NPRESETS > 0)
-            list_add(ACTION_NAME[A_PRESET], PRESETS[ui.pick_preset % NPRESETS].name, LK_PICK, A_PRESET);
+            list_add(ACTION_NAME[A_PRESET], PRESETS[PRESET_PICK(trk)].name, LK_PICK, A_PRESET);
         list_add(ACTION_NAME[A_ENGINE], EG_NAME[ui.pick_engine % NENGINE], LK_PICK, A_ENGINE);
         list_add(ACTION_NAME[A_SCRAMBLE], 0, LK_ACTION, A_SCRAMBLE);
         num_s((uint32_t)ui.pick_slot % NUSER_PRESETS + 1u, s_cat(slot_t, "U"));

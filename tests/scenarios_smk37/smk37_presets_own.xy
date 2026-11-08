@@ -1,0 +1,34 @@
+# SPIDER: the SCALE list's PRESET keeps to the track's own engine (acid shows acid's sounds), K4 too
+wait 300
+turn ALGO 3
+wait 60
+expect trk 4
+expect par4.engine 10
+tap EDIT
+wait 40
+tap SEL
+row PRESET
+turn ALGO 5
+tap SEL
+wait 40
+expect par4.engine 10
+tap SEL
+row PRESET
+turn ALGO -9
+tap SEL
+wait 40
+expect par4.engine 10
+turn PRESET 7
+wait 40
+expect par4.engine 10
+# fm's list: fm's sounds only
+turn ALGO 1
+wait 60
+expect trk 5
+expect par5.engine 13
+tap SEL
+row PRESET
+turn ALGO 11
+tap SEL
+wait 40
+expect par5.engine 13

@@ -38,3 +38,30 @@ P("acid lead", "lead", "acid", knobs=dict(wave=SAW, accent=80, slide=30, tune=64
 # dub acid: slow, open, a soft attack, into the delay and the room
 P("dub acid", "bass", "acid", knobs=dict(wave=SQUARE, accent=70, slide=40, tune=64), volume=100,
   amp=(50, 100, 30, 90), filter=("lp24", 55, 90, 60, 86), sends=(50, 30), x=(25, SOFT, 27, 0), genres=("lofi", "house"))
+
+# SPIDER's (8 Nov): more 303 lines, so the acid track has a range of its own
+# hoover-ish: the square through the RAT, slides long, the resonance near the edge
+P("acid rave", "bass", "acid", knobs=dict(wave=SQUARE, accent=110, slide=50, tune=64), volume=84,
+  amp=(32, 55, 20, 60), filter=("lp24", 58, 118, 95, 86), x=(80, RAT, 27, 0), genres=("house", "dnb"))
+# a plucky saw, tiny decay: sequencer ticks for a fast pattern
+P("acid tick", "bass", "acid", knobs=dict(wave=SAW, accent=70, slide=10, tune=64), volume=98,
+  amp=(32, 8, 7, 20), filter=("lp24", 52, 85, 90, 86), x=(20, SOFT, 27, 0), genres=("house", "electro"))
+# deep: the filter low, the resonance gentle, a long decay: a sub-ish 303 under dub and dnb
+P("deep acid", "bass", "acid", knobs=dict(wave=SAW, accent=40, slide=30, tune=64), volume=112,
+  amp=(40, 90, 30, 80), filter=("lp24", 40, 50, 45, 110), x=(15, SOFT, 27, 0), genres=("dub", "dnb"))
+# the classic squelch on the saw: wide envelope, short decay, accents popping
+P("phuture", "bass", "acid", knobs=dict(wave=SAW, accent=120, slide=21, tune=64), volume=96,
+  amp=(32, 25, 10, 51), filter=("lp24", 50, 112, 110, 86), x=(25, SOFT, 27, 0), genres=("house",))
+# a slow, wet acid: soft attack, open, into the delay
+P("wet acid", "lead", "acid", knobs=dict(wave=SAW, accent=60, slide=45, tune=64), volume=90,
+  amp=(70, 80, 40, 80), filter=("lp24", 60, 95, 55, 86), sends=(60, 30), x=(10, SOFT, 27, 0), octave=-1,
+  genres=("lofi", "ambient"))
+# the square, dark and fat with soft drive: a bassline that sits rather than screams
+P("fat square", "bass", "acid", knobs=dict(wave=SQUARE, accent=50, slide=21, tune=64), volume=106,
+  amp=(32, 40, 15, 45), filter=("lp24", 46, 60, 55, 100), x=(45, SOFT, 50, 0), genres=("electro", "garage"))
+# the resonance screaming, the envelope small: a whistling line
+P("whistle", "lead", "acid", knobs=dict(wave=SAW, accent=90, slide=30, tune=64), volume=80,
+  amp=(32, 50, 20, 60), filter=("lp24", 62, 125, 40, 86), x=(10, SOFT, 27, 0), octave=-1, genres=("house",))
+# the RAT on full, short: a distorted stab
+P("acid stab", "stab", "acid", knobs=dict(wave=SAW, accent=100, slide=10, tune=64), volume=82,
+  amp=(32, 20, 10, 30), filter=("lp24", 56, 100, 100, 86), sends=(30, 20), x=(100, RAT, 27, 0), genres=("house", "dnb"))

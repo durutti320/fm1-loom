@@ -2655,7 +2655,13 @@ static void list_change_do(int32_t e)
                 ui.pick_fx = (uint8_t)t;
             break;
         }
+#if BOARD_SMK37
+        case A_PRESET:                           /* (SPIDER: the track's own engine's presets) */
+            ui.pick_preset = (uint16_t)preset_pick_eng(proj.trk[sel_trk()].par[TP_ENGINE], PRESET_PICK(sel_trk()), d);
+            break;
+#else
         case A_PRESET: ui.pick_preset = (uint16_t)((ui.pick_preset + d + NPRESETS) % (NPRESETS ? NPRESETS : 1)); break;
+#endif
         case A_SAVE_PRESET: ui.pick_slot = (uint8_t)((ui.pick_slot + d + NUSER_PRESETS) % NUSER_PRESETS); break;
         case A_KIT: ui.pick_kit = (uint8_t)((ui.pick_kit + d + NKITS) % NKITS); break;
         case A_RHYTHM: ui.pick_rhythm = (uint8_t)((ui.pick_rhythm + d + NRHYTHM) % NRHYTHM); break;
@@ -3806,6 +3812,7 @@ static void action_run(int a)
     }
     case A_PRESET:
         if (NPRESETS) {
+            ui.pick_preset = (uint16_t)PRESET_PICK(sel_trk());
             load_preset(sel_trk(), &PRESETS[ui.pick_preset % NPRESETS]);
             ui.preset_i = ui.pick_preset;
             say("PRESET", PRESETS[ui.pick_preset % NPRESETS].name);

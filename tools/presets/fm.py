@@ -33,3 +33,14 @@ fm("saw lead", "lead", 12, detune=20, sends=(20, 20), mode="mono", glide=20, gen
 fm("kalimba", "pluck", 13, sends=(20, 30), genres=("ambient", "lofi"))
 fm("soft pad", "pad", 14, detune=30, sends=(0, 50), genres=("ambient",))
 fm("dub stab", "stab", 15, sends=(50, 40), genres=("dub", "reggae"))
+
+# SPIDER's (8 Nov): the patches again, set another way (bright and decay off the middle)
+fm("dark ep", "keys", 0, bright=40, decay=80, detune=10, sends=(0, 30), genres=("soul", "lofi"))
+fm("bright ep", "keys", 1, bright=90, decay=56, detune=14, sends=(16, 20), genres=("synthpop",))
+fm("short bass", "bass", 2, bright=70, decay=30, volume=106, sends=(0, 0), genres=("house", "electro"))
+fm("bell pad", "pad", 5, bright=50, decay=110, detune=24, sends=(10, 60), genres=("ambient",))
+fm("dub bell", "bell", 5, bright=60, decay=70, sends=(60, 40), genres=("dub", "reggae"))
+fm("pluck clav", "pluck", 8, bright=80, decay=36, sends=(10, 10), genres=("funk", "house"))
+fm("perc organ", "keys", 9, bright=74, decay=40, sends=(0, 20), genres=("house", "reggae"))
+fm("mono fm", "lead", 12, bright=80, decay=70, detune=10, sends=(30, 20), mode="mono", glide=30,
+   genres=("synthpop", "electro"))

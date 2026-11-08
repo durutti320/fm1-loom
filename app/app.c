@@ -168,7 +168,10 @@ void app_say(const char *a, const char *b) { ui_say(a, b); }
 void app_redraw(void) { ui_redraw(); }
 int app_sysex(const uint8_t *p, uint32_t n) { return smp_frame(p, n); }
 
-/* (SPIDER too, its name in it: its animated boot was dropped on 7 Nov for room) */
+#if BOARD_SMK37
+/* SPIDER: no splash, straight in (Cam, 8 Nov): the screen dark in its theme's ground until the UI's first frame */
+void app_splash(void) { lcd_fill(0, 0, 240, 240, THEMES[THEME_DEF].bg); }
+#else
 /* the name over the eight tracks' inks woven as threads, in the default theme (pages.c THEMES[0]) */
 void app_splash(void)
 {
@@ -186,6 +189,7 @@ void app_splash(void)
     }
     cv_blit(0, 76);
 }
+#endif
 
 /* backup and restore over USB (fm1-base's backup.c): the slots and the presets as saved (LOOM-8 saves when asked:
  * what is not saved stays so); no saving while a backup streams; a restore: everything from the flash again */
