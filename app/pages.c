@@ -332,7 +332,7 @@ enum { A_CLEAR_NOTES, A_CLEAR_LOCKS, A_CLEAR_BOTH, A_COPY_PAT, A_PASTE_PAT, A_RO
        A_COPY_SOUND, A_PASTE_SOUND, A_COPY_KEY, A_PASTE_KEY, A_COPY_SCENE, A_PASTE_SCENE, A_DUP_SLOT, A_KIT_FILTER,
        A_SHIFT, A_LARGE_TYPE, A_CC_IN, A_FX_WIDTH, A_RHYTHM, A_RHYTHM_KIT,
 #if BOARD_SMK37
-       A_KEY_VEL,
+       A_KEY_VEL, A_MOD_WHEEL,
 #endif
        NACTIONS };
 static const char *const ACTION_NAME[NACTIONS] = {
@@ -348,7 +348,7 @@ static const char *const ACTION_NAME[NACTIONS] = {
     "COPY SCENE", "PASTE SCENE", "DUPLICATE SLOT", "KIT FILTER", "SHIFT NOTES", "LARGE TYPE", "CC IN", "PING WIDTH", "RHYTHM",
     "RHYTHM + KIT",
 #if BOARD_SMK37
-    "KEY VELOCITY",
+    "KEY VELOCITY", "MOD WHEEL",
 #endif
 };
 #if BOARD_SMK37
@@ -364,7 +364,7 @@ static int pick_sets(int a)
     case A_SCENE_AT: case A_AUTOSAVE: case A_MIDI_OUT: case A_LOOP_FREE: case A_CC_OUT: case A_SCENES_OUT: case A_MIDI_CC:
     case A_USB_HOST: case A_KIT_FILTER: case A_CC_IN: case A_FX_WIDTH:
 #if BOARD_SMK37
-    case A_KEY_VEL:
+    case A_KEY_VEL: case A_MOD_WHEEL:
 #endif
         return 1;
     default:

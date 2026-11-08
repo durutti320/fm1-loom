@@ -1,0 +1,42 @@
+# the mod wheel as CONTROL ALL (Setup's MOD WHEEL): cutoff on every synth track at once, each from its own value;
+# KNOB BANK within 5 s of the wheel's last move reverts; later it keeps the values (and does its own job)
+wait 300
+listen
+modw 0
+wait 40
+expect par2.cut 50
+tap GLO
+wait 40
+turn SELECT 5
+wait 40
+expect page Setup
+tap SEL
+row MOD WHEEL
+turn ALGO 1
+tap SEL
+wait 40
+# the wheel all the way: every synth track's cutoff up by the whole range (clamped at the top)
+modw 64
+
+wait 40
+said CONTROL ALL
+modw 127
+wait 40
+expect par2.cut 127
+expect par3.cut 127
+expect par4.cut 127
+# KNOB BANK at once: back
+smktap KNOBBANK
+wait 40
+said REVERTED
+expect par2.cut 50
+# the wheel down from the top: every cutoff down by the whole range from its own (clamped at the bottom); then a
+# pause past 5 s: KNOB BANK keeps the values and does its own job (the pads)
+modw 0
+wait 40
+expect par2.cut 0
+wait 5200
+smktap KNOBBANK
+wait 40
+said PADS
+expect par2.cut 0

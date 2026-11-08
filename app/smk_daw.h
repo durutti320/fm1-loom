@@ -67,6 +67,15 @@ static const char *const KV_NAME[KV_N] = {"heavy", "firm", "medium", "normal", "
 static const uint8_t KV_TOUCH[KV_N] = {1, 2, 3, 4, 5, 6, 8, 4, 4};
 static const uint8_t KV_GAIN[KV_N] = {64, 76, 88, 102, 116, 132, 154, 64, 64};   /* x 64: 1, 1.2 .. 1.6 .. 2.4 */
 static uint8_t daw_kv = KV_NORMAL;
+/* MOD WHEEL (Setup): what the mod wheel moves. FILTER: the played track's cutoff, a pick-up (as before); the others
+ * CONTROL ALL, as on an Elektron box: one parameter on every synth track at once, each from its own value by the
+ * wheel's move, and KNOB BANK within MW_REVERT_MS of the wheel's last move puts them back (smk37.c lsmk_modw). Kept
+ * with DAW mode's settings (daw_store_t.flags bits 5..7; older data: FILTER) */
+enum { MW_FILTER, MW_CUT, MW_LFO, MW_SEND1, MW_SEND2, MW_DECAY, MW_N };
+static const char *const MW_NAME[MW_N] = {"filter", "cutoff all", "LFO all", "send I all", "send II all",
+                                          "decay all"};
+#define MW_REVERT_MS 5000u
+static uint8_t daw_mw = MW_FILTER;
 /* a key's velocity as played (1..127; 0 a let-go, kept) -> the one it plays at KEY VELOCITY */
 static uint32_t daw_kv_vel(uint32_t v)
 {
@@ -239,7 +248,8 @@ static int daw_cv_due(const daw_cv_t *c, uint32_t now, uint32_t rel)
 #define DAW_MAGIC 0x31574144u             /* "DAW1" */
 typedef struct {
     uint32_t magic;
-    uint8_t flags;                        /* bit 0 DAW mode, 1 LOCAL ON, 2 CC MAP USER, 3 KNOBS RELATIVE, 4 CC MAP REAPER */
+    uint8_t flags;                        /* bit 0 DAW mode, 1 LOCAL ON, 2 CC MAP USER, 3 KNOBS RELATIVE, 4 CC MAP REAPER,
+                                           * 5..7 MOD WHEEL */
     uint8_t ch, n, rsv;                   /* CHANNEL; the entries that follow (DAW_N); KEY VELOCITY + 1 */
     daw_ent_t map[DAW_N];                 /* the USER map */
 } daw_store_t;
@@ -250,7 +260,7 @@ static void daw_store_fill(daw_store_t *s)
         ((uint8_t *)s)[i] = 0;                /* (the padding too: saves compare the bytes) */
     s->magic = DAW_MAGIC;
     s->flags = (uint8_t)((daw_on & 1u) | (daw_local & 1u) << 1 | (daw_user == 1u) << 2 | (daw_rel & 1u) << 3 |
-                         (daw_user == DAW_MAP_REAPER) << 4);
+                         (daw_user == DAW_MAP_REAPER) << 4 | (daw_mw % MW_N) << 5);
     s->ch = daw_ch;
     s->n = DAW_N;
     s->rsv = (uint8_t)(daw_kv + 1u);
@@ -276,6 +286,7 @@ static int daw_store_take(const uint8_t *b, uint32_t len)
     daw_local = (uint8_t)((s.flags >> 1) & 1u);
     daw_user = (uint8_t)((s.flags >> 4) & 1u ? DAW_MAP_REAPER : (s.flags >> 2) & 1u);
     daw_rel = (uint8_t)((s.flags >> 3) & 1u);
+    daw_mw = (uint8_t)((s.flags >> 5) < MW_N ? s.flags >> 5 : MW_FILTER);
     daw_ch = (uint8_t)(s.ch >= 1u && s.ch <= 16u ? s.ch : 1u);
     daw_kv = (uint8_t)(s.rsv >= 1u && s.rsv <= KV_N ? s.rsv - 1u : KV_NORMAL);
     for (i = 0; i < DAW_N; i++)

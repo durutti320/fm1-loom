@@ -117,6 +117,7 @@ static int key_note(int k) { return KEY_BASE + k + ui.oct * 12; }
 static int lsmk_key_vel(int k);
 #define KEY_VEL(k) lsmk_key_vel(k)               /* its keys' velocity, from the unit's own curves at KEY VELOCITY */
 static void lsmk_kv_step(int d);
+static void lsmk_mw_step(int d);
 static void lsmk_poll(void);
 static uint32_t lsmk_pad_keys(void);
 static uint32_t lsmk_padk;                       /* the white keys this pass that are pads (Steps' cells), not the keybed */
@@ -2781,6 +2782,9 @@ static void list_change_do(int32_t e)
         case A_KEY_VEL:                          /* (the SMK's own setting, kept with DAW mode's: not the project's) */
             lsmk_kv_step(d);
             break;
+        case A_MOD_WHEEL:                        /* (the same) */
+            lsmk_mw_step(d);
+            break;
 #endif
         default: break;
         }
@@ -3837,7 +3841,7 @@ static void action_run(int a)
     case A_MIDI_OUT: case A_LOOP_FREE: case A_CC_OUT: case A_SCENES_OUT: case A_MIDI_CC: case A_USB_HOST: case A_KIT_FILTER:
     case A_CC_IN: case A_FX_WIDTH:
 #if BOARD_SMK37
-    case A_KEY_VEL:
+    case A_KEY_VEL: case A_MOD_WHEEL:
 #endif
         return;   /* (ALGORITHM sets them; SEL
                                                                                     * leaves the list) */

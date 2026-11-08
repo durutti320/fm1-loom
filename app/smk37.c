@@ -22,8 +22,10 @@
  *   faders      the levels of T1-T4, or T5-T8 (FADER BANK, lit on T5-T8); a fader acts once it moves
  *   outer keys  C3..E3 and G#5..C6 carry on the keys: more notes, with velocity; on a kit, its keys
  *   pitch wheel bend of the track the keys play (+-7 semitones, a fifth)
- *   mod wheel   the filter of the track the keys play (its cutoff; DYNAMIC: its hi cut), once the wheel passes the
- *               value it has (a pick-up: nothing jumps)
+ *   mod wheel   MOD WHEEL (Setup): FILTER, the filter of the track the keys play (its cutoff; DYNAMIC: its hi cut),
+ *               once the wheel passes the value it has (a pick-up); or CONTROL ALL: cutoff, LFO amount, send I, send II
+ *               or decay on every synth track at once, each moved from its own value; KNOB BANK within 5 s of the
+ *               wheel's last move puts them back
  *
  * DAW mode (< + > together; ported from Snoop37 by way of the Loom FM-1 port; smk_daw.h has the map): the SMK is a
  * USB MIDI controller and LOOM-8 is left alone (the sequencer stops on the way in; MIDI IN still plays it, a sound
@@ -51,6 +53,10 @@ static struct {
     uint8_t bend_trk;                   /* the track the pitch wheel bends (0xFF none) */
     int32_t bend;
     uint8_t mw_trk, mw_par, mw_last, mw_armed;   /* the mod wheel: its track and parameter, as last seen, picked up */
+    uint8_t ca_on, ca_mode, ca_w0;      /* CONTROL ALL: a move under way (revertible), its mode, the wheel at its start */
+    uint8_t ca_snap[NTRK];              /* each track's value at its start (KNOB BANK puts them back) */
+    uint8_t ca_trks;                    /* the tracks it moves (bit t) */
+    uint32_t ca_t;                      /* the wheel's last move (ms) */
     uint8_t lr_both;                    /* < + > pressed together: neither steps a bar (until both are up) */
     uint32_t sbtn;                      /* the SMK buttons as last seen */
 } lsmk = {.last_kit = 0xFF, .flast = {0xFF, 0xFF, 0xFF, 0xFF}, .bend_trk = 0xFF, .mw_trk = 0xFF, .nr_rate = SEQ_RP_16};
@@ -288,6 +294,7 @@ static void lsmk_pad_mode(void)
     else
         say_no("NO STEPS", "this track has none");
 }
+static int lsmk_ca_revert(void);
 /* the SMK's own four buttons: FADER BANK, KNOB BANK when pressed; < > when let go (unless both: DAW mode) */
 static void lsmk_buttons(void)
 {
@@ -305,7 +312,7 @@ static void lsmk_buttons(void)
         if (!(b & lr))
             lsmk.lr_both = 0;
     }
-    if (pressed >> SB_KNOB_BANK & 1u)
+    if ((pressed >> SB_KNOB_BANK & 1u) && !lsmk_ca_revert())   /* (CONTROL ALL just moved: KNOB BANK reverts) */
         lsmk_pad_mode();
     if (pressed >> SB_FADER_BANK & 1u) {
         lsmk.fbank ^= 1u;
@@ -356,14 +363,79 @@ static void lsmk_wheels(void)
     }
 }
 
-/* the mod wheel: the filter of the track the keys play, its cutoff (DYNAMIC: its hi cut). A pick-up: the wheel acts
- * once it passes the value the track has (another track, or another filter type: picked up again) */
+/* CONTROL ALL's parameter for a mode */
+static int lsmk_ca_par(int mode)
+{
+    static const uint8_t P[MW_N] = {TP_CUT, TP_CUT, TP_LAMT, TP_SEND1, TP_SEND2, TP_D};
+    return P[mode % MW_N];
+}
+/* the mod wheel as CONTROL ALL: the move's start (the wheel was at w0) snapshots the parameter on every synth track
+ * (a kit's sends and envelope are its keys'; the FX tracks have none); each track then moves from its own value by
+ * the wheel's travel since (the whole range for the wheel's). A pause of MW_REVERT_MS ends the move: kept */
+static void lsmk_ca(uint32_t m)
+{
+    int p = lsmk_ca_par(daw_mw), t, span, v;
+    uint32_t now = plat_ms();
+    const tp_info_t *in;
+    char s[24];
+    if (!lsmk.ca_on || lsmk.ca_mode != daw_mw || now - lsmk.ca_t > MW_REVERT_MS) {
+        lsmk.ca_on = 1;
+        lsmk.ca_mode = daw_mw;
+        lsmk.ca_w0 = lsmk.mw_last;
+        lsmk.ca_trks = 0;
+        for (t = 0; t < NTRK && t < 8; t++)
+            if (!is_aux(t) && !is_drum(t)) {
+                lsmk.ca_snap[t] = proj.trk[t].par[p];
+                lsmk.ca_trks |= (uint8_t)(1u << t);
+            }
+    }
+    lsmk.ca_t = now;
+    lsmk.mw_last = (uint8_t)m;
+    for (t = 0; t < NTRK && t < 8; t++)
+        if (lsmk.ca_trks >> t & 1u) {
+            in = tp_info_par(p, proj.trk[t].par);
+            span = in->hi - in->lo;
+            v = clampi((int)lsmk.ca_snap[t] + ((int)m - (int)lsmk.ca_w0) * span / 127, in->lo, in->hi);
+            if (v != proj.trk[t].par[p])
+                set_tp(t, p, v);
+        }
+    {
+        int d = ((int)m - (int)lsmk.ca_w0) * 100 / 127;
+        char *e = s_cat(s, MW_NAME[daw_mw % MW_N]);
+        e = s_cat(e, d < 0 ? " -" : " +");
+        s_cat(num_s((uint32_t)(d < 0 ? -d : d), e), "%");
+    }
+    say("CONTROL ALL", s);
+}
+/* KNOB BANK within MW_REVERT_MS of CONTROL ALL's last move: every track's value back as the move found it (1: done,
+ * KNOB BANK's own job skipped) */
+static int lsmk_ca_revert(void)
+{
+    int p, t;
+    if (!lsmk.ca_on || plat_ms() - lsmk.ca_t > MW_REVERT_MS)
+        return 0;
+    p = lsmk_ca_par(lsmk.ca_mode);
+    for (t = 0; t < NTRK && t < 8; t++)
+        if (lsmk.ca_trks >> t & 1u)
+            set_tp(t, p, lsmk.ca_snap[t]);
+    lsmk.ca_on = 0;
+    say("REVERTED", MW_NAME[lsmk.ca_mode % MW_N]);
+    return 1;
+}
+/* the mod wheel: CONTROL ALL (above), or FILTER: the track the keys play, its cutoff (DYNAMIC: its hi cut). A pick-up:
+ * the wheel acts once it passes the value the track has (another track, or another filter type: picked up again) */
 static void lsmk_modw(void)
 {
     int t = lsmk_play_trk(), p, span;
     uint32_t m = plat_modw(), cur;
     const tp_info_t *in;
     char s[24];
+    if (daw_mw != MW_FILTER) {
+        if (m != lsmk.mw_last)
+            lsmk_ca(m);
+        lsmk.mw_trk = 0xFF;                       /* (FILTER again: picked up afresh) */
+        return;
+    }
     if (t < 0 || t >= NTRK)
         return;
     p = proj.trk[t].par[TP_FTYPE] % NFT == FT_DYNAMIC ? TP_KTRK : TP_CUT;
@@ -584,6 +656,16 @@ static int lsmk_kv_last(char *t)
     }
     return 1;
 }
+static void lsmk_mw_step(int d)                 /* MOD WHEEL: the next mode (a move under way ends, kept) */
+{
+    int v = clampi((int)daw_mw + d, 0, MW_N - 1);
+    if (v == daw_mw)
+        return;
+    daw_mw = (uint8_t)v;
+    lsmk.ca_on = 0;
+    lsmk.mw_last = (uint8_t)plat_modw();
+    lsmk_daw_dirty();
+}
 static void lsmk_list_keys(void)                /* Setup (pages.c list_setup): the last key, then KEY VELOCITY (the line
                                                  * above the row: in sight while the row is picked) */
 {
@@ -593,6 +675,7 @@ static void lsmk_list_keys(void)                /* Setup (pages.c list_setup): t
         s_cat(last, "Play a key to see its velocity");
     list_add(last, 0, LK_NOTE, 0);
     list_add(ACTION_NAME[A_KEY_VEL], KV_NAME[daw_kv % KV_N], LK_PICK, A_KEY_VEL);
+    list_add(ACTION_NAME[A_MOD_WHEEL], MW_NAME[daw_mw % MW_N], LK_PICK, A_MOD_WHEEL);
 }
 
 /* ---- flash: OBJ_DAW */
