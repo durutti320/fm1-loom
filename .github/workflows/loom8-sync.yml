@@ -40,7 +40,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git remote add upstream https://github.com/charlesvestal/fm1-loom
-          git fetch -q upstream main
+          git fetch -q --no-recurse-submodules upstream main   # (LOOM-8 may point base at a commit only its fm1-base has)
           git -C base remote add upstream https://github.com/charlesvestal/fm1-base
           git -C base fetch -q upstream main
           was=$(cat .github/loom8-upstream); now=$(git rev-parse upstream/main)
