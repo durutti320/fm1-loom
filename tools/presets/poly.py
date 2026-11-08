@@ -53,3 +53,37 @@ P("warm pad", "pad", "poly", knobs=dict(saw=127, pulse=40, width=30, sub=50), vo
 P("dusty juno", "keys", "poly", knobs=dict(saw=80, pulse=100, width=20, sub=10), volume=86,
   amp=(0, 86, 30, 70), fenv=(0, 76, 10, 70), filter=("lp24", 70, 5, 76, 70), sends=(0, 28),
   char=("tape", 60, 50, 127), x=(10, 1, 2, 30), genres=("lofi",))
+
+# SPIDER's (8 Nov): more of the Juno's range
+# the house organ-ish chord: square pulse, short, chorus off, for chord stabs on the offbeat
+P("house chord", "chord", "poly", knobs=dict(saw=60, pulse=127, width=0, sub=40), volume=82,
+  amp=(0, 60, 0, 40), fenv=(0, 56, 0, 40), filter=("lp24", 66, 20, 80, 64), sends=(20, 20), x=(0, 1, 0, 8),
+  genres=("house", "garage"))
+# hoover-ish: saws, sub, chorus I+II, a glide: the rave classic, played low
+P("hoover", "lead", "poly", knobs=dict(saw=127, pulse=100, width=60, sub=100), mode="mono", glide=40, volume=82,
+  amp=(4, 80, 120, 70), fenv=(0, 64, 0, 64), filter=("lp24", 80, 10, 64, 64), sends=(10, 30),
+  lfo=("wave", 50, 90, "synth free", 2, 1), x=(0, 1, 3, 24), genres=("house", "dnb"))
+# the dreamy pad: slow, dark, chorus II, a long release into the room
+P("dream pad", "pad", "poly", knobs=dict(saw=100, pulse=60, width=50, sub=20), volume=72,
+  amp=(100, 100, 120, 110), fenv=(90, 100, 80, 100), filter=("lp24", 58, 10, 70, 64), sends=(10, 60),
+  lfo=("wave", 20, 70, "synth free", 2, 1), x=(10, 2, 2, 28), genres=("ambient", "lofi"))
+# the bell-ish: a narrow pulse, high-passed, short with a long tail, chorus I
+P("juno bell", "bell", "poly", knobs=dict(saw=0, pulse=127, width=110, sub=0), volume=78,
+  amp=(0, 70, 0, 80), fenv=(0, 60, 0, 60), filter=("lp24", 90, 30, 64, 80), sends=(30, 40), x=(0, 3, 1, 10),
+  genres=("synthpop", "ambient"))
+# the sync-less "sweep pad": the filter rising slowly, resonant, PWM
+P("sweep pad", "pad", "poly", knobs=dict(saw=127, pulse=80, width=50, sub=0), volume=74,
+  amp=(60, 100, 120, 100), fenv=(127, 110, 100, 100), filter=("lp24", 40, 70, 100, 64), sends=(0, 50),
+  lfo=("wave", 30, 80, "synth free", 2, 1), x=(0, 1, 2, 20), genres=("synthpop", "ambient"))
+# the reggae bubble: short, dark, chorus off, the organ's shuffle on the keys
+P("bubble", "keys", "poly", knobs=dict(saw=40, pulse=127, width=20, sub=60), volume=84,
+  amp=(0, 50, 0, 30), fenv=(0, 48, 0, 30), filter=("lp24", 52, 10, 70, 64), sends=(10, 10), x=(0, 1, 0, 6),
+  genres=("reggae", "dub"))
+# the lush keys: saw and pulse, a soft attack, chorus I+II
+P("lush keys", "keys", "poly", knobs=dict(saw=110, pulse=70, width=30, sub=20), volume=80,
+  amp=(10, 84, 90, 80), fenv=(0, 70, 30, 70), filter=("lp24", 74, 10, 70, 64), sends=(10, 30), x=(0, 1, 3, 18),
+  genres=("synthpop", "lofi", "soul"))
+# the noise wash: noise and a little saw, very slow, high-passed: a texture under a track
+P("noise wash", "fx", "poly", knobs=dict(saw=30, pulse=0, width=0, sub=0), volume=70,
+  amp=(110, 100, 120, 110), fenv=(100, 100, 100, 100), filter=("lp24", 70, 40, 60, 64), sends=(20, 70),
+  x=(127, 3, 2, 30), genres=("ambient",))
