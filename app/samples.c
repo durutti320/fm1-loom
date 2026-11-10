@@ -239,7 +239,9 @@ static int smp_frame(const uint8_t *p, uint32_t n)
                 v[nv++] = eng_vworst[i];
         } else if (part == 3u) {                     /* the trace up to the slowest block, two values a word */
             for (i = 0; i < TRACE_N * TRACE_K / 2u; i++)
-                v[nv++] = (uint32_t)trace_worst[0][2u * i] | (uint32_t)trace_worst[0][2u * i + 1u] << 16;
+                v[nv++] = (uint32_t)trace_worst[2u * i / TRACE_K][2u * i % TRACE_K] |
+                          (uint32_t)trace_worst[2u * i / TRACE_K][2u * i % TRACE_K + 1u] << 16;   /* (row by row: an index
+                                                      * past a row's end is not the next row's, to the compiler) */
         }
         rp_byte(part);
         rp_byte(nv);

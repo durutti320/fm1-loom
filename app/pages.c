@@ -667,6 +667,8 @@ static int is_fx(int t) { return t == AUX_FX1 || t == AUX_FX2; }
 static int cur_scene(void) { return seq.scene < NSCENE ? seq.scene : 0; }
 static int cur_pat(int t) { return is_seqt(t) ? seq.ppat[t] % NPATT : 0; }
 static tpat_t *tpat(int t) { return &pats.pat[is_seqt(t) ? t : 0][cur_pat(t)]; }
+static int step_pos(int t) { return is_seqt(t) ? eng_step[t] : 0; }   /* (an FX track on SEQ's pages: no playhead of its own;
+                                                                      * eng_step has the sequenced tracks only) */
 static int playing(void) { return seq.playing; }
 #define NCIN 4                                       /* the count-in's choices (proj.rsv[0]): off, 1 bar, 2 bars, on note */
 #define CIN_NOTE 3
@@ -1232,7 +1234,7 @@ static void kn(knob_t *k, const char *name, int32_t v, int32_t max)
 static void kmc(knob_t *k, int m)
 {
     static const uint8_t CT_OF[NMC] = {CT_OFF, CT_TAPE, CT_SAMPLER};
-    uint8_t par[NTP_SOUND] = {0};
+    uint8_t par[NTP] = {0};                            /* (whole: tp_info_par reads the player and the LFO type too) */
     char num[12], unit[6], val[24], *e;
     int p = TP_CAMT + (m - MS_CAMT), v = proj.master[m];
     par[TP_CTYPE] = CT_OF[proj.master[MS_CTYPE] % NMC];
@@ -2081,7 +2083,7 @@ static void draw_tag(void)
         const tpat_t *tp = tpat(sel_trk());
         steps_head(sel_trk(), nm, hd);
         nb = (tp->len + 15) / 16;
-        pb = playing() ? eng_step[sel_trk()] / 16 : -1;
+        pb = playing() ? step_pos(sel_trk()) / 16 : -1;
         h = hash_s(hash_s(hash_u(h, (uint32_t)nb | (uint32_t)(pb + 1) << 8 | (uint32_t)ui.bar << 16), nm), hd);
     }
     if (h == ui.sig[3])
@@ -3706,7 +3708,7 @@ static void draw_steps_as(void)
         return;
     }
     {
-    int trk = sel_trk(), drum = is_drum(trk), pt = cur_pat(trk), ph = eng_step[trk];
+    int trk = sel_trk(), drum = is_drum(trk), pt = cur_pat(trk), ph = step_pos(trk);
     const tpat_t *tp = tpat(trk);
     uint32_t h = hash_u(hash_u(2166136261u, 0x57u), (uint32_t)trk | (uint32_t)pt << 4 | (uint32_t)ui.bar << 8 |
                                           (uint32_t)ui.held << 10 | (uint32_t)ui.dsound << 26);
@@ -3917,12 +3919,13 @@ static void draw_bar(void)
     int trk = sel_trk();
     const tpat_t *tp = tpat(trk);
     uint32_t h = hash_u(hash_u(2166136261u, 0xBAu), (uint32_t)trk | (uint32_t)cur_pat(trk) << 4 | (uint32_t)tp->len << 8 |
-                                          (uint32_t)tp->scale << 16 | (uint32_t)eng_step[trk] << 20 | (uint32_t)playing() << 28);
+                                          (uint32_t)tp->scale << 16 | (uint32_t)step_pos(trk) << 20 | (uint32_t)playing() << 28);
     char t[48], *e;
     h = hash_u(h, (uint32_t)(tp->groove + 100) | (uint32_t)proj.groove << 8 | (uint32_t)tp->quant << 16 |
                       (uint32_t)ui.bar << 24 | (uint32_t)is_drum(trk) << 28);
-    h = hash_u(h, (uint32_t)tp->lstart | (uint32_t)tp->lend << 8 | (uint32_t)seq.t[trk].bq_go << 16 | (uint32_t)seq.t[trk].bq_f << 24);
-    h = hash_u(h, seq.t[trk].bq_e);
+    h = hash_u(h, (uint32_t)tp->lstart | (uint32_t)tp->lend << 8 | (uint32_t)seq.t[is_seqt(trk) ? trk : 0].bq_go << 16 |
+                  (uint32_t)seq.t[is_seqt(trk) ? trk : 0].bq_f << 24);
+    h = hash_u(h, seq.t[is_seqt(trk) ? trk : 0].bq_e);
     if (!begin_main(h))
         return;
     if (!is_seqt(trk)) {
@@ -3937,7 +3940,8 @@ static void draw_bar(void)
     s_cat(e, STEP_FRAC[tp->scale % NTS]);
     cv_text(12, LY(6, 2), LY(&FONT_S, &FONT_XS), t, K_TEXT);
     {
-        int nb = (tp->len + 15) / 16, ph = eng_step[trk], lf, le, go = seq.t[trk].bq_go, pf = seq.t[trk].bq_f, pe = seq.t[trk].bq_e;
+        int nb = (tp->len + 15) / 16, ph = step_pos(trk), lf, le, sq = is_seqt(trk) ? trk : 0, go = seq.t[sq].bq_go, pf = seq.t[sq].bq_f,
+            pe = seq.t[sq].bq_e;
         pat_loop(tp, &lf, &le);
         for (int b = 0; b < NBAR; b++) {
             int32_t x = 12 + b * 56, w = 50;
@@ -5731,7 +5735,7 @@ static void draw_master_color(void)
     uint32_t h = hash_u(hash_u(2166136261u, 0xC0u), (uint32_t)ty | (uint32_t)m[MS_CAMT] << 8 | (uint32_t)m[MS_CTONE] << 16 |
                                                     (uint32_t)m[MS_CMIX] << 24);
     int32_t x0 = 128, y0 = 8, w = 100, hh = 72, cy = y0 + hh / 2;
-    uint8_t par[NTP_SOUND];
+    uint8_t par[NTP] = {0};
     pen_t pn = {0};
     if (!begin_main(h))
         return;
