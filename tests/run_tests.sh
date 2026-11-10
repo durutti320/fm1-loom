@@ -89,6 +89,9 @@ for s in tests/scenarios_smk37/*.xy; do
     run "scenario-$n" $B/host/*-smk37_host "$s" "$B/scenarios/$n"
 done
 $CC -std=c99 -Wall -Wno-unused-function -o "$OUT/smk_daw_test" tests/smk_daw_test.c
+if command -v node > /dev/null; then            # SPIDER's projects page against its simulator (app/web/projects)
+    run projects-web node tests/host/projects_web.mjs $B/host/*-smk37_host "$PY"
+fi
 run smk-daw-map "$OUT/smk_daw_test"            # DAW mode's map and messages (app/smk_daw.h, from Snoop37)
 $CC -std=c99 -Wall -Wno-unused-function -o "$OUT/smk_mcu_test" tests/smk_mcu_test.c
 run smk-reaper-mcu "$OUT/smk_mcu_test"         # DAW mode's REAPER profile: Mackie Control both ways (app/smk_mcu.h)

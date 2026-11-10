@@ -1,0 +1,461 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: GPL-3.0-only
+     SPIDER's projects page: the two project slots of the SMK-37 in the browser (Chrome or Edge, Web MIDI), on
+     fm1-base's backup and restore over USB (base/device/backup.c; its protocol code, base/web/backup/index.html's
+     "backup protocol" block, inlined at PROTOCOL by tools/make_spider_projects.py). Read takes a backup (the user
+     presets and the slots' 7 objects each); the page shows the slots, names them (the settings' name field, which
+     SPIDER keeps but does not show), swaps them, clears one, saves one as a file (.spiderproj) or into this browser's
+     library, and puts a file or a library entry into a slot. Send builds the backup's image again and restores it:
+     SPIDER checks it whole, asks on its screen, and changes everything or nothing. The presets go back as they came.
+     The logic between "projects: begin" and "projects: end" is tested by tests/host/projects_web.mjs. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Projects · SPIDER</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600&family=Barlow+Semi+Condensed:wght@600;700&display=swap">
+<style>
+  :root { --ground: #f4f3f1; --ink: #1c1c20; --muted: #5f5f67; --rule: #dcdbd8; --card: #fff;
+          --accent: #b0285f; --on-accent: #fff; --bad: #b3261e; --good: #1f6f43; color-scheme: light; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --ground: #000; --ink: #ebebee; --muted: #a2a2aa; --rule: #2e2e34; --card: #141418;
+      --accent: #ff5caa; --on-accent: #1a0010; --bad: #ff8a80; --good: #7fd6a4; color-scheme: dark; }
+  }
+  :root[data-theme="dark"] { --ground: #000; --ink: #ebebee; --muted: #a2a2aa; --rule: #2e2e34; --card: #141418;
+    --accent: #ff5caa; --on-accent: #1a0010; --bad: #ff8a80; --good: #7fd6a4; color-scheme: dark; }
+  body { margin: 0; background: var(--ground); color: var(--ink); padding-inline: 16px; padding-block: 48px 64px;
+         font: 400 16px/1.6 "Barlow", "Helvetica Neue", Arial, sans-serif; }
+  main { max-width: 46rem; margin: 0 auto; }
+  h1 { font: 700 2.4rem/1 "Barlow Semi Condensed", "Barlow", sans-serif; margin: 0 0 1rem; }
+  h2 { font: 700 1.35rem/1.2 "Barlow Semi Condensed", "Barlow", sans-serif; margin: 2rem 0 .6rem; }
+  p { margin: 0 0 1rem; }
+  a { color: var(--accent); }
+  .small { color: var(--muted); font-size: .9rem; }
+  .home { display: inline-block; font: 700 1rem "Barlow Semi Condensed", sans-serif; letter-spacing: .03em; color: var(--muted);
+          text-decoration: none; margin: 0 0 .8rem; }
+  .home:hover, .home:focus-visible { color: var(--accent); }
+  button { font: 600 15px "Barlow", sans-serif; background: var(--accent); color: var(--on-accent); border: 0; border-radius: 999px;
+           padding: 7px 18px; cursor: pointer; }
+  button.quiet { background: none; color: var(--ink); border: 1px solid var(--rule); }
+  button.link { background: none; color: var(--muted); border: 0; padding: 2px 4px; text-decoration: underline; font-weight: 400;
+                font-size: 14px; border-radius: 4px; }
+  button:disabled { opacity: .35; cursor: default; }
+  input[type=text] { font: inherit; font-size: 15px; font-weight: 600; color: var(--ink); background: var(--card);
+                     border: 1px solid var(--rule); border-radius: 6px; padding: 3px 8px; width: 9.5em; }
+  input[type=file] { display: none; }
+  .bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 0 0 1.2rem; }
+  #status { color: var(--muted); font-size: 15px; }
+  #status.good { color: var(--good); font-weight: 600; }
+  #alert { font-weight: 600; font-size: 15px; color: var(--bad); margin: 0 0 1rem; }
+  #alert:empty { display: none; }
+  .slots { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 14px; margin: 0 0 10px; }
+  .slot { background: var(--card); border: 1px solid var(--rule); border-radius: 12px; padding: 14px 16px; min-width: 0; }
+  .slot.changed { border-color: var(--accent); }
+  .slot .num { margin: 0 0 6px; font: 700 .95rem "Barlow Semi Condensed", sans-serif; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+  .slot.changed .num::after { content: " · changed"; color: var(--accent); }
+  .slot .facts { color: var(--muted); font-size: 14px; margin: 6px 0 10px; min-height: 2.9em; }
+  .slot .acts { display: flex; flex-wrap: wrap; gap: 4px 10px; }
+  #pending { border: 1px solid var(--accent); border-radius: 12px; padding: 12px 16px; margin: 14px 0; }
+  #pending p { margin: 0 0 .7rem; }
+  #lib { border-top: 1px solid var(--rule); }
+  .ent { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--rule); }
+  .ent .nm { font-weight: 600; }
+  .ent .facts { color: var(--muted); font-size: 14px; }
+  .ent .acts { display: inline-flex; flex-wrap: wrap; gap: 2px 6px; margin-left: auto; }
+  .empty { color: var(--muted); padding: 14px 0; border-bottom: 1px solid var(--rule); }
+  progress { width: 100%; height: 6px; accent-color: var(--accent); }
+  ol.steps { padding-left: 1.2rem; margin: 0 0 1rem; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<main>
+  <a class="home" href="../">← SPIDER in the browser</a>
+  <h1>Projects</h1>
+  <p>SPIDER keeps two projects on the SMK-37. Here you can name them, swap them, keep copies on this computer, and put
+    a saved one back in either slot.</p>
+  <p class="small">Connect the SMK-37 by USB with SPIDER running and <strong>stopped</strong>, close REAPER and anything
+    else using its MIDI ports, and use Chrome or Edge on a computer.</p>
+
+  <div class="bar">
+    <button id="read">Read from SPIDER</button>
+    <span id="status" role="status">Not connected.</span>
+  </div>
+  <progress id="bar" max="100" value="0" hidden></progress>
+  <p id="alert" role="alert"></p>
+
+  <div id="work" hidden>
+    <div class="slots" id="slots"></div>
+    <div class="bar">
+      <button class="quiet" id="swap">Swap the two slots</button>
+      <button class="link" id="savefull">Save a backup of everything as it was read</button>
+    </div>
+    <div id="pending" hidden>
+      <p><strong>Not on SPIDER yet.</strong> <span id="pendwhat"></span></p>
+      <ol class="steps small">
+        <li>Stop SPIDER if it's playing.</li>
+        <li>Press <strong>Send to SPIDER</strong>.</li>
+        <li>SPIDER asks RESTORE FROM USB? on its screen. Press <strong>SCALE</strong> for yes (PATCH is no).</li>
+      </ol>
+      <div class="bar" style="margin: 0">
+        <button id="send">Send to SPIDER</button>
+        <button class="quiet" id="undo">Undo my changes</button>
+      </div>
+    </div>
+  </div>
+
+  <h2>Library</h2>
+  <p class="small">Projects kept in this browser, on this computer. They stay when you close the page, but clearing the
+    browser's site data removes them, so save the ones that matter as files too.</p>
+  <div id="lib"></div>
+  <div class="bar" style="margin-top: 12px">
+    <button class="quiet" id="libadd">Add a project file to the library</button>
+    <input type="file" id="libfile" accept=".spiderproj">
+    <input type="file" id="slotfile" accept=".spiderproj">
+  </div>
+
+  <h2>Good to know</h2>
+  <ul class="small">
+    <li>Nothing changes on SPIDER until you press Send and say yes on its screen. SPIDER checks the whole transfer
+      first: a pulled cable or a damaged file changes nothing.</li>
+    <li>Names live with the project, but SPIDER's own screen still calls them Proj 1 and Proj 2.</li>
+    <li>A project uses your samples by name. A project file doesn't carry the samples: keep those on
+      <a href="../samples/">the samples page</a>.</li>
+    <li>Your user presets aren't touched: they go back exactly as they were read.</li>
+  </ul>
+  <p class="small">SPIDER is GPL-3.0, built on LOOM-8 by Charles Vestal (MPL-2.0), fm1-base and felucca-bsp, from Felucca by
+    Leo Kuroshita (Hügelton Instruments). <a href="https://github.com/durutti320/fm1-loom/tree/spider2">The source</a>.</p>
+</main>
+<script>
+"use strict";
+/*PROTOCOL*/
+
+// --- projects: begin (tested by tests/host/projects_web.mjs)
+// The backup's objects (app/app.h APP_BACKUP_OBJS on the SMK-37): the user presets, then each slot's PROJ_NOBJ objects.
+// A slot's first object is its settings (app/project.c): "LOM8", u32 format, the name's 12 bytes at 8, u16 tempo x 10
+// at 20, the save count at 36 (the highest is the slot SPIDER opens at power-on); empty: no settings.
+const SP = (() => {
+  const NSLOT = 2, NOBJ = 7, OBJ_PRESETS = 1, OBJ_PROJ0 = 2, PAYLOAD_MAX = 3840;
+  const MAGIC = [0x4C, 0x4F, 0x4D, 0x38], NAME_AT = 8, NAME_LEN = 12, TEMPO_AT = 20, COUNT_AT = 36, HDR_MIN = 58;
+  const FILE_MAGIC = [0x53, 0x50, 0x4A, 0x31];                    // "SPJ1": a project file
+  const u16 = (b, o) => b[o] | b[o + 1] << 8;
+  const u32 = (b, o) => (b[o] | b[o + 1] << 8 | b[o + 2] << 16 | b[o + 3] << 24) >>> 0;
+  const le16 = (v) => [v & 0xFF, (v >> 8) & 0xFF];
+  const le32 = (v) => [v & 0xFF, (v >>> 8) & 0xFF, (v >>> 16) & 0xFF, (v >>> 24) & 0xFF];
+  const bad = (m) => Object.assign(new Error(m), { code: "file" });
+
+  // a parsed backup (PB.parse's objs) -> {presets: bytes, slots: [[7 x bytes], [7 x bytes]]} (copies); throws when
+  // it is not this layout (another firmware's backup, another count of slots)
+  function fromBackup(objs) {
+    if (objs.length !== 1 + NSLOT * NOBJ || objs[0].obj !== OBJ_PRESETS || objs.some((o, i) => i && o.obj !== OBJ_PROJ0 + i - 1))
+      throw bad("This backup isn't laid out as SPIDER's on the SMK-37 (two project slots). Nothing was changed.");
+    const slots = [];
+    for (let s = 0; s < NSLOT; s++) slots.push(objs.slice(1 + s * NOBJ, 1 + (s + 1) * NOBJ).map((o) => Uint8Array.from(o.data)));
+    return { presets: Uint8Array.from(objs[0].data), slots };
+  }
+  // the backup's image again (base/device/backup.c): head, a record an object, the tail's CRC-32
+  function toBackup(state, magic, version, crc32) {
+    const recs = [{ obj: OBJ_PRESETS, data: state.presets }];
+    state.slots.forEach((sl, s) => sl.forEach((d, k) => recs.push({ obj: OBJ_PROJ0 + s * NOBJ + k, data: d })));
+    const out = [...magic, ...le16(version), ...le16(recs.length), ...le32(0)];
+    out.push(...le32(crc32(out, 0, 12)));
+    for (const r of recs) {
+      if (r.data.length > PAYLOAD_MAX) throw bad("A part of a project is too large for SPIDER.");
+      out.push(...le16(r.obj), ...le16(r.data.length), ...le32(crc32(r.data)), ...r.data);
+    }
+    out.push(...le32(crc32(out)));
+    return Uint8Array.from(out);
+  }
+  const isEmpty = (slot) => !slot[0].length;
+  // what the page says of a slot: {empty} or {name, bpm, count, bytes, format, ok}
+  function info(slot) {
+    const h = slot[0], bytes = slot.reduce((a, d) => a + d.length, 0);
+    if (!h.length) return { empty: true, bytes: 0, count: 0, name: "" };
+    const ok = h.length >= HDR_MIN && MAGIC.every((b, i) => h[i] === b);
+    if (!ok) return { empty: false, ok: false, bytes, count: 0, name: "" };
+    let name = "";
+    for (let i = 0; i < NAME_LEN - 1 && h[NAME_AT + i]; i++) {
+      const c = h[NAME_AT + i];
+      name += c >= 0x20 && c < 0x7F ? String.fromCharCode(c) : "?";
+    }
+    return { empty: false, ok: true, name, bpm: u16(h, TEMPO_AT) / 10, count: u32(h, COUNT_AT), bytes, format: u32(h, 4) };
+  }
+  // a name as the settings hold it: printable ASCII, 11 characters at most
+  const cleanName = (s) => Array.from(String(s)).filter((c) => c >= " " && c < "\x7F").join("").trim().slice(0, NAME_LEN - 1);
+  // the slot with this name (a copy; an empty or foreign slot as it is)
+  function rename(slot, name) {
+    if (!info(slot).ok) return slot;
+    const h = Uint8Array.from(slot[0]), n = cleanName(name);
+    for (let i = 0; i < NAME_LEN; i++) h[NAME_AT + i] = i < n.length ? n.charCodeAt(i) : 0;
+    return [h, ...slot.slice(1)];
+  }
+  const emptySlot = () => Array.from({ length: NOBJ }, () => new Uint8Array(0));
+  const copySlot = (slot) => slot.map((d) => Uint8Array.from(d));
+  const sameSlot = (a, b) => a.every((d, k) => d.length === b[k].length && d.every((v, i) => v === b[k][i]));
+
+  // a project file: "SPJ1", u16 version 1, u16 the count of objects (7), each u16 length + its bytes, u32 CRC-32 of
+  // everything before
+  function toFile(slot, crc32) {
+    const out = [...FILE_MAGIC, ...le16(1), ...le16(NOBJ)];
+    for (const d of slot) out.push(...le16(d.length), ...d);
+    out.push(...le32(crc32(out)));
+    return Uint8Array.from(out);
+  }
+  function fromFile(file, crc32) {
+    if (file.length < 12 || FILE_MAGIC.some((b, i) => file[i] !== b)) throw bad("This isn't a SPIDER project file.");
+    if (u32(file, file.length - 4) !== crc32(file, 0, file.length - 4)) throw bad("This project file is damaged.");
+    if (u16(file, 4) !== 1 || u16(file, 6) !== NOBJ) throw bad("This project file is from another version of this page.");
+    const slot = []; let at = 8;
+    for (let k = 0; k < NOBJ; k++) {
+      if (at + 2 > file.length - 4) throw bad("This project file is damaged.");
+      const n = u16(file, at);
+      at += 2;
+      if (n > PAYLOAD_MAX || at + n > file.length - 4) throw bad("This project file is damaged.");
+      slot.push(Uint8Array.from(file.subarray(at, at + n)));
+      at += n;
+    }
+    if (at !== file.length - 4) throw bad("This project file is damaged.");
+    const i = info(slot);
+    if (i.empty || !i.ok) throw bad("This project file holds no SPIDER project.");
+    return slot;
+  }
+  // bytes <-> text for the library (localStorage)
+  const toB64 = (bytes) => { let s = ""; for (const b of bytes) s += String.fromCharCode(b); return btoa(s); };
+  const fromB64 = (txt) => Uint8Array.from(atob(txt), (c) => c.charCodeAt(0));
+  const fileName = (name, fallback) => ((name || fallback).replace(/[^A-Za-z0-9 _-]+/g, "").trim() || fallback) + ".spiderproj";
+
+  return { NSLOT, NOBJ, fromBackup, toBackup, isEmpty, info, cleanName, rename, emptySlot, copySlot, sameSlot, toFile, fromFile,
+           toB64, fromB64, fileName };
+})();
+// --- projects: end
+
+// one MIDI in/out pair with a SysEx queue (as fm1-base's backup page)
+class Link {
+  constructor(input, output) {
+    this.input = input; this.output = output; this.q = []; this.waiter = null;
+    input.onmidimessage = (ev) => {
+      if (ev.data[0] !== 0xF0) return;
+      this.q.push(Array.from(ev.data));
+      if (this.waiter) { const w = this.waiter; this.waiter = null; w(); }
+    };
+  }
+  get lost() { return this.input.state === "disconnected" || this.output.state === "disconnected"; }
+  send(bytes) { try { this.output.send(bytes); return true; } catch (_) { return false; } }
+  drain() { this.q.length = 0; }
+  async read(ms) {
+    if (!this.q.length) {
+      let tm;
+      await Promise.race([new Promise((r) => { this.waiter = r; }), new Promise((r) => { tm = setTimeout(r, Math.max(ms, 0)); })]);
+      clearTimeout(tm);
+      this.waiter = null;
+    }
+    return this.q.shift() || null;
+  }
+  close() { this.input.onmidimessage = null; }
+}
+
+const $ = (id) => document.getElementById(id);
+const el = (tag, props = {}, ...kids) => { const e = Object.assign(document.createElement(tag), props); e.append(...kids); return e; };
+let busy = false, access = null;
+let read = null;            // as read from SPIDER: {image, state}
+let state = null;           // as edited: {presets, slots}
+let lib = [];               // the library: [{name, when, data (base64 of a project file)}]
+const LIB_KEY = "spider-projects";
+
+function say(text, kind = "") { $("status").textContent = text; $("status").className = kind; }
+function alertSay(text) { $("alert").textContent = text || ""; }
+function progress(v) { $("bar").hidden = v == null; if (v != null) $("bar").value = v; }
+function setBusy(on) {
+  busy = on;
+  for (const b of document.querySelectorAll("button")) b.disabled = on;
+  if (!on) render();
+}
+function download(bytes, name) {
+  const url = URL.createObjectURL(new Blob([bytes], { type: "application/octet-stream" }));
+  const a = el("a", { href: url, download: name });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+function pickFile(input) {
+  return new Promise((resolve) => {
+    input.value = "";
+    input.onchange = async () => resolve(input.files[0] ? new Uint8Array(await input.files[0].arrayBuffer()) : null);
+    input.click();
+  });
+}
+const kb = (n) => (n / 1024).toFixed(1) + " KB";
+
+function loadLib() {
+  try {
+    const v = JSON.parse(localStorage.getItem(LIB_KEY) || "[]");
+    lib = Array.isArray(v) ? v.filter((e) => e && typeof e.name === "string" && typeof e.data === "string") : [];
+  } catch (_) { lib = []; }
+}
+function saveLib() {
+  try { localStorage.setItem(LIB_KEY, JSON.stringify(lib)); return true; }
+  catch (_) { alertSay("This browser couldn't keep the library (its storage is full or blocked). Save the project as a file instead."); return false; }
+}
+function libAdd(slot, fallback) {
+  const i = SP.info(slot);
+  lib.unshift({ name: i.name || fallback, when: new Date().toISOString().slice(0, 10), data: SP.toB64(SP.toFile(slot, PB.crc32)) });
+  if (!saveLib()) lib.shift();
+  renderLib();
+}
+
+async function connect() {
+  if (!navigator.requestMIDIAccess) throw new Error("This browser has no Web MIDI. Open this page in Chrome or Edge on a computer.");
+  if (!access) {
+    try { access = await navigator.requestMIDIAccess({ sysex: true }); }
+    catch (_) { throw new Error("MIDI wasn't allowed. Allow MIDI devices for this site (the icon in the address bar), then try again."); }
+  }
+  return PB.find(access, (i, o) => new Link(i, o));
+}
+
+const changed = (s) => !!(read && state) && !SP.sameSlot(state.slots[s], read.state.slots[s]);
+const anyChanged = () => !!(read && state) && state.slots.some((_, s) => changed(s));
+
+function slotCard(s) {
+  const slot = state.slots[s], i = SP.info(slot), other = SP.info(state.slots[1 - s]);
+  const card = el("div", { className: "slot" + (changed(s) ? " changed" : "") });
+  card.append(el("div", { className: "num", textContent: `Slot ${s + 1}` }));
+  const acts = el("div", { className: "acts" });
+  const act = (label, fn, off = false) => { const b = el("button", { className: "link", type: "button", textContent: label, disabled: off || busy }); b.addEventListener("click", fn); acts.append(b); };
+  if (i.empty) {
+    card.append(el("div", { className: "facts", textContent: "Empty." }));
+  } else if (!i.ok) {
+    card.append(el("div", { className: "facts", textContent: `Something SPIDER saved in a form this page doesn't know (${kb(i.bytes)}). It's left as it is.` }));
+  } else {
+    const name = el("input", { type: "text", value: i.name, maxLength: 11, placeholder: `Proj ${s + 1}` });
+    name.setAttribute("aria-label", `Slot ${s + 1}'s name`);
+    // (no redraw here: a click on a button that ended the typing must still land on that button)
+    name.addEventListener("change", () => { state.slots[s] = SP.rename(state.slots[s], name.value); name.value = SP.info(state.slots[s]).name; mark(); });
+    card.append(name);
+    const opens = i.count >= other.count ? " · opens at power-on" : "";
+    card.append(el("div", { className: "facts", textContent: `${i.bpm.toFixed(i.bpm % 1 ? 1 : 0)} BPM · ${kb(i.bytes)}${opens}` }));
+    act("Save as a file", () => download(SP.toFile(state.slots[s], PB.crc32), SP.fileName(SP.info(state.slots[s]).name, `spider-slot-${s + 1}`)));
+    act("Copy to the library", () => libAdd(state.slots[s], `Slot ${s + 1}`));
+  }
+  act("Load a file here", async () => {
+    const f = await pickFile($("slotfile"));
+    if (!f) return;
+    try { state.slots[s] = SP.fromFile(f, PB.crc32); alertSay(""); } catch (e) { alertSay(e.message); }
+    render();
+  });
+  if (!i.empty) act("Clear", () => { state.slots[s] = SP.emptySlot(); render(); });
+  card.append(acts);
+  return card;
+}
+
+function renderLib() {
+  const box = $("lib");
+  box.replaceChildren();
+  if (!lib.length) { box.append(el("div", { className: "empty", textContent: "Nothing here yet. Read from SPIDER, then use a slot's \"Copy to the library\"." })); return; }
+  lib.forEach((e, k) => {
+    let slot = null;
+    try { slot = SP.fromFile(SP.fromB64(e.data), PB.crc32); } catch (_) { /* a damaged entry: only Remove */ }
+    const i = slot ? SP.info(slot) : null;
+    const row = el("div", { className: "ent" });
+    row.append(el("span", { className: "nm", textContent: e.name }),
+               el("span", { className: "facts", textContent: i ? `${i.bpm.toFixed(i.bpm % 1 ? 1 : 0)} BPM · ${kb(i.bytes)} · ${e.when || ""}` : "damaged" }));
+    const acts = el("span", { className: "acts" });
+    const act = (label, fn, off = false) => { const b = el("button", { className: "link", type: "button", textContent: label, disabled: off || busy }); b.addEventListener("click", fn); acts.append(b); };
+    for (let s = 0; s < SP.NSLOT; s++) act(`Put in slot ${s + 1}`, () => { state.slots[s] = SP.rename(SP.copySlot(slot), e.name); render(); }, !slot || !state);
+    act("Save as a file", () => download(SP.fromB64(e.data), SP.fileName(e.name, "spider-project")), !slot);
+    act("Remove", () => { if (confirmRemove(e.name)) { lib.splice(k, 1); saveLib(); renderLib(); } });
+    row.append(acts);
+    box.append(row);
+  });
+}
+// (no browser dialog: a second click within 4 seconds removes)
+let removeArmed = null;
+function confirmRemove(name) {
+  if (removeArmed && removeArmed.name === name && Date.now() - removeArmed.at < 4000) { removeArmed = null; alertSay(""); return true; }
+  removeArmed = { name, at: Date.now() };
+  alertSay(`Press Remove again to take "${name}" out of the library.`);
+  return false;
+}
+
+// what is changed, shown on the cards as they stand and in the Send box
+function mark() {
+  const ch = state.slots.map((_, s) => changed(s) ? `slot ${s + 1}` : null).filter(Boolean);
+  [...$("slots").children].forEach((card, s) => card.classList.toggle("changed", changed(s)));
+  $("pending").hidden = !ch.length;
+  $("pendwhat").textContent = ch.length ? `Changed here: ${ch.join(" and ")}.` : "";
+  $("swap").disabled = busy || state.slots.every(SP.isEmpty);
+}
+function render() {
+  $("work").hidden = !state;
+  if (state) {
+    $("slots").replaceChildren(...state.slots.map((_, s) => slotCard(s)));
+    mark();
+  }
+  renderLib();
+}
+
+async function doRead() {
+  if (busy) return;
+  setBusy(true); alertSay(""); progress(null);
+  let dev = null;
+  try {
+    say("Looking for SPIDER…");
+    dev = await connect();
+    say("Reading the projects…");
+    progress(0);
+    const { image, flags } = await PB.backup(dev.link, (n) => progress(Math.min(95, n / 600)));
+    const st = SP.fromBackup(PB.parse(image).objs);
+    read = { image, state: st };
+    state = { presets: st.presets, slots: st.slots.map(SP.copySlot) };
+    say("Read from SPIDER.", "good");
+    if (flags & 1) alertSay("SPIDER was playing, so changes it hasn't saved yet aren't in what was read. Stop it and read again to be sure.");
+  } catch (e) { say("Not connected."); alertSay(e.message); }
+  if (dev) dev.link.close();
+  progress(null);
+  setBusy(false);
+}
+
+async function doSend() {
+  if (busy || !state || !anyChanged()) return;
+  setBusy(true); alertSay(""); progress(null);
+  let dev = null;
+  try {
+    const image = SP.toBackup(state, PB.MAGIC, PB.VERSION, PB.crc32);
+    SP.fromBackup(PB.parse(image).objs);                           // (never send one this page couldn't read back)
+    say("Looking for SPIDER…");
+    dev = await connect();
+    say("Sending…");
+    progress(0);
+    const rc = await PB.restore(dev.link, image, (ev, pct) => {
+      if (ev === "progress") progress(pct);
+      if (ev === "ask") { progress(null); say("SPIDER is asking on its screen: press SCALE for yes."); }
+    });
+    if (rc === 0) {
+      read = { image, state: { presets: state.presets, slots: state.slots.map(SP.copySlot) } };
+      say("Done. SPIDER has the projects as shown here.", "good");
+    } else if (rc === PB.PLAYING) { say("Nothing changed."); alertSay("SPIDER is playing. Stop it, then press Send again."); }
+    else if (rc === PB.DECLINED) { say("Nothing changed."); alertSay("The answer on SPIDER was no (or nobody answered for a minute). Press Send to try again."); }
+    else { say("Not sent."); alertSay(`SPIDER couldn't take it: ${PB.ERRORS[rc] || "error " + rc}. Read from SPIDER again to see what it holds now.`); }
+  } catch (e) { say("Not sent."); alertSay(e.message); }
+  if (dev) dev.link.close();
+  progress(null);
+  setBusy(false);
+}
+
+$("read").addEventListener("click", doRead);
+$("send").addEventListener("click", doSend);
+$("undo").addEventListener("click", () => { state.slots = read.state.slots.map(SP.copySlot); alertSay(""); render(); });
+$("swap").addEventListener("click", () => { state.slots.reverse(); render(); });
+$("savefull").addEventListener("click", () => download(read.image, `spider-backup-${new Date().toISOString().slice(0, 10)}.spider`));
+$("libadd").addEventListener("click", async () => {
+  const f = await pickFile($("libfile"));
+  if (!f) return;
+  try { libAdd(SP.fromFile(f, PB.crc32), "Project"); alertSay(""); } catch (e) { alertSay(e.message); }
+});
+loadLib();
+render();
+</script>
+</body>
+</html>
