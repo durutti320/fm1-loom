@@ -323,8 +323,11 @@ static void load_preset(int trk, const preset_t *pr)
     undo_sound(trk);
     memcpy(par, pr->par, NTP_SOUND);
     par[TP_O2FINE] = 64;                         /* (the factory presets: no fine tune) */
-    for (int i = 0; i < NAME_LEN; i++)
-        proj.trk[trk].name[i] = pr->name[i] ? pr->name[i] : 0;
+    for (int i = 0, end = 0; i < NAME_LEN; i++) {  /* (never past a short name's end: its bytes after are not the name's) */
+        if (!end && !pr->name[i])
+            end = 1;
+        proj.trk[trk].name[i] = end ? 0 : pr->name[i];
+    }
     engine_set_all(trk);
     mark_dirty();
 }
