@@ -1,0 +1,258 @@
+﻿2026-11-10T21:24:43.2799081Z Current runner version: '2.338.2'
+2026-11-10T21:24:43.2820466Z ##[group]Runner Image Provisioner
+2026-11-10T21:24:43.2821205Z Hosted Compute Agent
+2026-11-10T21:24:43.2821780Z Version: 20261028.624
+2026-11-10T21:24:43.2822326Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+2026-11-10T21:24:43.2822914Z Build Date: 2026-10-28T21:51:42Z
+2026-11-10T21:24:43.2823561Z Worker ID: {42d172fe-9e75-41e3-829e-7b25fd344c00}
+2026-11-10T21:24:43.2824421Z Region: eastus2
+2026-11-10T21:24:43.2824937Z Cloud: Azure
+2026-11-10T21:24:43.2825474Z ##[endgroup]
+2026-11-10T21:24:43.2826602Z ##[group]Operating System
+2026-11-10T21:24:43.2827208Z Ubuntu
+2026-11-10T21:24:43.2827747Z 24.04.5
+2026-11-10T21:24:43.2828222Z LTS
+2026-11-10T21:24:43.2828693Z ##[endgroup]
+2026-11-10T21:24:43.2829177Z ##[group]Runner Image
+2026-11-10T21:24:43.2829733Z Image: ubuntu-24.04
+2026-11-10T21:24:43.2830251Z Version: 20261101.360.1
+2026-11-10T21:24:43.2831347Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-10T21:24:43.2832582Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261101.360
+2026-11-10T21:24:43.2833876Z ##[endgroup]
+2026-11-10T21:24:43.2835036Z ##[group]GITHUB_TOKEN Permissions
+2026-11-10T21:24:43.2836824Z Contents: write
+2026-11-10T21:24:43.2837348Z Metadata: read
+2026-11-10T21:24:43.2837922Z ##[endgroup]
+2026-11-10T21:24:43.2839653Z Secret source: Actions
+2026-11-10T21:24:43.2840412Z Cache mode: write
+2026-11-10T21:24:43.2841265Z Prepare workflow directory
+2026-11-10T21:24:43.3185027Z Prepare all required actions
+2026-11-10T21:24:43.3239502Z Getting action download info
+2026-11-10T21:24:43.5109652Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-11-10T21:24:43.7957279Z Complete job name: emu
+2026-11-10T21:24:43.8805943Z ##[group]Run actions/checkout@v4
+2026-11-10T21:24:43.8806626Z with:
+2026-11-10T21:24:43.8806990Z   submodules: recursive
+2026-11-10T21:24:43.8807422Z   repository: durutti320/fm1-loom
+2026-11-10T21:24:43.8810698Z   token: ***
+2026-11-10T21:24:43.8811064Z   ssh-strict: true
+2026-11-10T21:24:43.8811434Z   ssh-user: git
+2026-11-10T21:24:43.8811808Z   persist-credentials: true
+2026-11-10T21:24:43.8812207Z   clean: true
+2026-11-10T21:24:43.8812578Z   sparse-checkout-cone-mode: true
+2026-11-10T21:24:43.8813001Z   fetch-depth: 1
+2026-11-10T21:24:43.8813356Z   fetch-tags: false
+2026-11-10T21:24:43.8813721Z   show-progress: true
+2026-11-10T21:24:43.8814339Z   lfs: false
+2026-11-10T21:24:43.8814706Z   set-safe-directory: true
+2026-11-10T21:24:43.8815128Z   allow-unsafe-pr-checkout: false
+2026-11-10T21:24:43.8815757Z ##[endgroup]
+2026-11-10T21:24:44.0914247Z Syncing repository: durutti320/fm1-loom
+2026-11-10T21:24:44.0916378Z ##[group]Getting Git version info
+2026-11-10T21:24:44.0917573Z Working directory is '/home/runner/work/fm1-loom/fm1-loom'
+2026-11-10T21:24:44.0919067Z [command]/usr/bin/git version
+2026-11-10T21:24:44.1027686Z git version 2.56.0
+2026-11-10T21:24:44.1045506Z ##[endgroup]
+2026-11-10T21:24:44.1057131Z Temporarily overriding HOME='/home/runner/work/_temp/3268ed75-ae79-4d25-9496-43a55999adcc' before making global git config changes
+2026-11-10T21:24:44.1059252Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-10T21:24:44.1061747Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/fm1-loom/fm1-loom
+2026-11-10T21:24:44.1108773Z Deleting the contents of '/home/runner/work/fm1-loom/fm1-loom'
+2026-11-10T21:24:44.1113530Z ##[group]Initializing the repository
+2026-11-10T21:24:44.1117038Z [command]/usr/bin/git init /home/runner/work/fm1-loom/fm1-loom
+2026-11-10T21:24:44.1191904Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-10T21:24:44.1193154Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-10T21:24:44.1194172Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-10T21:24:44.1194858Z hint: call:
+2026-11-10T21:24:44.1195465Z hint:
+2026-11-10T21:24:44.1195940Z hint: 	git config --global init.defaultBranch <name>
+2026-11-10T21:24:44.1196486Z hint:
+2026-11-10T21:24:44.1197000Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-10T21:24:44.1197805Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-10T21:24:44.1198441Z hint:
+2026-11-10T21:24:44.1198819Z hint: 	git branch -m <name>
+2026-11-10T21:24:44.1199242Z hint:
+2026-11-10T21:24:44.1199780Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-10T21:24:44.1205594Z Initialized empty Git repository in /home/runner/work/fm1-loom/fm1-loom/.git/
+2026-11-10T21:24:44.1215035Z [command]/usr/bin/git remote add origin https://github.com/durutti320/fm1-loom
+2026-11-10T21:24:44.1253810Z ##[endgroup]
+2026-11-10T21:24:44.1254801Z ##[group]Disabling automatic garbage collection
+2026-11-10T21:24:44.1257664Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-10T21:24:44.1288994Z ##[endgroup]
+2026-11-10T21:24:44.1289952Z ##[group]Setting up auth
+2026-11-10T21:24:44.1295532Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-10T21:24:44.1328140Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-10T21:24:44.1696610Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-10T21:24:44.1734597Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-10T21:24:44.1939574Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-10T21:24:44.1976270Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-10T21:24:44.2182229Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-10T21:24:44.2224379Z ##[endgroup]
+2026-11-10T21:24:44.2225567Z ##[group]Fetching the repository
+2026-11-10T21:24:44.2235050Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +5e3e8ad595fd8a539fae5b3d3f39dd72963bc25d:refs/remotes/origin/loom8-smk37
+2026-11-10T21:24:44.8815231Z From https://github.com/durutti320/fm1-loom
+2026-11-10T21:24:44.8817061Z  * [new ref]         5e3e8ad595fd8a539fae5b3d3f39dd72963bc25d -> origin/loom8-smk37
+2026-11-10T21:24:44.8820519Z ##[endgroup]
+2026-11-10T21:24:44.8821935Z ##[group]Determining the checkout info
+2026-11-10T21:24:44.8823531Z ##[endgroup]
+2026-11-10T21:24:44.8827974Z [command]/usr/bin/git sparse-checkout disable
+2026-11-10T21:24:44.8901068Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-10T21:24:44.8945636Z ##[group]Checking out the ref
+2026-11-10T21:24:44.8946873Z [command]/usr/bin/git checkout --progress --force -B loom8-smk37 refs/remotes/origin/loom8-smk37
+2026-11-10T21:24:44.9295028Z Switched to a new branch 'loom8-smk37'
+2026-11-10T21:24:44.9298551Z branch 'loom8-smk37' set up to track 'origin/loom8-smk37'.
+2026-11-10T21:24:44.9305601Z ##[endgroup]
+2026-11-10T21:24:44.9307237Z ##[group]Setting up auth for fetching submodules
+2026-11-10T21:24:44.9310430Z [command]/usr/bin/git config --global http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-10T21:24:44.9353245Z [command]/usr/bin/git config --global --unset-all url.https://github.com/.insteadOf
+2026-11-10T21:24:44.9387410Z [command]/usr/bin/git config --global --add url.https://github.com/.insteadOf git@github.com:
+2026-11-10T21:24:44.9423598Z [command]/usr/bin/git config --global --add url.https://github.com/.insteadOf org-292760006@github.com:
+2026-11-10T21:24:44.9458057Z ##[endgroup]
+2026-11-10T21:24:44.9460218Z ##[group]Fetching submodules
+2026-11-10T21:24:44.9462170Z [command]/usr/bin/git submodule sync --recursive
+2026-11-10T21:24:44.9665529Z [command]/usr/bin/git -c protocol.version=2 submodule update --init --force --depth=1 --recursive
+2026-11-10T21:24:44.9867896Z Submodule 'base' (https://github.com/durutti320/fm1-base) registered for path 'base'
+2026-11-10T21:24:44.9889691Z Cloning into '/home/runner/work/fm1-loom/fm1-loom/base'...
+2026-11-10T21:24:46.3273678Z From https://github.com/durutti320/fm1-base
+2026-11-10T21:24:46.3274425Z  * branch            368a1158ad38c8a8f78e53c408122a1d61712d38 -> FETCH_HEAD
+2026-11-10T21:24:46.3736825Z Submodule path 'base': checked out '368a1158ad38c8a8f78e53c408122a1d61712d38'
+2026-11-10T21:24:46.3754751Z Submodule 'bsp' (https://github.com/durutti320/felucca-bsp) registered for path 'base/bsp'
+2026-11-10T21:24:46.3778773Z Cloning into '/home/runner/work/fm1-loom/fm1-loom/base/bsp'...
+2026-11-10T21:24:47.7200277Z From https://github.com/durutti320/felucca-bsp
+2026-11-10T21:24:47.7201009Z  * branch            e3ad024ec5e18ec32dced3ee1d3ca6d2abbe02b0 -> FETCH_HEAD
+2026-11-10T21:24:47.7328161Z Submodule path 'base/bsp': checked out 'e3ad024ec5e18ec32dced3ee1d3ca6d2abbe02b0'
+2026-11-10T21:24:47.7357848Z [command]/usr/bin/git submodule foreach --recursive git config --local gc.auto 0
+2026-11-10T21:24:47.7570917Z Entering 'base'
+2026-11-10T21:24:47.7710490Z Entering 'base/bsp'
+2026-11-10T21:24:47.7759200Z ##[endgroup]
+2026-11-10T21:24:47.7759604Z ##[group]Persisting credentials for submodules
+2026-11-10T21:24:47.7764632Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'url\.https\:\/\/github\.com\/\.insteadOf' && git config --local --unset-all 'url.https://github.com/.insteadOf' || :"
+2026-11-10T21:24:47.7963266Z Entering 'base'
+2026-11-10T21:24:47.8003144Z Entering 'base/bsp'
+2026-11-10T21:24:47.8054127Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local 'http.https://github.com/.extraheader' 'AUTHORIZATION: basic ***' && git config --local --show-origin --name-only --get-regexp remote.origin.url"
+2026-11-10T21:24:47.8248715Z Entering 'base'
+2026-11-10T21:24:47.8286304Z file:/home/runner/work/fm1-loom/fm1-loom/.git/modules/base/config	remote.origin.url
+2026-11-10T21:24:47.8303744Z Entering 'base/bsp'
+2026-11-10T21:24:47.8339983Z file:/home/runner/work/fm1-loom/fm1-loom/.git/modules/base/modules/bsp/config	remote.origin.url
+2026-11-10T21:24:47.8383342Z [command]/usr/bin/git submodule foreach --recursive git config --local --add 'url.https://github.com/.insteadOf' 'git@github.com:'
+2026-11-10T21:24:47.8582440Z Entering 'base'
+2026-11-10T21:24:47.8615310Z Entering 'base/bsp'
+2026-11-10T21:24:47.8663455Z [command]/usr/bin/git submodule foreach --recursive git config --local --add 'url.https://github.com/.insteadOf' 'org-292760006@github.com:'
+2026-11-10T21:24:47.8860552Z Entering 'base'
+2026-11-10T21:24:47.8897060Z Entering 'base/bsp'
+2026-11-10T21:24:47.8940567Z ##[endgroup]
+2026-11-10T21:24:47.8986441Z [command]/usr/bin/git log -1 --format=%H
+2026-11-10T21:24:47.9015660Z 5e3e8ad595fd8a539fae5b3d3f39dd72963bc25d
+2026-11-10T21:24:47.9206655Z ##[group]Run set -euo pipefail
+2026-11-10T21:24:47.9207001Z [36;1mset -euo pipefail[0m
+2026-11-10T21:24:47.9207404Z [36;1mgit clone -q --depth 1 https://github.com/emscripten-core/emsdk.git "$RUNNER_TEMP/emsdk"[0m
+2026-11-10T21:24:47.9207831Z [36;1m"$RUNNER_TEMP/emsdk/emsdk" install 3.1.74 > /dev/null[0m
+2026-11-10T21:24:47.9208142Z [36;1m"$RUNNER_TEMP/emsdk/emsdk" activate 3.1.74 > /dev/null[0m
+2026-11-10T21:24:47.9208427Z [36;1msudo apt-get install -y -qq libfribidi0[0m
+2026-11-10T21:24:47.9208691Z [36;1mpython3 -m venv "$RUNNER_TEMP/py"[0m
+2026-11-10T21:24:47.9208985Z [36;1m"$RUNNER_TEMP/py/bin/pip" install -q numpy Pillow[0m
+2026-11-10T21:24:47.9230018Z shell: /usr/bin/bash -e {0}
+2026-11-10T21:24:47.9230248Z ##[endgroup]
+2026-11-10T21:25:23.4835274Z ##[group]Run set -euo pipefail
+2026-11-10T21:25:23.4835566Z [36;1mset -euo pipefail[0m
+2026-11-10T21:25:23.4835825Z [36;1msource "$RUNNER_TEMP/emsdk/emsdk_env.sh" > /dev/null[0m
+2026-11-10T21:25:23.4836264Z [36;1mrc=0[0m
+2026-11-10T21:25:23.4836581Z [36;1mPYTHON="$RUNNER_TEMP/py/bin/python3" BOARD=smk37 ./build.sh --web > /tmp/emu.log 2>&1 || rc=$?[0m
+2026-11-10T21:25:23.4836943Z [36;1mcat /tmp/emu.log[0m
+2026-11-10T21:25:23.4837142Z [36;1mif [ "$rc" != 0 ]; then[0m
+2026-11-10T21:25:23.4837547Z [36;1m  echo "::error title=Emulator build failed::$(tail -n 60 /tmp/emu.log | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"[0m
+2026-11-10T21:25:23.4837977Z [36;1m  exit "$rc"[0m
+2026-11-10T21:25:23.4838156Z [36;1mfi[0m
+2026-11-10T21:25:23.4856121Z shell: /usr/bin/bash -e {0}
+2026-11-10T21:25:23.4856335Z ##[endgroup]
+2026-11-10T21:25:23.5772002Z Setting up EMSDK environment (suppress these messages with EMSDK_QUIET=1)
+2026-11-10T21:25:23.5774165Z Adding directories to PATH:
+2026-11-10T21:25:23.5774537Z PATH += /home/runner/work/_temp/emsdk
+2026-11-10T21:25:23.5774949Z PATH += /home/runner/work/_temp/emsdk/upstream/emscripten
+2026-11-10T21:25:23.5775273Z 
+2026-11-10T21:25:23.5775396Z Setting environment variables:
+2026-11-10T21:25:23.5776884Z PATH = /home/runner/work/_temp/emsdk:/home/runner/work/_temp/emsdk/upstream/emscripten:/snap/bin:/home/runner/.local/bin:/opt/pipx_bin:/home/runner/.cargo/bin:/home/runner/.config/composer/vendor/bin:/usr/local/.ghcup/bin:/home/runner/.dotnet/tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games
+2026-11-10T21:25:23.5778417Z EMSDK = /home/runner/work/_temp/emsdk
+2026-11-10T21:25:23.5778813Z EMSDK_NODE = /home/runner/work/_temp/emsdk/node/24.19.0_64bit/bin/node
+2026-11-10T21:25:36.2060975Z In file included from /home/runner/work/fm1-loom/fm1-loom/base/web/emu/emu_web.c:13:
+2026-11-10T21:25:36.2062006Z /home/runner/work/fm1-loom/fm1-loom/base/host/plat_host.c:209:9: warning: 'MRQ' macro redefined [-Wmacro-redefined]
+2026-11-10T21:25:36.2062871Z   209 | #define MRQ 4096u                               /* (felucca-bsp usb.c's mirror ring) */
+2026-11-10T21:25:36.2063366Z       |         ^
+2026-11-10T21:25:36.2063835Z /home/runner/work/fm1-loom/fm1-loom/app/app.h:120:9: note: previous definition is here
+2026-11-10T21:25:36.2065026Z   120 | #define MRQ 2048u                       /* the mirror's frame ring (fm1-base's 4096: RAM), a rect frame 1.1 KB at most */
+2026-11-10T21:25:36.2065633Z       |         ^
+2026-11-10T21:25:36.2065884Z 1 warning generated.
+2026-11-10T21:25:36.2067182Z cache:INFO: generating system asset: symbol_lists/02e1b9fa7289e510537a70d4b8ab27693cb963d7.json... (this will be cached in "/home/runner/work/_temp/emsdk/upstream/emscripten/cache/symbol_lists/02e1b9fa7289e510537a70d4b8ab27693cb963d7.json" for subsequent builds)
+2026-11-10T21:25:36.2069055Z cache:INFO:  - ok
+2026-11-10T21:25:36.2069471Z font T: BarlowSemiCondensed-SemiBold.ttf 10px h 12, digit adv 5, 3600 B
+2026-11-10T21:25:36.2070124Z font XS: BarlowSemiCondensed-SemiBold.ttf 12px h 15, digit adv 6, 7005 B
+2026-11-10T21:25:36.2070747Z font S: BarlowSemiCondensed-Medium.ttf 15px h 16, digit adv 7, 8576 B
+2026-11-10T21:25:36.2071340Z font B: BarlowSemiCondensed-Bold.ttf 15px h 16, digit adv 8, 8752 B
+2026-11-10T21:25:36.2071942Z font M: BarlowSemiCondensed-SemiBold.ttf 23px h 24, digit adv 12, 11832 B
+2026-11-10T21:25:36.2072555Z font L: BarlowSemiCondensed-Bold.ttf 31px h 32, digit adv 16, 19776 B
+2026-11-10T21:25:36.2073038Z font set barlow: 60782 B (approx)
+2026-11-10T21:25:36.2073594Z words: 202 own + 51 common -> /home/runner/work/fm1-loom/fm1-loom/app/web/words/1911da5582.json (5514 B)
+2026-11-10T21:25:36.2074542Z font XS: BarlowSemiCondensed-SemiBold.ttf 12px h 15, digit adv 6, 2646 B (huffman)
+2026-11-10T21:25:36.2075264Z font S: BarlowSemiCondensed-Medium.ttf 15px h 16, digit adv 7, 3170 B (huffman)
+2026-11-10T21:25:36.2075944Z font B: BarlowSemiCondensed-Bold.ttf 15px h 16, digit adv 8, 3250 B (huffman)
+2026-11-10T21:25:36.2076915Z font M: BarlowSemiCondensed-SemiBold.ttf 23px h 24, digit adv 12, 3471 B (huffman)
+2026-11-10T21:25:36.2077613Z font L: BarlowSemiCondensed-Bold.ttf 31px h 32, digit adv 16, 7179 B (huffman)
+2026-11-10T21:25:36.2078278Z font set barlow: 19716 B
+2026-11-10T21:25:36.2078577Z samples: 16, 88444 B
+2026-11-10T21:25:36.2078975Z   ok    the resource region: 88444 B (the 909 cymbals, the large type faces)
+2026-11-10T21:25:36.2079448Z emu      parts: resample
+2026-11-10T21:25:36.2080158Z emu: no fm1-reader at /home/runner/work/fm1-loom/fm1-loom/fm1-reader/web: the screen is read as plain text, without its voice (set FM1_READER)
+2026-11-10T21:25:36.2081044Z emu      /home/runner/work/fm1-loom/fm1-loom/app/build/emu  (1063667 B wasm)
+2026-11-10T21:25:36.2081741Z emu      page: fm1-base's, with name, description, head, header, top, end from app/web/emu/page.html
+2026-11-10T21:25:36.2130253Z ##[group]Run set -euo pipefail
+2026-11-10T21:25:36.2130655Z [36;1mset -euo pipefail[0m
+2026-11-10T21:25:36.2131049Z [36;1mout="$RUNNER_TEMP/emu"[0m
+2026-11-10T21:25:36.2131377Z [36;1mmkdir -p "$out"[0m
+2026-11-10T21:25:36.2131809Z [36;1mcp app/build/emu/app.wasm app/web/emu_smk37/worklet.js "$out"/[0m
+2026-11-10T21:25:36.2132553Z [36;1m# the one-page cheat sheet beside it (qrg.html, linked from the page's header) and its PDF[0m
+2026-11-10T21:25:36.2133228Z [36;1mcp app/web/emu_smk37/qrg.html docs/SMK37-QRG.pdf "$out"/[0m
+2026-11-10T21:25:36.2133881Z [36;1mcp app/web/emu_smk37/midicheck.html "$out"/   # (DAW mode's controls checked one by one)[0m
+2026-11-10T21:25:36.2134878Z [36;1m# the page as a document of its own (it is written for a host that wraps it: claude.ai's artifacts), so the[0m
+2026-11-10T21:25:36.2135822Z [36;1m# branch can be a website as it is (GitHub Pages: Settings, Pages, branch loom8-smk37-emu), where Web MIDI works[0m
+2026-11-10T21:25:36.2136668Z [36;1m{ printf '<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'[0m
+2026-11-10T21:25:36.2137508Z [36;1m  printf '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"></head><body>\n'[0m
+2026-11-10T21:25:36.2138215Z [36;1m  cat app/web/emu_smk37/index.html[0m
+2026-11-10T21:25:36.2138645Z [36;1m  printf '</body></html>\n'; } > "$out/index.html"[0m
+2026-11-10T21:25:36.2139053Z [36;1mtouch "$out/.nojekyll"[0m
+2026-11-10T21:25:36.2139355Z [36;1mcd "$out"[0m
+2026-11-10T21:25:36.2139644Z [36;1mgit init -q -b loom8-smk37-emu[0m
+2026-11-10T21:25:36.2139981Z [36;1mgit add -A[0m
+2026-11-10T21:25:36.2140601Z [36;1mgit -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \[0m
+2026-11-10T21:25:36.2141373Z [36;1m  commit -q -m "LOOM-8 SMK-37 in the browser, from $GITHUB_SHA"[0m
+2026-11-10T21:25:36.2142119Z [36;1mgit push -q -f "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" loom8-smk37-emu[0m
+2026-11-10T21:25:36.2164622Z shell: /usr/bin/bash -e {0}
+2026-11-10T21:25:36.2164942Z env:
+2026-11-10T21:25:36.2168830Z   TOKEN: ***
+2026-11-10T21:25:36.2169088Z ##[endgroup]
+2026-11-10T21:25:37.6321784Z Post job cleanup.
+2026-11-10T21:25:37.7041059Z [command]/usr/bin/git version
+2026-11-10T21:25:37.7107619Z git version 2.56.0
+2026-11-10T21:25:37.7137617Z Temporarily overriding HOME='/home/runner/work/_temp/e5cd1dc0-ec05-4b28-888d-6bea00788648' before making global git config changes
+2026-11-10T21:25:37.7138380Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-10T21:25:37.7142001Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/fm1-loom/fm1-loom
+2026-11-10T21:25:37.7179419Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-10T21:25:37.7222837Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-10T21:25:37.7431000Z Entering 'base'
+2026-11-10T21:25:37.7469620Z Entering 'base/bsp'
+2026-11-10T21:25:37.7529731Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-10T21:25:37.7551529Z http.https://github.com/.extraheader
+2026-11-10T21:25:37.7561699Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-10T21:25:37.7594502Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-10T21:25:37.7803683Z Entering 'base'
+2026-11-10T21:25:37.7825337Z http.https://github.com/.extraheader
+2026-11-10T21:25:37.7857197Z Entering 'base/bsp'
+2026-11-10T21:25:37.7879343Z http.https://github.com/.extraheader
+2026-11-10T21:25:37.7928976Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-10T21:25:37.7968033Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-10T21:25:37.8165768Z Entering 'base'
+2026-11-10T21:25:37.8182584Z file:/home/runner/work/fm1-loom/fm1-loom/.git/modules/base/config	remote.origin.url
+2026-11-10T21:25:37.8197892Z Entering 'base/bsp'
+2026-11-10T21:25:37.8216022Z file:/home/runner/work/fm1-loom/fm1-loom/.git/modules/base/modules/bsp/config	remote.origin.url
+2026-11-10T21:25:37.8264992Z [command]/usr/bin/git config --file /home/runner/work/fm1-loom/fm1-loom/.git/modules/base/config --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-10T21:25:37.8295293Z [command]/usr/bin/git config --file /home/runner/work/fm1-loom/fm1-loom/.git/modules/base/modules/bsp/config --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-10T21:25:37.8497416Z Cleaning up orphan processes
+2026-11-10T21:25:37.8859233Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

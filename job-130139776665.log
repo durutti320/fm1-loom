@@ -1,0 +1,2158 @@
+﻿2026-11-10T21:24:44.4330973Z Current runner version: '2.338.2'
+2026-11-10T21:24:44.4351789Z ##[group]Runner Image Provisioner
+2026-11-10T21:24:44.4352800Z Hosted Compute Agent
+2026-11-10T21:24:44.4353306Z Version: 20261028.624
+2026-11-10T21:24:44.4353822Z Commit: 54898b74c23fde5556c9b3c3a2290865feef0dfe
+2026-11-10T21:24:44.4354792Z Build Date: 2026-10-28T21:51:42Z
+2026-11-10T21:24:44.4355366Z Worker ID: {346c4a15-a941-4763-ae49-dc824ffea2b5}
+2026-11-10T21:24:44.4355986Z Region: westus2
+2026-11-10T21:24:44.4356479Z Cloud: Azure
+2026-11-10T21:24:44.4356937Z ##[endgroup]
+2026-11-10T21:24:44.4358217Z ##[group]Operating System
+2026-11-10T21:24:44.4358748Z Ubuntu
+2026-11-10T21:24:44.4359229Z 24.04.5
+2026-11-10T21:24:44.4359684Z LTS
+2026-11-10T21:24:44.4360130Z ##[endgroup]
+2026-11-10T21:24:44.4360658Z ##[group]Runner Image
+2026-11-10T21:24:44.4361183Z Image: ubuntu-24.04
+2026-11-10T21:24:44.4361652Z Version: 20261101.360.1
+2026-11-10T21:24:44.4362761Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261101.360/images/ubuntu/Ubuntu2404-Readme.md
+2026-11-10T21:24:44.4364286Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261101.360
+2026-11-10T21:24:44.4365091Z ##[endgroup]
+2026-11-10T21:24:44.4366183Z ##[group]GITHUB_TOKEN Permissions
+2026-11-10T21:24:44.4367991Z Attestations: write
+2026-11-10T21:24:44.4368527Z Contents: write
+2026-11-10T21:24:44.4369126Z Metadata: read
+2026-11-10T21:24:44.4369594Z ##[endgroup]
+2026-11-10T21:24:44.4371301Z Secret source: Actions
+2026-11-10T21:24:44.4372116Z Cache mode: write
+2026-11-10T21:24:44.4372917Z Prepare workflow directory
+2026-11-10T21:24:44.4633790Z Prepare all required actions
+2026-11-10T21:24:44.4673723Z Getting action download info
+2026-11-10T21:24:44.8260686Z Download action repository 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683' (SHA:11bd71901bbe5b1630ceea73d27597364c9af683)
+2026-11-10T21:24:44.9460422Z Download action repository 'actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+2026-11-10T21:24:45.0464493Z Download action repository 'actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be' (SHA:e8998f949152b193b063cb0ec769d69d929409be)
+2026-11-10T21:24:45.2622821Z Download action repository 'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-11-10T21:24:45.9743047Z Download action repository 'softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8' (SHA:72f2c25fcb47643c292f7107632f7a47c1df5cd8)
+2026-11-10T21:24:46.3192017Z Getting action download info
+2026-11-10T21:24:46.4507761Z Download action repository 'actions/attest-build-provenance@1176ef556905f349f669722abf30bce1a6e16e01' (SHA:1176ef556905f349f669722abf30bce1a6e16e01)
+2026-11-10T21:24:46.6420773Z Download action repository 'actions/attest@ce27ba3b4a9a139d9a20a4a07d69fabb52f1e5bc' (SHA:ce27ba3b4a9a139d9a20a4a07d69fabb52f1e5bc)
+2026-11-10T21:24:46.8565652Z Uses: zvenson/fm1-build/.github/workflows/build.yml@refs/tags/v1 (5ba8c359b1744cc53c4530b15eff52d0d5c1255b)
+2026-11-10T21:24:46.8569076Z ##[group] Inputs
+2026-11-10T21:24:46.8576003Z   build: rc=0
+bash -euo pipefail > /tmp/l8-build.log 2>&1 <<'EOF' || rc=$?
+# the builder checks out without submodules: fm1-base (base/) and its felucca-bsp (base/bsp/), at the
+# commits this one links (.gitmodules: the forks)
+git submodule update --init --recursive
+# the fonts' OpenType features (base/tools/gen_font.py): Pillow's raqm, which loads the system's FriBiDi
+# (as LOOM-8's own release.yml)
+sudo apt-get install -y -qq libfribidi0
+python3 -c "from PIL import features; assert features.check('raqm'), 'Pillow without raqm'"
+if [[ "$GITHUB_REF" == refs/tags/loom8-v* ]]; then rel=(--release "${GITHUB_REF_NAME#loom8-v}"); else rel=(); fi
+BOARD=smk37 ./build.sh "${rel[@]}"
+# the Pro image's functions by address, into the log (the ci-log branch keeps it): a crash's pc and rets
+# (fm1_remote.py log) looked up against the build that crashed
+python3 tools/elf_funcs.py app/build/loom.elf || true
+# no radio on the SMK-37 yet: a build with Bluetooth in it stops here
+if grep -E '^parts ' /tmp/l8-build.log | tail -1 | sed 's/(not built in.*//' | grep -q Bluetooth; then
+  echo "the SMK-37 build has Bluetooth in it: it must not"; exit 1; fi
+BOARD=smk37 MODEL=elite ./build.sh "${rel[@]}"
+BOARD=smk37 MODEL=mke ./build.sh "${rel[@]}"
+# the download: the three packages, the installer and the backup tool, and a note on where to start
+mkdir -p build/loom8
+cp app/build/loom-smk37*.fwsc base/tools/fm1_install.py base/tools/fm1ports.py tools/smk37_backup.py tools/smk37_rescue.py \
+  base/tools/fm1_remote.py tools/START-HERE.txt build/loom8/
+# (the tools as they sit in the download, nothing else beside them: each must start)
+(cd build/loom8 && PYTHONDONTWRITEBYTECODE=1 python3 fm1_install.py --help > /dev/null && PYTHONDONTWRITEBYTECODE=1 python3 smk37_backup.py --help > /dev/null && PYTHONDONTWRITEBYTECODE=1 python3 smk37_rescue.py --help > /dev/null && rm -rf __pycache__)
+EOF
+cat /tmp/l8-build.log
+# the sizes as a note on the run's page (the image against the SMK-37's app slot, 619,520 B; the factory
+# samples), readable where the full log isn't
+grep -E "image [0-9]+ B; RAM|^samples: " /tmp/l8-build.log | while read -r l; do
+  echo "::notice title=Size::$l"
+done || true
+if [ "$rc" != 0 ]; then
+  echo "::error title=Build failed::$(tail -n 60 /tmp/l8-build.log | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"
+  exit "$rc"
+fi
+
+2026-11-10T21:24:46.8582991Z   packages: build/loom8/*
+2026-11-10T21:24:46.8584831Z   test: rc=0
+bash -euo pipefail > /tmp/l8-test.log 2>&1 <<'EOF' || rc=$?
+BOARD=smk37 ./build.sh --host
+mkdir -p /tmp/l8-scenarios
+for s in tests/scenarios_smk37/*.xy; do app/build/host/loom-smk37_host "$s" /tmp/l8-scenarios; done
+cc -std=c99 -Wall -Wno-unused-function -o /tmp/smk_daw_test tests/smk_daw_test.c
+/tmp/smk_daw_test
+python3 tests/smk37_backup_test.py
+python3 tests/smk37_rescue_test.py
+EOF
+cat /tmp/l8-test.log
+if [ "$rc" != 0 ]; then
+  echo "::error title=Tests failed::$(tail -n 60 /tmp/l8-test.log | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"
+  exit "$rc"
+fi
+
+2026-11-10T21:24:46.8586923Z   tests-block: true
+2026-11-10T21:24:46.8587147Z   sdk: true
+2026-11-10T21:24:46.8587363Z ##[endgroup]
+2026-11-10T21:24:46.8587594Z Complete job name: build / build
+2026-11-10T21:24:46.9330847Z ##[group]Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+2026-11-10T21:24:46.9331432Z with:
+2026-11-10T21:24:46.9331671Z   persist-credentials: false
+2026-11-10T21:24:46.9331937Z   repository: durutti320/fm1-loom
+2026-11-10T21:24:46.9334321Z   token: ***
+2026-11-10T21:24:46.9334552Z   ssh-strict: true
+2026-11-10T21:24:46.9334772Z   ssh-user: git
+2026-11-10T21:24:46.9334976Z   clean: true
+2026-11-10T21:24:46.9335203Z   sparse-checkout-cone-mode: true
+2026-11-10T21:24:46.9335457Z   fetch-depth: 1
+2026-11-10T21:24:46.9335670Z   fetch-tags: false
+2026-11-10T21:24:46.9335891Z   show-progress: true
+2026-11-10T21:24:46.9336110Z   lfs: false
+2026-11-10T21:24:46.9336308Z   submodules: false
+2026-11-10T21:24:46.9336540Z   set-safe-directory: true
+2026-11-10T21:24:46.9336941Z ##[endgroup]
+2026-11-10T21:24:47.2798210Z Syncing repository: durutti320/fm1-loom
+2026-11-10T21:24:47.2799946Z ##[group]Getting Git version info
+2026-11-10T21:24:47.2800579Z Working directory is '/home/runner/work/fm1-loom/fm1-loom'
+2026-11-10T21:24:47.2801225Z [command]/usr/bin/git version
+2026-11-10T21:24:47.2897883Z git version 2.56.0
+2026-11-10T21:24:47.2915835Z ##[endgroup]
+2026-11-10T21:24:47.2928981Z Temporarily overriding HOME='/home/runner/work/_temp/9a22b557-8c58-480d-8f63-cbefd63b0012' before making global git config changes
+2026-11-10T21:24:47.2930081Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-10T21:24:47.2935613Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/fm1-loom/fm1-loom
+2026-11-10T21:24:47.2986701Z Deleting the contents of '/home/runner/work/fm1-loom/fm1-loom'
+2026-11-10T21:24:47.2990916Z ##[group]Initializing the repository
+2026-11-10T21:24:47.2994896Z [command]/usr/bin/git init /home/runner/work/fm1-loom/fm1-loom
+2026-11-10T21:24:47.3155584Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-10T21:24:47.3156635Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-10T21:24:47.3157311Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-10T21:24:47.3157815Z hint: call:
+2026-11-10T21:24:47.3158145Z hint:
+2026-11-10T21:24:47.3158566Z hint: 	git config --global init.defaultBranch <name>
+2026-11-10T21:24:47.3159161Z hint:
+2026-11-10T21:24:47.3159620Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-10T21:24:47.3160185Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-10T21:24:47.3160670Z hint:
+2026-11-10T21:24:47.3161086Z hint: 	git branch -m <name>
+2026-11-10T21:24:47.3161602Z hint:
+2026-11-10T21:24:47.3162044Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-10T21:24:47.3165026Z Initialized empty Git repository in /home/runner/work/fm1-loom/fm1-loom/.git/
+2026-11-10T21:24:47.3177346Z [command]/usr/bin/git remote add origin https://github.com/durutti320/fm1-loom
+2026-11-10T21:24:47.3226434Z ##[endgroup]
+2026-11-10T21:24:47.3227073Z ##[group]Disabling automatic garbage collection
+2026-11-10T21:24:47.3230533Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-10T21:24:47.3261600Z ##[endgroup]
+2026-11-10T21:24:47.3262156Z ##[group]Setting up auth
+2026-11-10T21:24:47.3268004Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-10T21:24:47.3305668Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-10T21:24:47.3799025Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-10T21:24:47.3837515Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-10T21:24:47.4058452Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-10T21:24:47.4114120Z ##[endgroup]
+2026-11-10T21:24:47.4115080Z ##[group]Fetching the repository
+2026-11-10T21:24:47.4128333Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +5e3e8ad595fd8a539fae5b3d3f39dd72963bc25d:refs/remotes/origin/loom8-smk37
+2026-11-10T21:24:48.0514558Z From https://github.com/durutti320/fm1-loom
+2026-11-10T21:24:48.0515358Z  * [new ref]         5e3e8ad595fd8a539fae5b3d3f39dd72963bc25d -> origin/loom8-smk37
+2026-11-10T21:24:48.0518103Z ##[endgroup]
+2026-11-10T21:24:48.0518796Z ##[group]Determining the checkout info
+2026-11-10T21:24:48.0524957Z ##[endgroup]
+2026-11-10T21:24:48.0525790Z [command]/usr/bin/git sparse-checkout disable
+2026-11-10T21:24:48.0658891Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-10T21:24:48.0692844Z ##[group]Checking out the ref
+2026-11-10T21:24:48.0696834Z [command]/usr/bin/git checkout --progress --force -B loom8-smk37 refs/remotes/origin/loom8-smk37
+2026-11-10T21:24:48.1133663Z Switched to a new branch 'loom8-smk37'
+2026-11-10T21:24:48.1138257Z branch 'loom8-smk37' set up to track 'origin/loom8-smk37'.
+2026-11-10T21:24:48.1144811Z ##[endgroup]
+2026-11-10T21:24:48.1197771Z [command]/usr/bin/git log -1 --format=%H
+2026-11-10T21:24:48.1227260Z 5e3e8ad595fd8a539fae5b3d3f39dd72963bc25d
+2026-11-10T21:24:48.1235154Z ##[group]Removing auth
+2026-11-10T21:24:48.1238161Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-10T21:24:48.1270878Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-10T21:24:48.1474328Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-10T21:24:48.1503129Z http.https://github.com/.extraheader
+2026-11-10T21:24:48.1510161Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-10T21:24:48.1547488Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-10T21:24:48.1744489Z ##[endgroup]
+2026-11-10T21:24:48.1962246Z ##[group]Run actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+2026-11-10T21:24:48.1962621Z with:
+2026-11-10T21:24:48.1962834Z   python-version: 3.12
+2026-11-10T21:24:48.1963062Z   check-latest: false
+2026-11-10T21:24:48.1965413Z   token: ***
+2026-11-10T21:24:48.1965647Z   update-environment: true
+2026-11-10T21:24:48.1965898Z   allow-prereleases: false
+2026-11-10T21:24:48.1966152Z   freethreaded: false
+2026-11-10T21:24:48.1966371Z ##[endgroup]
+2026-11-10T21:24:48.3055543Z ##[group]Installed versions
+2026-11-10T21:24:48.3141124Z (node:2160) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-10T21:24:48.3142056Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-10T21:24:48.3142643Z Successfully set up CPython (3.12.16)
+2026-11-10T21:24:48.3143287Z ##[endgroup]
+2026-11-10T21:24:48.3252641Z ##[group]Run python3 -m pip install Pillow
+2026-11-10T21:24:48.3253037Z [36;1mpython3 -m pip install Pillow[0m
+2026-11-10T21:24:48.3283306Z shell: /usr/bin/bash -e {0}
+2026-11-10T21:24:48.3283587Z env:
+2026-11-10T21:24:48.3284096Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:24:48.3284611Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-10T21:24:48.3285005Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:24:48.3285369Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:24:48.3285713Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:24:48.3286049Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-10T21:24:48.3286344Z ##[endgroup]
+2026-11-10T21:24:49.5242546Z Collecting Pillow
+2026-11-10T21:24:49.5760928Z   Downloading pillow-13.0.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (9.1 kB)
+2026-11-10T21:24:49.5882630Z Downloading pillow-13.0.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (7.1 MB)
+2026-11-10T21:24:49.8352658Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 7.1/7.1 MB 31.7 MB/s  0:00:00
+2026-11-10T21:24:49.8783673Z Installing collected packages: Pillow
+2026-11-10T21:24:50.1645534Z Successfully installed Pillow-13.0.0
+2026-11-10T21:24:50.1651470Z 
+2026-11-10T21:24:50.1651683Z [notice] A new release of pip is available: 26.2.2 -> 26.3
+2026-11-10T21:24:50.2066256Z [notice] To update, run: pip install --upgrade pip
+2026-11-10T21:24:50.2101154Z ##[group]Run mkdir -p ~/.jieli
+2026-11-10T21:24:50.2101448Z [36;1mmkdir -p ~/.jieli[0m
+2026-11-10T21:24:50.2101848Z [36;1mcurl -fL --retry 3 https://pkgman.jieliapp.com/s/linux-toolchain | tar -xJ -C ~/.jieli[0m
+2026-11-10T21:24:50.2102315Z [36;1mTC="$(ls -d ~/.jieli/jieli-linux-toolchains-* | sort | tail -1)"[0m
+2026-11-10T21:24:50.2102645Z [36;1mln -sfn "$(basename "$TC")" ~/.jieli/toolchain[0m
+2026-11-10T21:24:50.2102979Z [36;1mecho "JIELI_TOOLCHAIN=$HOME/.jieli/toolchain" >> "$GITHUB_ENV"[0m
+2026-11-10T21:24:50.2103351Z [36;1mecho "toolchain: $(basename "$TC")"[0m
+2026-11-10T21:24:50.2121126Z shell: /usr/bin/bash -e {0}
+2026-11-10T21:24:50.2121347Z env:
+2026-11-10T21:24:50.2121590Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:24:50.2121936Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-10T21:24:50.2122270Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:24:50.2122767Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:24:50.2123068Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:24:50.2123368Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-10T21:24:50.2123632Z ##[endgroup]
+2026-11-10T21:24:50.2244203Z   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+2026-11-10T21:24:50.2244850Z                                  Dload  Upload   Total   Spent    Left  Speed
+2026-11-10T21:24:50.2245164Z 
+2026-11-10T21:24:50.4923770Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+2026-11-10T21:24:51.0516220Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+2026-11-10T21:24:51.0516777Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+2026-11-10T21:24:51.4452074Z 
+2026-11-10T21:24:52.4383835Z   0     0    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0
+2026-11-10T21:24:53.4566523Z   2 24.8M    2  563k    0     0   254k      0  0:01:39  0:00:02  0:01:37  566k
+2026-11-10T21:24:54.0583359Z  55 24.8M   55 13.6M    0     0  4328k      0  0:00:05  0:00:03  0:00:02 6957k
+2026-11-10T21:24:54.0583848Z 100 24.8M  100 24.8M    0     0  6629k      0  0:00:03  0:00:03 --:--:-- 9727k
+2026-11-10T21:24:54.0743303Z toolchain: jieli-linux-toolchains-20260730.1
+2026-11-10T21:24:54.0796564Z ##[group]Run for i in 1 2 3; do                     # (gitee.com drops a clone now and then: try again)
+2026-11-10T21:24:54.0797056Z [36;1mfor i in 1 2 3; do                     # (gitee.com drops a clone now and then: try again)[0m
+2026-11-10T21:24:54.0797426Z [36;1m  git clone --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 \[0m
+2026-11-10T21:24:54.0797834Z [36;1m      https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git ~/fw-AC79_AIoT_SDK && break[0m
+2026-11-10T21:24:54.0798184Z [36;1m  rm -rf ~/fw-AC79_AIoT_SDK[0m
+2026-11-10T21:24:54.0798395Z [36;1m  sleep 20[0m
+2026-11-10T21:24:54.0798572Z [36;1mdone[0m
+2026-11-10T21:24:54.0798754Z [36;1mtest -d ~/fw-AC79_AIoT_SDK[0m
+2026-11-10T21:24:54.0799015Z [36;1mecho "AC79_SDK=$HOME/fw-AC79_AIoT_SDK" >> "$GITHUB_ENV"[0m
+2026-11-10T21:24:54.0816701Z shell: /usr/bin/bash -e {0}
+2026-11-10T21:24:54.0816909Z env:
+2026-11-10T21:24:54.0817126Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:24:54.0817498Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-10T21:24:54.0817834Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:24:54.0818130Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:24:54.0818426Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:24:54.0818725Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-10T21:24:54.0819010Z   JIELI_TOOLCHAIN: /home/runner/.jieli/toolchain
+2026-11-10T21:24:54.0819242Z ##[endgroup]
+2026-11-10T21:24:54.0865239Z Cloning into '/home/runner/fw-AC79_AIoT_SDK'...
+2026-11-10T21:25:30.7327647Z warning: refs/tags/AC79NN_SDK_V1.2.1_2023-12-13 b02c8c9354c077238ccbf764e36eff53782e1c16 is not a commit!
+2026-11-10T21:25:30.7332675Z Note: switching to 'd179b4484759423312073f5fbb232501aa491047'.
+2026-11-10T21:25:30.7332982Z 
+2026-11-10T21:25:30.7333206Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-11-10T21:25:30.7334074Z changes and commit them, and you can discard any commits you make in this
+2026-11-10T21:25:30.7354658Z state without impacting any branches by switching back to a branch.
+2026-11-10T21:25:30.7379630Z 
+2026-11-10T21:25:30.7394797Z If you want to create a new branch to retain commits you create, you may
+2026-11-10T21:25:30.7395390Z do so (now or later) by using -c with the switch command. Example:
+2026-11-10T21:25:30.7395703Z 
+2026-11-10T21:25:30.7395829Z   git switch -c <new-branch-name>
+2026-11-10T21:25:30.7396049Z 
+2026-11-10T21:25:30.7396171Z Or undo this operation with:
+2026-11-10T21:25:30.7396370Z 
+2026-11-10T21:25:30.7396470Z   git switch -
+2026-11-10T21:25:30.7396903Z 
+2026-11-10T21:25:30.7397175Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-11-10T21:25:30.7397560Z 
+2026-11-10T21:25:32.7651455Z Updating files:  60% (9185/15258)
+2026-11-10T21:25:32.8372454Z Updating files:  60% (9292/15258)
+2026-11-10T21:25:32.9782467Z Updating files:  61% (9308/15258)
+2026-11-10T21:25:33.1246472Z Updating files:  62% (9460/15258)
+2026-11-10T21:25:33.1341246Z Updating files:  63% (9613/15258)
+2026-11-10T21:25:33.1451920Z Updating files:  64% (9766/15258)
+2026-11-10T21:25:33.1516090Z Updating files:  65% (9918/15258)
+2026-11-10T21:25:33.1577308Z Updating files:  66% (10071/15258)
+2026-11-10T21:25:33.1653345Z Updating files:  67% (10223/15258)
+2026-11-10T21:25:33.1770179Z Updating files:  68% (10376/15258)
+2026-11-10T21:25:33.1846188Z Updating files:  69% (10529/15258)
+2026-11-10T21:25:33.1933310Z Updating files:  70% (10681/15258)
+2026-11-10T21:25:33.2012791Z Updating files:  71% (10834/15258)
+2026-11-10T21:25:33.2093440Z Updating files:  72% (10986/15258)
+2026-11-10T21:25:33.2166470Z Updating files:  73% (11139/15258)
+2026-11-10T21:25:33.2238256Z Updating files:  74% (11291/15258)
+2026-11-10T21:25:33.2341786Z Updating files:  75% (11444/15258)
+2026-11-10T21:25:33.2475383Z Updating files:  76% (11597/15258)
+2026-11-10T21:25:33.2547113Z Updating files:  77% (11749/15258)
+2026-11-10T21:25:33.2616850Z Updating files:  78% (11902/15258)
+2026-11-10T21:25:33.2693354Z Updating files:  79% (12054/15258)
+2026-11-10T21:25:33.2774169Z Updating files:  80% (12207/15258)
+2026-11-10T21:25:33.2848307Z Updating files:  81% (12359/15258)
+2026-11-10T21:25:33.2928184Z Updating files:  82% (12512/15258)
+2026-11-10T21:25:33.3065858Z Updating files:  83% (12665/15258)
+2026-11-10T21:25:33.3196389Z Updating files:  84% (12817/15258)
+2026-11-10T21:25:33.3272528Z Updating files:  85% (12970/15258)
+2026-11-10T21:25:33.3315920Z Updating files:  86% (13122/15258)
+2026-11-10T21:25:33.3388229Z Updating files:  87% (13275/15258)
+2026-11-10T21:25:33.3436350Z Updating files:  88% (13428/15258)
+2026-11-10T21:25:33.3519337Z Updating files:  89% (13580/15258)
+2026-11-10T21:25:33.3712919Z Updating files:  90% (13733/15258)
+2026-11-10T21:25:33.3822295Z Updating files:  91% (13885/15258)
+2026-11-10T21:25:33.3878236Z Updating files:  92% (14038/15258)
+2026-11-10T21:25:33.3949567Z Updating files:  93% (14190/15258)
+2026-11-10T21:25:33.4114096Z Updating files:  94% (14343/15258)
+2026-11-10T21:25:33.4294807Z Updating files:  95% (14496/15258)
+2026-11-10T21:25:33.4390735Z Updating files:  96% (14648/15258)
+2026-11-10T21:25:33.4463561Z Updating files:  97% (14801/15258)
+2026-11-10T21:25:33.4722596Z Updating files:  98% (14953/15258)
+2026-11-10T21:25:33.5118282Z Updating files:  99% (15106/15258)
+2026-11-10T21:25:33.5118580Z Updating files: 100% (15258/15258)
+2026-11-10T21:25:33.5118813Z Updating files: 100% (15258/15258), done.
+2026-11-10T21:25:33.5384893Z ##[group]Run eval "$BUILD"
+2026-11-10T21:25:33.5385129Z [36;1meval "$BUILD"[0m
+2026-11-10T21:25:33.5404409Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-10T21:25:33.5404693Z env:
+2026-11-10T21:25:33.5404920Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:25:33.5405264Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-10T21:25:33.5405615Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:25:33.5405912Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:25:33.5406213Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:25:33.5406506Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-10T21:25:33.5406792Z   JIELI_TOOLCHAIN: /home/runner/.jieli/toolchain
+2026-11-10T21:25:33.5407042Z   AC79_SDK: /home/runner/fw-AC79_AIoT_SDK
+2026-11-10T21:25:33.5412521Z   BUILD: rc=0
+bash -euo pipefail > /tmp/l8-build.log 2>&1 <<'EOF' || rc=$?
+# the builder checks out without submodules: fm1-base (base/) and its felucca-bsp (base/bsp/), at the
+# commits this one links (.gitmodules: the forks)
+git submodule update --init --recursive
+# the fonts' OpenType features (base/tools/gen_font.py): Pillow's raqm, which loads the system's FriBiDi
+# (as LOOM-8's own release.yml)
+sudo apt-get install -y -qq libfribidi0
+python3 -c "from PIL import features; assert features.check('raqm'), 'Pillow without raqm'"
+if [[ "$GITHUB_REF" == refs/tags/loom8-v* ]]; then rel=(--release "${GITHUB_REF_NAME#loom8-v}"); else rel=(); fi
+BOARD=smk37 ./build.sh "${rel[@]}"
+# the Pro image's functions by address, into the log (the ci-log branch keeps it): a crash's pc and rets
+# (fm1_remote.py log) looked up against the build that crashed
+python3 tools/elf_funcs.py app/build/loom.elf || true
+# no radio on the SMK-37 yet: a build with Bluetooth in it stops here
+if grep -E '^parts ' /tmp/l8-build.log | tail -1 | sed 's/(not built in.*//' | grep -q Bluetooth; then
+  echo "the SMK-37 build has Bluetooth in it: it must not"; exit 1; fi
+BOARD=smk37 MODEL=elite ./build.sh "${rel[@]}"
+BOARD=smk37 MODEL=mke ./build.sh "${rel[@]}"
+# the download: the three packages, the installer and the backup tool, and a note on where to start
+mkdir -p build/loom8
+cp app/build/loom-smk37*.fwsc base/tools/fm1_install.py base/tools/fm1ports.py tools/smk37_backup.py tools/smk37_rescue.py \
+  base/tools/fm1_remote.py tools/START-HERE.txt build/loom8/
+# (the tools as they sit in the download, nothing else beside them: each must start)
+(cd build/loom8 && PYTHONDONTWRITEBYTECODE=1 python3 fm1_install.py --help > /dev/null && PYTHONDONTWRITEBYTECODE=1 python3 smk37_backup.py --help > /dev/null && PYTHONDONTWRITEBYTECODE=1 python3 smk37_rescue.py --help > /dev/null && rm -rf __pycache__)
+EOF
+cat /tmp/l8-build.log
+# the sizes as a note on the run's page (the image against the SMK-37's app slot, 619,520 B; the factory
+# samples), readable where the full log isn't
+grep -E "image [0-9]+ B; RAM|^samples: " /tmp/l8-build.log | while read -r l; do
+  echo "::notice title=Size::$l"
+done || true
+if [ "$rc" != 0 ]; then
+  echo "::error title=Build failed::$(tail -n 60 /tmp/l8-build.log | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"
+  exit "$rc"
+fi
+
+2026-11-10T21:25:33.5418333Z ##[endgroup]
+2026-11-10T21:26:15.2331407Z Submodule 'base' (https://github.com/durutti320/fm1-base) registered for path 'base'
+2026-11-10T21:26:15.2331961Z Cloning into '/home/runner/work/fm1-loom/fm1-loom/base'...
+2026-11-10T21:26:15.2332470Z Submodule path 'base': checked out '368a1158ad38c8a8f78e53c408122a1d61712d38'
+2026-11-10T21:26:15.2333105Z Submodule 'bsp' (https://github.com/durutti320/felucca-bsp) registered for path 'base/bsp'
+2026-11-10T21:26:15.2333769Z Cloning into '/home/runner/work/fm1-loom/fm1-loom/base/bsp'...
+2026-11-10T21:26:15.2334458Z Submodule path 'base/bsp': checked out 'e3ad024ec5e18ec32dced3ee1d3ca6d2abbe02b0'
+2026-11-10T21:26:15.2335093Z font T: BarlowSemiCondensed-SemiBold.ttf 10px h 12, digit adv 5, 3600 B
+2026-11-10T21:26:15.2336343Z font XS: BarlowSemiCondensed-SemiBold.ttf 12px h 15, digit adv 6, 7005 B
+2026-11-10T21:26:15.2336947Z font S: BarlowSemiCondensed-Medium.ttf 15px h 16, digit adv 7, 8576 B
+2026-11-10T21:26:15.2337525Z font B: BarlowSemiCondensed-Bold.ttf 15px h 16, digit adv 8, 8752 B
+2026-11-10T21:26:15.2337946Z font M: BarlowSemiCondensed-SemiBold.ttf 23px h 24, digit adv 12, 11832 B
+2026-11-10T21:26:15.2338321Z font L: BarlowSemiCondensed-Bold.ttf 31px h 32, digit adv 16, 19776 B
+2026-11-10T21:26:15.2338611Z font set barlow: 60782 B (approx)
+2026-11-10T21:26:15.2338973Z words: 202 own + 51 common -> /home/runner/work/fm1-loom/fm1-loom/app/web/words/1911da5582.json (5514 B)
+2026-11-10T21:26:15.2339381Z loader: image 13340 B at 0x1c0a800, bss end 0x1c14124
+2026-11-10T21:26:15.2339629Z loader: ota.bin 11352 B
+2026-11-10T21:26:15.2339932Z font XS: BarlowSemiCondensed-SemiBold.ttf 12px h 15, digit adv 6, 2646 B (huffman)
+2026-11-10T21:26:15.2340359Z font S: BarlowSemiCondensed-Medium.ttf 15px h 16, digit adv 7, 3170 B (huffman)
+2026-11-10T21:26:15.2340755Z font B: BarlowSemiCondensed-Bold.ttf 15px h 16, digit adv 8, 3250 B (huffman)
+2026-11-10T21:26:15.2341320Z font M: BarlowSemiCondensed-SemiBold.ttf 23px h 24, digit adv 12, 3471 B (huffman)
+2026-11-10T21:26:15.2341718Z font L: BarlowSemiCondensed-Bold.ttf 31px h 32, digit adv 16, 7179 B (huffman)
+2026-11-10T21:26:15.2342027Z font set barlow: 19716 B
+2026-11-10T21:26:15.2342215Z samples: 16, 88444 B
+2026-11-10T21:26:15.2342468Z   ok    the resource region: 88444 B (the 909 cymbals, the large type faces)
+2026-11-10T21:26:15.2342912Z size: 619 main-loop functions built for size; 19 in those files reachable from an interrupt keep -Os
+2026-11-10T21:26:15.2343286Z size: dsp/synth.c: 14 functions built for size
+2026-11-10T21:26:15.2343536Z size: dsp/drumline.c: 6 functions built for size
+2026-11-10T21:26:15.2343794Z size: dsp/digisophie.c: 0 functions built for size
+2026-11-10T21:26:15.2344207Z size: dsp/sample.c: 2 functions built for size
+2026-11-10T21:26:15.2344452Z size: dsp/fx.c: 8 functions built for size
+2026-11-10T21:26:15.2344692Z size: dsp/bass303.c: 4 functions built for size
+2026-11-10T21:26:15.2344939Z size: dsp/d909.c: 4 functions built for size
+2026-11-10T21:26:15.2345172Z size: dsp/bench.c: 0 functions built for size
+2026-11-10T21:26:15.2345428Z size: seq/pattern.c: 0 functions built for size
+2026-11-10T21:26:15.2345668Z size: seq/seq.c: 15 functions built for size
+2026-11-10T21:26:15.2345892Z   ok    .ram_text: 6015 insns, no calls
+2026-11-10T21:26:15.2346125Z   ok    no 64-bit multiply inlined beside a load
+2026-11-10T21:26:15.2346400Z   ok    no soft-double routines (single-precision FPU only)
+2026-11-10T21:26:15.2346845Z   ok    image 494820 B; SRAM 431784 B of 475136: RAM code 19708 B, .data+.bss 66200 B, pool 345872 B; free 43352 B (2048 kept spare)
+2026-11-10T21:26:15.2347320Z   ok    boot_pack: .ram_text + .data 19864 B stored as 9444 B (LZMA, unpacked at boot)
+2026-11-10T21:26:15.2347722Z   ok    register access: felucca-bsp only (device/, include/ and the app clean)
+2026-11-10T21:26:15.2348543Z parts    USB audio in, the second core, the screen reader, screen mirroring, backup and restore  (not built in: Bluetooth MIDI, Bluetooth MIDI devices, Bluetooth audio, USB audio out, USB MIDI host, USB disk mode, WiFi, velocity, pressure, a resource region)
+2026-11-10T21:26:15.2349514Z app      /home/runner/work/fm1-loom/fm1-loom/app/build/loom.bin  494820 B
+2026-11-10T21:26:15.2349949Z loader   /home/runner/work/fm1-loom/fm1-loom/app/build/loader/ota.bin  11352 B
+2026-11-10T21:26:15.2350419Z package  /home/runner/work/fm1-loom/fm1-loom/app/build/loom-smk37.fwsc  655468 B, identity SMK-37 Pro_1000
+2026-11-10T21:26:15.2350899Z build    255059C3  (FM1B_BUILD: the build a crash record names, fm1_remote.py crashes)
+2026-11-10T21:26:15.2351328Z about    /home/runner/work/fm1-loom/fm1-loom/app/build/firmware.json  (for firmware hubs)
+2026-11-10T21:26:15.2351666Z SYM 01c00000    378 fl_jedec_ram
+2026-11-10T21:26:15.2351888Z SYM 01c0017a    410 fl_status_ram
+2026-11-10T21:26:15.2352221Z SYM 01c00314   1176 fl_erase4k_ram
+2026-11-10T21:26:15.2352436Z SYM 01c007ac    840 fl_erase4k_begin_ram
+2026-11-10T21:26:15.2352659Z SYM 01c00af4    508 fl_erase4k_end_ram
+2026-11-10T21:26:15.2352864Z SYM 01c00cf0   1234 fl_prog_ram
+2026-11-10T21:26:15.2353057Z SYM 01c011c2    512 fl_read_ram
+2026-11-10T21:26:15.2353257Z SYM 01c013c2    130 fm1_clock_set_stock_ram
+2026-11-10T21:26:15.2353501Z SYM 01c01444    146 fm1_cpu1_main
+2026-11-10T21:26:15.2353702Z SYM 01c014d6   9396 synth_note_on
+2026-11-10T21:26:15.2357576Z SYM 01c0398a   4976 master_process
+2026-11-10T21:26:15.2357954Z SYM 020004a4     32 fm1__p33_cs
+2026-11-10T21:26:15.2358249Z SYM 020004c4     46 fm1__p33_xfer
+2026-11-10T21:26:15.2358499Z SYM 020004f2     56 fm1__p33_op
+2026-11-10T21:26:15.2358694Z SYM 0200052a     10 fm1_p33_or
+2026-11-10T21:26:15.2358885Z SYM 02000534    116 fm1_reboot
+2026-11-10T21:26:15.2359078Z SYM 020005a8    210 fm1_cpu1_failure
+2026-11-10T21:26:15.2359278Z SYM 0200067a    122 mr_seal
+2026-11-10T21:26:15.2359542Z SYM 020006f4     38 mr_busy
+2026-11-10T21:26:15.2359753Z SYM 0200071a     22 mr_free
+2026-11-10T21:26:15.2359921Z SYM 02000730    106 mr_send
+2026-11-10T21:26:15.2360246Z SYM 0200079a     32 mr_set
+2026-11-10T21:26:15.2360438Z SYM 020007ba     50 mr_rows_dirty
+2026-11-10T21:26:15.2360645Z SYM 020007ec     48 fm1_lcd_wait
+2026-11-10T21:26:15.2360846Z SYM 0200081c     32 lcd_sync
+2026-11-10T21:26:15.2361032Z SYM 0200083c     44 lcd_cmd
+2026-11-10T21:26:15.2361209Z SYM 02000868     52 lcd_data
+2026-11-10T21:26:15.2361398Z SYM 0200089c     86 lcd_window
+2026-11-10T21:26:15.2361579Z SYM 020008f2    224 lcd_fill
+2026-11-10T21:26:15.2361757Z SYM 020009d2     50 loom_glyph
+2026-11-10T21:26:15.2361944Z SYM 02000a04     32 loom_text_w
+2026-11-10T21:26:15.2362132Z SYM 02000a24     70 cv_begin
+2026-11-10T21:26:15.2362311Z SYM 02000a6a    552 loom_text
+2026-11-10T21:26:15.2362568Z SYM 02000c92    156 mr_span
+2026-11-10T21:26:15.2362745Z SYM 02000d2e    184 memset
+2026-11-10T21:26:15.2362928Z SYM 02000de6     28 mr_op
+2026-11-10T21:26:15.2363105Z SYM 02000e02    204 mr_code_row
+2026-11-10T21:26:15.2363284Z SYM 02000ece    196 memcpy
+2026-11-10T21:26:15.2363470Z SYM 02000f92    918 cv_blit
+2026-11-10T21:26:15.2363641Z SYM 02001328     98 sys_box
+2026-11-10T21:26:15.2363811Z SYM 0200138a     38 hexs
+2026-11-10T21:26:15.2364154Z SYM 020013b0    798 fm1_fault_c
+2026-11-10T21:26:15.2364336Z SYM 020016ce     24 memcmp
+2026-11-10T21:26:15.2364519Z SYM 020016e6     28 mirror_in_buttons
+2026-11-10T21:26:15.2364729Z SYM 02001702     70 plat_buttons
+2026-11-10T21:26:15.2364918Z SYM 02001748     54 plat_keys
+2026-11-10T21:26:15.2365101Z SYM 0200177e     28 fm1_enc_take
+2026-11-10T21:26:15.2365284Z SYM 0200179a    136 plat_enc
+2026-11-10T21:26:15.2365464Z SYM 02001822    194 plat_lights
+2026-11-10T21:26:15.2365662Z SYM 020018e4     14 plat_smk_buttons
+2026-11-10T21:26:15.2365868Z SYM 020018f2     32 plat_key_vel
+2026-11-10T21:26:15.2366064Z SYM 02001912     24 plat_key_touch
+2026-11-10T21:26:15.2366270Z SYM 0200192a     48 plat_key_last
+2026-11-10T21:26:15.2366463Z SYM 0200195a     56 plat_pad
+2026-11-10T21:26:15.2366645Z SYM 02001992     92 plat_outer
+2026-11-10T21:26:15.2366833Z SYM 020019ee     26 plat_k1_raw
+2026-11-10T21:26:15.2367019Z SYM 02001a08     22 plat_k1_enc
+2026-11-10T21:26:15.2367198Z SYM 02001a1e     26 plat_fader
+2026-11-10T21:26:15.2367380Z SYM 02001a38     12 plat_bend
+2026-11-10T21:26:15.2367562Z SYM 02001a44     10 plat_modw
+2026-11-10T21:26:15.2367749Z SYM 02001a4e     60 plat_pad_rgb
+2026-11-10T21:26:15.2368018Z SYM 02001a8a    162 padled_flush
+2026-11-10T21:26:15.2368298Z SYM 02001b2c     46 plat_lock
+2026-11-10T21:26:15.2368576Z SYM 02001b5a     76 plat_unlock
+2026-11-10T21:26:15.2368857Z SYM 02001ba6      8 fm1_wdt_feed
+2026-11-10T21:26:15.2369140Z SYM 02001bae      4 ota_idle
+2026-11-10T21:26:15.2369411Z SYM 02001bb2    178 ota_wire_send
+2026-11-10T21:26:15.2369718Z SYM 02001c64     22 plat_sysex_send
+2026-11-10T21:26:15.2370033Z SYM 02001c7a     26 plat_in
+2026-11-10T21:26:15.2370534Z SYM 02001c94     76 plat_data
+2026-11-10T21:26:15.2370834Z SYM 02001ce0     24 audio_silence
+2026-11-10T21:26:15.2371138Z SYM 02001cf8     10 fl_far
+2026-11-10T21:26:15.2371418Z SYM 02001d02     42 fl_erase4k
+2026-11-10T21:26:15.2371704Z SYM 02001d2c     70 smk_stock_release
+2026-11-10T21:26:15.2372017Z SYM 02001d72    108 plat_data_erase
+2026-11-10T21:26:15.2372315Z SYM 02001dde    310 fl_write
+2026-11-10T21:26:15.2372588Z SYM 02001f14    136 plat_data_write
+2026-11-10T21:26:15.2372855Z SYM 02001f9c      8 ota_wr16
+2026-11-10T21:26:15.2373035Z SYM 02001fa4     18 ota_wr32
+2026-11-10T21:26:15.2373211Z SYM 02001fb6     56 ota_pack7
+2026-11-10T21:26:15.2373406Z SYM 02001fee     92 ota_send_msg
+2026-11-10T21:26:15.2373596Z SYM 0200204a    104 ota_frame_get
+2026-11-10T21:26:15.2373788Z SYM 020020b2     36 ota_frame_done
+2026-11-10T21:26:15.2374177Z SYM 020020d6     10 ota_rd16
+2026-11-10T21:26:15.2374399Z SYM 020020e0     16 ota_rd24
+2026-11-10T21:26:15.2374665Z SYM 020020f0    148 ota_take
+2026-11-10T21:26:15.2374962Z SYM 02002184     44 ota_hs
+2026-11-10T21:26:15.2375253Z SYM 020021b0     68 ota_reply_identity
+2026-11-10T21:26:15.2375567Z SYM 020021f4     16 ota_rd32
+2026-11-10T21:26:15.2376158Z SYM 02002204    242 ota_read
+2026-11-10T21:26:15.2376437Z SYM 020022f6     64 plat_usb_ch
+2026-11-10T21:26:15.2376746Z SYM 02002336     12 usb_midi_out_ready
+2026-11-10T21:26:15.2376978Z SYM 02002342     54 plat_midi_out_room
+2026-11-10T21:26:15.2377179Z SYM 02002378     58 midi_counted
+2026-11-10T21:26:15.2377372Z SYM 020023b2     96 plat_midi_in
+2026-11-10T21:26:15.2377566Z SYM 02002412    108 plat_midi_send
+2026-11-10T21:26:15.2377764Z SYM 0200247e      6 plat_midi_out
+2026-11-10T21:26:15.2377954Z SYM 02002484     22 plat_usb_lost
+2026-11-10T21:26:15.2378140Z SYM 0200249a     16 st_sector
+2026-11-10T21:26:15.2378327Z SYM 020024aa     76 st_read
+2026-11-10T21:26:15.2378511Z SYM 020024f6     48 st_crc32
+2026-11-10T21:26:15.2378694Z SYM 02002526     72 st_head
+2026-11-10T21:26:15.2378866Z SYM 0200256e     54 st_body
+2026-11-10T21:26:15.2379044Z SYM 020025a4    128 st_current
+2026-11-10T21:26:15.2379236Z SYM 02002624     82 plat_store_load
+2026-11-10T21:26:15.2379432Z SYM 02002676     70 st_erase
+2026-11-10T21:26:15.2379613Z SYM 020026bc     64 st_prog
+2026-11-10T21:26:15.2379796Z SYM 020026fc    270 plat_store_save
+2026-11-10T21:26:15.2379993Z SYM 0200280a     18 fm1__dbg_unlock
+2026-11-10T21:26:15.2380186Z SYM 0200281c     18 fm1__dbg_lock
+2026-11-10T21:26:15.2380377Z SYM 0200282e    596 plat_cpu2_set
+2026-11-10T21:26:15.2380577Z SYM 02002a82     12 plat_cpu2_on
+2026-11-10T21:26:15.2380770Z SYM 02002a8e     38 fm1_cpu1_retire
+2026-11-10T21:26:15.2380966Z SYM 02002ab4    102 plat_cpu2_run
+2026-11-10T21:26:15.2381155Z SYM 02002b1a     96 plat_cpu2_wait
+2026-11-10T21:26:15.2381352Z SYM 02002b7a     52 plat_cpu2_busy
+2026-11-10T21:26:15.2381544Z SYM 02002bae     32 bd_put
+2026-11-10T21:26:15.2381727Z SYM 02002bce     64 btdev_page
+2026-11-10T21:26:15.2381912Z SYM 02002c0e     30 btdev_event
+2026-11-10T21:26:15.2382102Z SYM 02002c2c     22 btdev_word
+2026-11-10T21:26:15.2382282Z SYM 02002c42     44 engine_cc_take
+2026-11-10T21:26:15.2382477Z SYM 02002c6e     34 engine_slice_now
+2026-11-10T21:26:15.2382694Z SYM 02002c90     32 engine_core2_state
+2026-11-10T21:26:15.2382894Z SYM 02002cb0    290 engine_load
+2026-11-10T21:26:15.2383078Z SYM 02002dd2     72 cq_put
+2026-11-10T21:26:15.2383251Z SYM 02002e1a     64 engine_set
+2026-11-10T21:26:15.2383435Z SYM 02002e5a     64 engine_set_all
+2026-11-10T21:26:15.2383617Z SYM 02002e9a     30 engine_key
+2026-11-10T21:26:15.2383799Z SYM 02002eb8     10 engine_keys_off
+2026-11-10T21:26:15.2384146Z SYM 02002ec2     30 engine_repeat
+2026-11-10T21:26:15.2384345Z SYM 02002ee0     14 engine_repeat_rate
+2026-11-10T21:26:15.2384546Z SYM 02002eee     30 engine_punch
+2026-11-10T21:26:15.2384744Z SYM 02002f0c     22 engine_brain_key
+2026-11-10T21:26:15.2384941Z SYM 02002f22     20 engine_master
+2026-11-10T21:26:15.2385129Z SYM 02002f36     76 engine_fx
+2026-11-10T21:26:15.2385317Z SYM 02002f82     10 engine_panic
+2026-11-10T21:26:15.2385626Z SYM 02002f8c     10 engine_metronome
+2026-11-10T21:26:15.2385824Z SYM 02002f96     26 engine_tempo
+2026-11-10T21:26:15.2386009Z SYM 02002fb0     18 engine_groove
+2026-11-10T21:26:15.2386205Z SYM 02002fc2     34 engine_scene
+2026-11-10T21:26:15.2386392Z SYM 02002fe4     36 engine_transport
+2026-11-10T21:26:15.2386587Z SYM 02003008     92 engine_live
+2026-11-10T21:26:15.2386775Z SYM 02003064     28 engine_bend
+2026-11-10T21:26:15.2386959Z SYM 02003080     10 engine_glfo_now
+2026-11-10T21:26:15.2387151Z SYM 0200308a     94 dl_filter_update
+2026-11-10T21:26:15.2387343Z SYM 020030e8     12 zerof
+2026-11-10T21:26:15.2387535Z SYM 020030f4      6 eng_midi_out
+2026-11-10T21:26:15.2387728Z SYM 020030fa    106 midi_knob_cc
+2026-11-10T21:26:15.2387915Z SYM 02003164     26 midi_cc_forget
+2026-11-10T21:26:15.2388109Z SYM 0200317e     36 dl_drop
+2026-11-10T21:26:15.2388286Z SYM 020031a2    126 dl_take
+2026-11-10T21:26:15.2388461Z SYM 02003220     86 aux_changed
+2026-11-10T21:26:15.2388655Z SYM 02003276     26 midi_track
+2026-11-10T21:26:15.2388832Z SYM 02003290     40 ccq_put
+2026-11-10T21:26:15.2389005Z SYM 020032b8     10 dsp_far
+2026-11-10T21:26:15.2389281Z SYM 020032c2    254 core2_job
+2026-11-10T21:26:15.2389461Z SYM 020033c0    178 fx_job_timed
+2026-11-10T21:26:15.2389646Z SYM 02003472    166 mst_finish
+2026-11-10T21:26:15.2389831Z SYM 02003518     80 eng_master_key
+2026-11-10T21:26:15.2390017Z SYM 02003568     94 s_note_on
+2026-11-10T21:26:15.2390205Z SYM 020035c6     54 s_note_off
+2026-11-10T21:26:15.2390424Z SYM 020035fc     54 pump_drum
+2026-11-10T21:26:15.2390608Z SYM 02003632    354 s_drum
+2026-11-10T21:26:15.2390775Z SYM 02003794    216 s_lock
+2026-11-10T21:26:15.2390944Z SYM 0200386c     16 s_bend
+2026-11-10T21:26:15.2391129Z SYM 0200387c     60 s_midi
+2026-11-10T21:26:15.2391298Z SYM 020038b8     16 s_step
+2026-11-10T21:26:15.2391472Z SYM 020038c8     68 s_metro
+2026-11-10T21:26:15.2391651Z SYM 0200390c     32 s_pan
+2026-11-10T21:26:15.2391825Z SYM 0200392c     48 s_drum_off
+2026-11-10T21:26:15.2392009Z SYM 0200395c     70 s_ghost
+2026-11-10T21:26:15.2392188Z SYM 020039a2    316 la_play
+2026-11-10T21:26:15.2392365Z SYM 02003ade     28 fm_floorf
+2026-11-10T21:26:15.2392552Z SYM 02003afa     98 fm_sin_pi
+2026-11-10T21:26:15.2392736Z SYM 02003b5c     36 fm_sin_turns
+2026-11-10T21:26:15.2392922Z SYM 02003b80     92 fx_done
+2026-11-10T21:26:15.2393100Z SYM 02003bdc     24 tp_level_gain
+2026-11-10T21:26:15.2393292Z SYM 02003bf4     14 glide_set
+2026-11-10T21:26:15.2393469Z SYM 02003c02    204 tap_drum
+2026-11-10T21:26:15.2393655Z SYM 02003cce     98 add_glide
+2026-11-10T21:26:15.2393833Z SYM 02003d30     84 meter
+2026-11-10T21:26:15.2394160Z SYM 02003d84     82 c2_late
+2026-11-10T21:26:15.2394336Z SYM 02003dd6    112 tap_c2
+2026-11-10T21:26:15.2394511Z SYM 02003e46     20 add_in
+2026-11-10T21:26:15.2394683Z SYM 02003e5a     68 la_put
+2026-11-10T21:26:15.2394862Z SYM 02003e9e   6486 engine_render
+2026-11-10T21:26:15.2395059Z SYM 020057f4     10 plat_cycles
+2026-11-10T21:26:15.2395244Z SYM 020057fe    118 mst_job
+2026-11-10T21:26:15.2395417Z SYM 02005874    504 engine_init
+2026-11-10T21:26:15.2395600Z SYM 02005a6c     20 engine_fx_has
+2026-11-10T21:26:15.2395804Z SYM 02005a80     98 apply_preset
+2026-11-10T21:26:15.2396005Z SYM 02005ae2    216 project_random_sounds
+2026-11-10T21:26:15.2396233Z SYM 02005bba     54 project_device_get
+2026-11-10T21:26:15.2396458Z SYM 02005bf0     60 project_device_put
+2026-11-10T21:26:15.2396676Z SYM 02005c2c     38 set_name
+2026-11-10T21:26:15.2396870Z SYM 02005c52     38 glfo_defaults
+2026-11-10T21:26:15.2397073Z SYM 02005c78    768 project_defaults
+2026-11-10T21:26:15.2397278Z SYM 02005f78     30 slot_objects
+2026-11-10T21:26:15.2397466Z SYM 02005f96     36 hash_of
+2026-11-10T21:26:15.2397649Z SYM 02005fba     24 get32
+2026-11-10T21:26:15.2397836Z SYM 02005fd2    144 lz_decompress
+2026-11-10T21:26:15.2398023Z SYM 02006062    150 keys_fix
+2026-11-10T21:26:15.2398205Z SYM 020060f8     54 crc32_of
+2026-11-10T21:26:15.2398385Z SYM 0200612e    514 load_stream
+2026-11-10T21:26:15.2398697Z SYM 02006330    116 plat_store_load_prev
+2026-11-10T21:26:15.2398916Z SYM 020063a4     44 stream_obj_load
+2026-11-10T21:26:15.2399115Z SYM 020063d0     14 kit_mask
+2026-11-10T21:26:15.2399304Z SYM 020063de     34 lane_is_note
+2026-11-10T21:26:15.2399497Z SYM 02006400   2026 project_load
+2026-11-10T21:26:15.2399686Z SYM 02006bea     34 count_next
+2026-11-10T21:26:15.2399878Z SYM 02006c0c     26 lz_hash
+2026-11-10T21:26:15.2400056Z SYM 02006c26     34 lz_match_len
+2026-11-10T21:26:15.2400241Z SYM 02006c48     68 lz_literals
+2026-11-10T21:26:15.2400422Z SYM 02006c8c    316 lz_compress
+2026-11-10T21:26:15.2400605Z SYM 02006dc8     16 put32
+2026-11-10T21:26:15.2400789Z SYM 02006dd8     84 settings_pack
+2026-11-10T21:26:15.2400981Z SYM 02006e2c      4 loom_store_save
+2026-11-10T21:26:15.2401174Z SYM 02006e30     96 save_buf
+2026-11-10T21:26:15.2401347Z SYM 02006e90     50 st_flush
+2026-11-10T21:26:15.2401528Z SYM 02006ec2    264 project_write
+2026-11-10T21:26:15.2401721Z SYM 02006fca    128 project_save
+2026-11-10T21:26:15.2401934Z SYM 0200704a     98 project_last_slot
+2026-11-10T21:26:15.2402138Z SYM 020070ac     74 project_touch
+2026-11-10T21:26:15.2402439Z SYM 020070f6     68 project_exists
+2026-11-10T21:26:15.2402644Z SYM 0200713a    420 presets_load
+2026-11-10T21:26:15.2402831Z SYM 020072de    158 presets_image
+2026-11-10T21:26:15.2403019Z SYM 0200737c     18 presets_save
+2026-11-10T21:26:15.2403199Z SYM 0200738e    154 kit_load
+2026-11-10T21:26:15.2403373Z SYM 02007428     96 kit_save
+2026-11-10T21:26:15.2403554Z SYM 02007488    202 project_apply
+2026-11-10T21:26:15.2403743Z SYM 02007552     10 ann_on
+2026-11-10T21:26:15.2404144Z SYM 0200755c     52 sp_cat
+2026-11-10T21:26:15.2404369Z SYM 02007590    110 sp_text
+2026-11-10T21:26:15.2404547Z SYM 020075fe    282 ann_send
+2026-11-10T21:26:15.2404723Z SYM 02007718     66 ann_say
+2026-11-10T21:26:15.2404899Z SYM 0200775a    154 sp_msg
+2026-11-10T21:26:15.2405074Z SYM 020077f4     24 upcase
+2026-11-10T21:26:15.2405241Z SYM 0200780c    202 say_as
+2026-11-10T21:26:15.2405418Z SYM 020078d6      6 say
+2026-11-10T21:26:15.2405598Z SYM 020078dc      4 ui_say
+2026-11-10T21:26:15.2405768Z SYM 020078e0     18 sel_trk
+2026-11-10T21:26:15.2405942Z SYM 020078f2     34 is_drum
+2026-11-10T21:26:15.2406117Z SYM 02007914     34 is_midi
+2026-11-10T21:26:15.2406293Z SYM 02007936    218 page_name_of
+2026-11-10T21:26:15.2406480Z SYM 02007a10     18 cur_scene
+2026-11-10T21:26:15.2406667Z SYM 02007a22    188 apply_brain
+2026-11-10T21:26:15.2406850Z SYM 02007ade     26 wv_pat
+2026-11-10T21:26:15.2407025Z SYM 02007af8     26 wv_rule
+2026-11-10T21:26:15.2407199Z SYM 02007b12     36 wv_from
+2026-11-10T21:26:15.2407369Z SYM 02007b36     26 wv_cued
+2026-11-10T21:26:15.2407543Z SYM 02007b50    116 weave_apply
+2026-11-10T21:26:15.2407726Z SYM 02007bc4    238 ui_init
+2026-11-10T21:26:15.2407899Z SYM 02007cb2    104 daw_default
+2026-11-10T21:26:15.2408089Z SYM 02007d1a     36 daw_class
+2026-11-10T21:26:15.2408277Z SYM 02007d3e     34 lsmk_kv_apply
+2026-11-10T21:26:15.2408471Z SYM 02007d60     78 lsmk_drum_off
+2026-11-10T21:26:15.2408660Z SYM 02007dae     10 playing
+2026-11-10T21:26:15.2408838Z SYM 02007db8     30 rec_end
+2026-11-10T21:26:15.2409018Z SYM 02007dd6     62 rec_off
+2026-11-10T21:26:15.2409193Z SYM 02007e14     50 daw_note_pkt
+2026-11-10T21:26:15.2409377Z SYM 02007e46     16 lsmk_daw_ok
+2026-11-10T21:26:15.2409560Z SYM 02007e56     30 inst_trk
+2026-11-10T21:26:15.2409745Z SYM 02007e74     16 lsmk_play_trk
+2026-11-10T21:26:15.2409951Z SYM 02007e84     42 daw_bank_of
+2026-11-10T21:26:15.2410140Z SYM 02007eae     64 lsmk_daw_touch
+2026-11-10T21:26:15.2410331Z SYM 02007eee    204 lsmk_daw_key
+2026-11-10T21:26:15.2410518Z SYM 02007fba     62 daw_ent
+2026-11-10T21:26:15.2410691Z SYM 02007ff8     20 daw_chan
+2026-11-10T21:26:15.2410868Z SYM 0200800c    194 lsmk_daw_tx
+2026-11-10T21:26:15.2411051Z SYM 020080ce     22 ui_redraw
+2026-11-10T21:26:15.2411234Z SYM 020080e4     24 lsmk_daw_dirty
+2026-11-10T21:26:15.2411425Z SYM 020080fc    580 lsmk_daw_set
+2026-11-10T21:26:15.2411728Z SYM 02008340     44 lsmk_kv_step
+2026-11-10T21:26:15.2411918Z SYM 0200836c     22 lsmk_daw_cv
+2026-11-10T21:26:15.2412106Z SYM 02008382    118 lsmk_daw_knob
+2026-11-10T21:26:15.2412299Z SYM 020083f8    134 lsmk_daw_hit
+2026-11-10T21:26:15.2412489Z SYM 0200847e     34 daw_kv_vel
+2026-11-10T21:26:15.2412671Z SYM 020084a0     60 lsmk_kit
+2026-11-10T21:26:15.2412850Z SYM 020084dc     10 loom_begin
+2026-11-10T21:26:15.2413032Z SYM 020084e6     14 s_cat
+2026-11-10T21:26:15.2413200Z SYM 020084f4     68 num_s
+2026-11-10T21:26:15.2413371Z SYM 02008538     40 text_r
+2026-11-10T21:26:15.2413543Z SYM 02008560    102 cv_rect
+2026-11-10T21:26:15.2413719Z SYM 020085c6    132 lsmk_kv_last
+2026-11-10T21:26:15.2414042Z SYM 0200864a     20 hash_s
+2026-11-10T21:26:15.2414226Z SYM 0200865e     46 text_c
+2026-11-10T21:26:15.2414403Z SYM 0200868c    234 lsmk_daw_name
+2026-11-10T21:26:15.2414594Z SYM 02008776     16 num_i
+2026-11-10T21:26:15.2414765Z SYM 02008786     26 trk_ink
+2026-11-10T21:26:15.2414946Z SYM 020087a0    234 lsmk_daw_save
+2026-11-10T21:26:15.2415144Z SYM 0200888a     42 lsmk_nr_held
+2026-11-10T21:26:15.2415330Z SYM 020088b4    128 lsmk_nr_set
+2026-11-10T21:26:15.2415523Z SYM 02008934     56 lsmk_pads_steps
+2026-11-10T21:26:15.2415825Z SYM 0200896c     40 say_no
+2026-11-10T21:26:15.2416002Z SYM 02008994     36 solo_end
+2026-11-10T21:26:15.2416190Z SYM 020089b8     28 mark_dirty
+2026-11-10T21:26:15.2416376Z SYM 020089d4     96 set_mute
+2026-11-10T21:26:15.2416559Z SYM 02008a34     46 solo_begin
+2026-11-10T21:26:15.2416744Z SYM 02008a62     38 page_group
+2026-11-10T21:26:15.2416926Z SYM 02008a88     20 dm_knobs
+2026-11-10T21:26:15.2417108Z SYM 02008a9c     92 kit_x_page
+2026-11-10T21:26:15.2417288Z SYM 02008af8     70 x_page
+2026-11-10T21:26:15.2417463Z SYM 02008b3e     48 pl_type
+2026-11-10T21:26:15.2417642Z SYM 02008b6e     34 is_acid
+2026-11-10T21:26:15.2417817Z SYM 02008b90    190 group_n
+2026-11-10T21:26:15.2417994Z SYM 02008c4e    266 grp_page
+2026-11-10T21:26:15.2418187Z SYM 02008d58     44 grp_index
+2026-11-10T21:26:15.2418374Z SYM 02008d84     24 cur_pat
+2026-11-10T21:26:15.2418552Z SYM 02008d9c     34 tpat
+2026-11-10T21:26:15.2418741Z SYM 02008dbe    110 step_rec_start
+2026-11-10T21:26:15.2418945Z SYM 02008e2c    152 track_select
+2026-11-10T21:26:15.2419137Z SYM 02008ec4    188 page_button
+2026-11-10T21:26:15.2419322Z SYM 02008f80     84 undo_run
+2026-11-10T21:26:15.2419504Z SYM 02008fd4    100 undo_sounds
+2026-11-10T21:26:15.2419693Z SYM 02009038      6 undo_sound
+2026-11-10T21:26:15.2419876Z SYM 0200903e     20 s_eq
+2026-11-10T21:26:15.2420061Z SYM 02009052     18 sound_reset
+2026-11-10T21:26:15.2420248Z SYM 02009064     78 apply_aux
+2026-11-10T21:26:15.2420430Z SYM 020090b2     30 cc_from
+2026-11-10T21:26:15.2420607Z SYM 020090d0     30 cc_out
+2026-11-10T21:26:15.2420782Z SYM 020090ee     22 cc_send
+2026-11-10T21:26:15.2420959Z SYM 02009104    910 set_tp
+2026-11-10T21:26:15.2421128Z SYM 02009492     52 ask_end
+2026-11-10T21:26:15.2421306Z SYM 020094c6     14 home_held
+2026-11-10T21:26:15.2421488Z SYM 020094d4     78 lanes_get
+2026-11-10T21:26:15.2421675Z SYM 02009522     18 swap_bytes
+2026-11-10T21:26:15.2421860Z SYM 02009534     16 step_shown
+2026-11-10T21:26:15.2422048Z SYM 02009544     30 kit_has
+2026-11-10T21:26:15.2422227Z SYM 02009562     18 count_in
+2026-11-10T21:26:15.2422413Z SYM 02009574     82 undo_pat
+2026-11-10T21:26:15.2422753Z SYM 020095c6     56 rec_begin
+2026-11-10T21:26:15.2423043Z SYM 020095fe    448 play_press
+2026-11-10T21:26:15.2423457Z SYM 020097be     84 sim_bta_state
+2026-11-10T21:26:15.2423758Z SYM 02009812     70 list_add
+2026-11-10T21:26:15.2424172Z SYM 02009858     38 list_note
+2026-11-10T21:26:15.2424557Z SYM 0200987e     52 sim_bta_known
+2026-11-10T21:26:15.2424862Z SYM 020098b2     70 bt_state_word
+2026-11-10T21:26:15.2425183Z SYM 020098f8     50 sim_bta_found
+2026-11-10T21:26:15.2425513Z SYM 0200992a     84 list_clip_step
+2026-11-10T21:26:15.2425824Z SYM 0200997e     56 note_name
+2026-11-10T21:26:15.2426192Z SYM 020099b6     74 pat_first_empty
+2026-11-10T21:26:15.2426548Z SYM 02009a00     10 list_head
+2026-11-10T21:26:15.2426970Z SYM 02009a0a     70 proj_slot_text
+2026-11-10T21:26:15.2427298Z SYM 02009a50     16 fx_pick_type
+2026-11-10T21:26:15.2427600Z SYM 02009a60     72 fx_label
+2026-11-10T21:26:15.2441056Z SYM 02009aa8     30 fx_pick_of
+2026-11-10T21:26:15.2441333Z SYM 02009ac6     50 ftype_param
+2026-11-10T21:26:15.2441571Z SYM 02009af8     22 kit_name
+2026-11-10T21:26:15.2441770Z SYM 02009b0e     86 kit_label
+2026-11-10T21:26:15.2441974Z SYM 02009b64     46 list_midi_out
+2026-11-10T21:26:15.2442207Z SYM 02009b92     22 bt_dev_text
+2026-11-10T21:26:15.2442415Z SYM 02009ba8     52 rec_settings
+2026-11-10T21:26:15.2442610Z SYM 02009bdc     38 kv
+2026-11-10T21:26:15.2442806Z SYM 02009c02     34 kname
+2026-11-10T21:26:15.2442987Z SYM 02009c24     24 kn
+2026-11-10T21:26:15.2443165Z SYM 02009c3c    568 tp_page_param
+2026-11-10T21:26:15.2443363Z SYM 02009e74    114 short_name
+2026-11-10T21:26:15.2443550Z SYM 02009ee6    156 ktp_val
+2026-11-10T21:26:15.2443741Z SYM 02009f82     96 ktp
+2026-11-10T21:26:15.2444130Z SYM 02009fe2     64 hit_edits
+2026-11-10T21:26:15.2444327Z SYM 0200a022     22 hit_of_step
+2026-11-10T21:26:15.2444518Z SYM 0200a038     72 hit_get
+2026-11-10T21:26:15.2444861Z SYM 0200a080     80 hit_view
+2026-11-10T21:26:15.2445052Z SYM 0200a0d0    292 comp_val_text
+2026-11-10T21:26:15.2445257Z SYM 0200a1f4     24 step_len_q
+2026-11-10T21:26:15.2445454Z SYM 0200a20c     82 quarters_text
+2026-11-10T21:26:15.2445648Z SYM 0200a25e     14 s_len
+2026-11-10T21:26:15.2445831Z SYM 0200a26c     30 step_len_code
+2026-11-10T21:26:15.2446021Z SYM 0200a28a     20 mst_base
+2026-11-10T21:26:15.2446207Z SYM 0200a29e     46 tempo_text
+2026-11-10T21:26:15.2446388Z SYM 0200a2cc    102 fm_exp2_nf
+2026-11-10T21:26:15.2446567Z SYM 0200a332     54 fm_exp2f
+2026-11-10T21:26:15.2446743Z SYM 0200a368     56 theme_ix
+2026-11-10T21:26:15.2446920Z SYM 0200a3a0   4152 page_knobs
+2026-11-10T21:26:15.2447110Z SYM 0200b3d8    184 list_page_knobs
+2026-11-10T21:26:15.2447320Z SYM 0200b490     20 large_type
+2026-11-10T21:26:15.2447516Z SYM 0200b4a4     48 list_page_section
+2026-11-10T21:26:15.2447718Z SYM 0200b4d4   4458 list_build
+2026-11-10T21:26:15.2447901Z SYM 0200c63e     86 pick_sets
+2026-11-10T21:26:15.2448092Z SYM 0200c694     94 undo_arr
+2026-11-10T21:26:15.2448279Z SYM 0200c6f2     26 undo_keep
+2026-11-10T21:26:15.2448474Z SYM 0200c70c    136 act_clear_notes
+2026-11-10T21:26:15.2448671Z SYM 0200c794     46 act_clear_locks
+2026-11-10T21:26:15.2448866Z SYM 0200c7c2     22 pat_kind
+2026-11-10T21:26:15.2449054Z SYM 0200c7d8    356 act_paste_pat
+2026-11-10T21:26:15.2449253Z SYM 0200c93c    450 paste_steps
+2026-11-10T21:26:15.2449440Z SYM 0200cafe    346 act_paste
+2026-11-10T21:26:15.2449622Z SYM 0200cc58     26 wv_kind
+2026-11-10T21:26:15.2449801Z SYM 0200cc72    486 act_rotate
+2026-11-10T21:26:15.2449988Z SYM 0200ce58    216 pattern_shift
+2026-11-10T21:26:15.2450176Z SYM 0200cf30     40 cued_pat
+2026-11-10T21:26:15.2450357Z SYM 0200cf58    120 pattern_pick
+2026-11-10T21:26:15.2450550Z SYM 0200cfd0     64 kit_pack
+2026-11-10T21:26:15.2450732Z SYM 0200d010    100 kit_apply
+2026-11-10T21:26:15.2450913Z SYM 0200d074    100 song_edited
+2026-11-10T21:26:15.2451097Z SYM 0200d0d8     88 load_preset
+2026-11-10T21:26:15.2451293Z SYM 0200d130    138 preset_apply
+2026-11-10T21:26:15.2451481Z SYM 0200d1ba     64 ask
+2026-11-10T21:26:15.2451663Z SYM 0200d1fa    184 do_save_preset
+2026-11-10T21:26:15.2451863Z SYM 0200d2b2     94 act_save_preset
+2026-11-10T21:26:15.2452057Z SYM 0200d310    162 do_save_kit
+2026-11-10T21:26:15.2452244Z SYM 0200d3b2     54 lane_drop_empty
+2026-11-10T21:26:15.2452467Z SYM 0200d3e8     62 hit_sound_off
+2026-11-10T21:26:15.2452665Z SYM 0200d426     26 step_fresh_if_empty
+2026-11-10T21:26:15.2452870Z SYM 0200d440     62 bt_keep
+2026-11-10T21:26:15.2453059Z SYM 0200d47e     92 after_load
+2026-11-10T21:26:15.2453249Z SYM 0200d4da    144 do_load_proj
+2026-11-10T21:26:15.2453437Z SYM 0200d56a    120 save_project
+2026-11-10T21:26:15.2453622Z SYM 0200d5e2     62 do_save_slot
+2026-11-10T21:26:15.2454067Z SYM 0200d620     98 act_save_slot
+2026-11-10T21:26:15.2454262Z SYM 0200d682     60 sim_bta_on
+2026-11-10T21:26:15.2454451Z SYM 0200d6be     58 sim_bta_reconnect
+2026-11-10T21:26:15.2454665Z SYM 0200d6f8     64 bt_audio_set
+2026-11-10T21:26:15.2454844Z SYM 0200d738     52 bt_list
+2026-11-10T21:26:15.2455023Z SYM 0200d76c     60 bt_midi_set
+2026-11-10T21:26:15.2455212Z SYM 0200d7a8     28 sim_bta_hangup
+2026-11-10T21:26:15.2455416Z SYM 0200d7c4     64 sim_bta_scan
+2026-11-10T21:26:15.2455599Z SYM 0200d804   5474 action_run
+2026-11-10T21:26:15.2455778Z SYM 0200ed66     64 list_sel
+2026-11-10T21:26:15.2455954Z SYM 0200eda6     66 list_key
+2026-11-10T21:26:15.2456131Z SYM 0200ede8     24 list_rh
+2026-11-10T21:26:15.2456304Z SYM 0200ee00     40 list_span
+2026-11-10T21:26:15.2456488Z SYM 0200ee28    118 list_scroll
+2026-11-10T21:26:15.2456673Z SYM 0200ee9e     28 list_pickable
+2026-11-10T21:26:15.2456859Z SYM 0200eeba     22 hit_plain
+2026-11-10T21:26:15.2457039Z SYM 0200eed0    404 hit_intern
+2026-11-10T21:26:15.2457222Z SYM 0200f064    330 hit_put
+2026-11-10T21:26:15.2457400Z SYM 0200f1ae     30 touch
+2026-11-10T21:26:15.2457576Z SYM 0200f1cc     42 hit_said
+2026-11-10T21:26:15.2457756Z SYM 0200f1f6    992 step_knob
+2026-11-10T21:26:15.2458054Z SYM 0200f5d6     64 ann_later
+2026-11-10T21:26:15.2458235Z SYM 0200f616    136 step_rec_move
+2026-11-10T21:26:15.2458422Z SYM 0200f69e     26 ordinal
+2026-11-10T21:26:15.2458594Z SYM 0200f6b8     20 key_note
+2026-11-10T21:26:15.2458770Z SYM 0200f6cc     58 chord_add
+2026-11-10T21:26:15.2458954Z SYM 0200f706    226 step_rec_key
+2026-11-10T21:26:15.2459141Z SYM 0200f7e8    168 weave_key
+2026-11-10T21:26:15.2459330Z SYM 0200f890    184 punch_key
+2026-11-10T21:26:15.2459516Z SYM 0200f948     50 page_btn_held
+2026-11-10T21:26:15.2459708Z SYM 0200f97a     48 key_sound
+2026-11-10T21:26:15.2459888Z SYM 0200f9aa     34 lsmk_key_vel
+2026-11-10T21:26:15.2460077Z SYM 0200f9cc    594 keyboard_down
+2026-11-10T21:26:15.2460272Z SYM 0200fc1e     58 kit_mute_hold
+2026-11-10T21:26:15.2460458Z SYM 0200fc58     40 kit_slot
+2026-11-10T21:26:15.2460645Z SYM 0200fc80    132 kit_sound_mute
+2026-11-10T21:26:15.2460837Z SYM 0200fd04    140 scene_go
+2026-11-10T21:26:15.2461011Z SYM 0200fd90     10 wv_mask
+2026-11-10T21:26:15.2461195Z SYM 0200fd9a     74 chord_step
+2026-11-10T21:26:15.2461383Z SYM 0200fde4     76 weave_set
+2026-11-10T21:26:15.2461560Z SYM 0200fe30     42 recording
+2026-11-10T21:26:15.2461739Z SYM 0200fe5a     54 kit_edit_steps
+2026-11-10T21:26:15.2461930Z SYM 0200fe90     80 chord_del
+2026-11-10T21:26:15.2462116Z SYM 0200fee0     36 step_rec_key_up
+2026-11-10T21:26:15.2462310Z SYM 0200ff04     94 step_say
+2026-11-10T21:26:15.2462488Z SYM 0200ff62     74 accel
+2026-11-10T21:26:15.2462668Z SYM 0200ffac     38 set_tempo_x10
+2026-11-10T21:26:15.2462860Z SYM 0200ffd2    174 song_knob
+2026-11-10T21:26:15.2463040Z SYM 02010080     44 undo_master
+2026-11-10T21:26:15.2463233Z SYM 020100ac     86 cc_out_master
+2026-11-10T21:26:15.2463419Z SYM 02010102     56 theme_step
+2026-11-10T21:26:15.2463599Z SYM 0201013a   3122 knob
+2026-11-10T21:26:15.2463785Z SYM 02010d6c    138 track_step
+2026-11-10T21:26:15.2464133Z SYM 02010df6     20 scene_aim
+2026-11-10T21:26:15.2464322Z SYM 02010e0a     12 presets_all
+2026-11-10T21:26:15.2464519Z SYM 02010e16     56 preset_engine
+2026-11-10T21:26:15.2464709Z SYM 02010e4e    472 preset_step
+2026-11-10T21:26:15.2464889Z SYM 02011026    116 fx_pick
+2026-11-10T21:26:15.2465062Z SYM 0201109a  13708 input
+2026-11-10T21:26:15.2465233Z SYM 02014626     36 cc_scene
+2026-11-10T21:26:15.2465420Z SYM 0201464a     32 midi_rel_delta
+2026-11-10T21:26:15.2465615Z SYM 0201466a     16 cc_to
+2026-11-10T21:26:15.2465786Z SYM 0201467a    134 cc_par
+2026-11-10T21:26:15.2465960Z SYM 02014700     48 cc_on
+2026-11-10T21:26:15.2466131Z SYM 02014730     62 cc_mute
+2026-11-10T21:26:15.2466304Z SYM 0201476e     80 ink_mix
+2026-11-10T21:26:15.2466477Z SYM 020147be     24 trk_tint
+2026-11-10T21:26:15.2466651Z SYM 020147d6     30 page_trk
+2026-11-10T21:26:15.2466827Z SYM 020147f4    154 fm_log2f
+2026-11-10T21:26:15.2467112Z SYM 0201488e     36 lin_db
+2026-11-10T21:26:15.2467290Z SYM 020148b2     46 f_sqrt1
+2026-11-10T21:26:15.2467466Z SYM 020148e0    148 cv_blend
+2026-11-10T21:26:15.2467644Z SYM 02014974    344 cv_round
+2026-11-10T21:26:15.2467820Z SYM 02014acc    318 alert_box
+2026-11-10T21:26:15.2468006Z SYM 02014c0a     80 text_fit
+2026-11-10T21:26:15.2468182Z SYM 02014c5a     46 smk_name
+2026-11-10T21:26:15.2468358Z SYM 02014c88     48 card_find
+2026-11-10T21:26:15.2468537Z SYM 02014cb8    142 wrap_do
+2026-11-10T21:26:15.2468707Z SYM 02014d46     42 cap_y
+2026-11-10T21:26:15.2468874Z SYM 02014d70     28 wrap
+2026-11-10T21:26:15.2469045Z SYM 02014d8c    712 list_paint
+2026-11-10T21:26:15.2469241Z SYM 02015054     50 begin_main
+2026-11-10T21:26:15.2469419Z SYM 02015086     56 pat_loop
+2026-11-10T21:26:15.2469590Z SYM 020150be     62 cv_frame
+2026-11-10T21:26:15.2469766Z SYM 020150fc    208 chord_shape
+2026-11-10T21:26:15.2469943Z SYM 020151cc     74 chord_name
+2026-11-10T21:26:15.2470121Z SYM 02015216     20 step_pos
+2026-11-10T21:26:15.2470297Z SYM 0201522a     26 hash_pat
+2026-11-10T21:26:15.2470479Z SYM 02015244     36 step_slot_set
+2026-11-10T21:26:15.2470658Z SYM 02015268     48 step_on
+2026-11-10T21:26:15.2470935Z SYM 02015298     50 cell_note
+2026-11-10T21:26:15.2471111Z SYM 020152ca     54 par_now
+2026-11-10T21:26:15.2471282Z SYM 02015300     10 f_abs
+2026-11-10T21:26:15.2471445Z SYM 0201530a     20 f_floor
+2026-11-10T21:26:15.2471611Z SYM 0201531e    362 cv_line_ex
+2026-11-10T21:26:15.2471784Z SYM 02015488    144 pen_to
+2026-11-10T21:26:15.2471952Z SYM 02015518    402 draw_sends
+2026-11-10T21:26:15.2472126Z SYM 020156aa     16 sin100
+2026-11-10T21:26:15.2472295Z SYM 020156ba    742 draw_fxtrack
+2026-11-10T21:26:15.2472482Z SYM 020159a0    698 draw_punch
+2026-11-10T21:26:15.2472657Z SYM 02015c5a     24 cv_linef
+2026-11-10T21:26:15.2472827Z SYM 02015c72    200 cv_dotf
+2026-11-10T21:26:15.2472997Z SYM 02015d3a     10 smp_slots
+2026-11-10T21:26:15.2473176Z SYM 02015d44     38 smp_missing
+2026-11-10T21:26:15.2473361Z SYM 02015d6a    250 smp_columns
+2026-11-10T21:26:15.2473537Z SYM 02015e64     38 loom_line
+2026-11-10T21:26:15.2473710Z SYM 02015e8a     92 fm_expf
+2026-11-10T21:26:15.2474037Z SYM 02015ee6   7256 draw_engine
+2026-11-10T21:26:15.2474228Z SYM 02017b3e     56 fm_rsqrtf
+2026-11-10T21:26:15.2474410Z SYM 02017b76     38 ease_exp
+2026-11-10T21:26:15.2474581Z SYM 02017b9c    120 filt_db
+2026-11-10T21:26:15.2474749Z SYM 02017c14     78 filt_y
+2026-11-10T21:26:15.2474915Z SYM 02017c62     32 lev_now
+2026-11-10T21:26:15.2475083Z SYM 02017c82     74 mix_y
+2026-11-10T21:26:15.2475250Z SYM 02017ccc    294 weave_row
+2026-11-10T21:26:15.2475424Z SYM 02017df2     34 glfo_route
+2026-11-10T21:26:15.2475601Z SYM 02017e14     98 bt_audio_text
+2026-11-10T21:26:15.2475782Z SYM 02017e76     60 setup_row
+2026-11-10T21:26:15.2475971Z SYM 02017eb2     14 plat_cpu_peak_pct
+2026-11-10T21:26:15.2476174Z SYM 02017ec0  27150 draw_page
+2026-11-10T21:26:15.2476361Z SYM 0201e8ce    210 track_crumb
+2026-11-10T21:26:15.2476543Z SYM 0201e9a0    798 page_tag
+2026-11-10T21:26:15.2476723Z SYM 0201ecbe     20 s_find_sp
+2026-11-10T21:26:15.2476904Z SYM 0201ecd2   1140 page_footer
+2026-11-10T21:26:15.2477084Z SYM 0201f146    350 enc_line
+2026-11-10T21:26:15.2477262Z SYM 0201f2a4    160 ctl_len
+2026-11-10T21:26:15.2477431Z SYM 0201f344    566 bot_part
+2026-11-10T21:26:15.2477605Z SYM 0201f57a     98 bot_split
+2026-11-10T21:26:15.2477779Z SYM 0201f5dc     36 bot_w
+2026-11-10T21:26:15.2477946Z SYM 0201f600    108 bot_line
+2026-11-10T21:26:15.2478126Z SYM 0201f66c     28 loom_lights
+2026-11-10T21:26:15.2478333Z SYM 0201f688     60 lsmk_rgb
+2026-11-10T21:26:15.2478522Z SYM 0201f6c4     30 sp_knob_sig
+2026-11-10T21:26:15.2478714Z SYM 0201f6e2     34 sp_list
+2026-11-10T21:26:15.2478899Z SYM 0201f704     56 sp_row_sig
+2026-11-10T21:26:15.2479081Z SYM 0201f73c     62 sp_note_sig
+2026-11-10T21:26:15.2479259Z SYM 0201f77a    118 sp_page_sig
+2026-11-10T21:26:15.2479437Z SYM 0201f7f0     44 sp_trk_sig
+2026-11-10T21:26:15.2479614Z SYM 0201f81c    138 sp_snap
+2026-11-10T21:26:15.2479904Z SYM 0201f8a6     82 sp_end
+2026-11-10T21:26:15.2480090Z SYM 0201f8f8    384 sp_parts
+2026-11-10T21:26:15.2480274Z SYM 0201fa78    320 sp_knob
+2026-11-10T21:26:15.2480450Z SYM 0201fbb8     42 sp_int
+2026-11-10T21:26:15.2480622Z SYM 0201fbe2    224 sp_row
+2026-11-10T21:26:15.2480790Z SYM 0201fcc2   1136 sp_front
+2026-11-10T21:26:15.2480976Z SYM 02020132    150 sp_knobs_changed
+2026-11-10T21:26:15.2481176Z SYM 020201c8  13370 ui_frame
+2026-11-10T21:26:15.2481356Z SYM 02023602     18 ui_input_only
+2026-11-10T21:26:15.2481553Z SYM 02023614     48 fm1_p33_read
+2026-11-10T21:26:15.2481741Z SYM 02023644     14 fm1_vdc14
+2026-11-10T21:26:15.2481923Z SYM 02023652     14 fm1_sysvdd
+2026-11-10T21:26:15.2482097Z SYM 02023660     24 smp_reg_off
+2026-11-10T21:26:15.2482285Z SYM 02023678     24 smp_reg_size
+2026-11-10T21:26:15.2482466Z SYM 02023690    214 app_init
+2026-11-10T21:26:15.2482641Z SYM 02023766     10 res_samples
+2026-11-10T21:26:15.2482819Z SYM 02023770     72 app_render
+2026-11-10T21:26:15.2483002Z SYM 020237b8     14 app_panic
+2026-11-10T21:26:15.2483183Z SYM 020237c6      4 app_ui_init
+2026-11-10T21:26:15.2483361Z SYM 020237ca     52 app_frame
+2026-11-10T21:26:15.2483660Z SYM 020237fe      4 app_input_only
+2026-11-10T21:26:15.2483968Z SYM 02023802      4 app_say
+2026-11-10T21:26:15.2484179Z SYM 02023806      4 app_redraw
+2026-11-10T21:26:15.2484357Z SYM 0202380a     30 rp_byte
+2026-11-10T21:26:15.2484528Z SYM 02023828     22 rp_num
+2026-11-10T21:26:15.2484698Z SYM 0202383e     34 rp_text
+2026-11-10T21:26:15.2484867Z SYM 02023860     46 sb_flash
+2026-11-10T21:26:15.2485042Z SYM 0202388e     18 smp_reg_v
+2026-11-10T21:26:15.2485218Z SYM 020238a0     50 smp_reg_of
+2026-11-10T21:26:15.2485391Z SYM 020238d2     26 sb_erase
+2026-11-10T21:26:15.2485561Z SYM 020238ec     20 rp_arg
+2026-11-10T21:26:15.2485729Z SYM 02023900     94 rp_unpack
+2026-11-10T21:26:15.2485903Z SYM 0202395e     24 sb_rd32
+2026-11-10T21:26:15.2486075Z SYM 02023976   1882 app_sysex
+2026-11-10T21:26:15.2486254Z SYM 020240d0    194 app_splash
+2026-11-10T21:26:15.2486447Z SYM 02024192     16 app_backup_playing
+2026-11-10T21:26:15.2486659Z SYM 020241a2     54 app_backup_restored
+2026-11-10T21:26:15.2486863Z SYM 020241d8     24 ua_add
+2026-11-10T21:26:15.2487039Z SYM 020241f0     64 ua_clear_app
+2026-11-10T21:26:15.2487222Z SYM 02024230     18 ua_fill
+2026-11-10T21:26:15.2487396Z SYM 02024242    196 uac_render_start
+2026-11-10T21:26:15.2487586Z SYM 02024306     20 uac_s16
+2026-11-10T21:26:15.2487755Z SYM 0202431a    120 uac_tap
+2026-11-10T21:26:15.2487928Z SYM 02024392    296 fm1_alnk0_irq
+2026-11-10T21:26:15.2488118Z SYM 020244ba     58 smk_curve
+2026-11-10T21:26:15.2488296Z SYM 020244f4     70 smk__padq
+2026-11-10T21:26:15.2488471Z SYM 0202453a    234 smk__pad
+2026-11-10T21:26:15.2488649Z SYM 02024624    140 smk__key_event
+2026-11-10T21:26:15.2488834Z SYM 020246b0     80 sie_wr
+2026-11-10T21:26:15.2489001Z SYM 02024700     86 sie_rd
+2026-11-10T21:26:15.2489165Z SYM 02024756    472 uac_service
+2026-11-10T21:26:15.2489341Z SYM 0202492e     60 uac_stream
+2026-11-10T21:26:15.2489518Z SYM 0202496a     24 uac_rate_set
+2026-11-10T21:26:15.2489702Z SYM 02024982    144 e0_chunk
+2026-11-10T21:26:15.2489874Z SYM 02024a12     62 usb_str_desc
+2026-11-10T21:26:15.2490066Z SYM 02024a50     62 e0_send
+2026-11-10T21:26:15.2490242Z SYM 02024a8e     44 uac_ep4_reset
+2026-11-10T21:26:15.2490459Z SYM 02024aba     58 sx_over
+2026-11-10T21:26:15.2490634Z SYM 02024af4    520 sysex_byte
+2026-11-10T21:26:15.2490833Z SYM 02024cfc     64 midi_enqueue
+2026-11-10T21:26:15.2491017Z SYM 02024d3c   3992 fm1_timer5_irq
+2026-11-10T21:26:15.2491207Z SYM 02025cd4     10 fm1_p33_write
+2026-11-10T21:26:15.2491397Z SYM 02025cde    154 fm1_enter_uboot
+2026-11-10T21:26:15.2491590Z SYM 02025d78     40 boot_rc_norm
+2026-11-10T21:26:15.2491772Z SYM 02025da0     54 boot_rc_bit
+2026-11-10T21:26:15.2491954Z SYM 02025dd6     40 boot_rc_tree
+2026-11-10T21:26:15.2492134Z SYM 02025dfe     74 boot_rc_len
+2026-11-10T21:26:15.2492312Z SYM 02025e48     44 boot_rc_rtree
+2026-11-10T21:26:15.2492619Z SYM 02025e74    862 boot_lzma
+2026-11-10T21:26:15.2492803Z SYM 020261d2     74 boot_image
+2026-11-10T21:26:15.2492981Z SYM 0202621c     22 fm1_delay_us
+2026-11-10T21:26:15.2493166Z SYM 02026232      4 ota_fread
+2026-11-10T21:26:15.2493338Z SYM 02026236     16 rs_rec_read
+2026-11-10T21:26:15.2493511Z SYM 02026246     48 bu_crc
+2026-11-10T21:26:15.2493682Z SYM 02026276     58 rs_rec_valid
+2026-11-10T21:26:15.2494017Z SYM 020262b0     10 bu_rd16
+2026-11-10T21:26:15.2494200Z SYM 020262ba     22 bu_rd32
+2026-11-10T21:26:15.2494369Z SYM 020262d0     32 ota_in_area
+2026-11-10T21:26:15.2494547Z SYM 020262f0     44 ota_erase
+2026-11-10T21:26:15.2494730Z SYM 0202631c      8 rs_rec_erase
+2026-11-10T21:26:15.2494906Z SYM 02026324     12 bu_obj
+2026-11-10T21:26:15.2495076Z SYM 02026330    208 rs_heads
+2026-11-10T21:26:15.2495252Z SYM 02026400     24 ota_unstage
+2026-11-10T21:26:15.2495422Z SYM 02026418     24 lcd_spin
+2026-11-10T21:26:15.2495598Z SYM 02026430     26 smk__pin_out
+2026-11-10T21:26:15.2495781Z SYM 0202644a     28 smk__pin_in_pu
+2026-11-10T21:26:15.2495981Z SYM 02026466     28 smk__pin_analog
+2026-11-10T21:26:15.2496171Z SYM 02026482    296 fm1_input_init
+2026-11-10T21:26:15.2496469Z SYM 020265aa     92 panel_valid
+2026-11-10T21:26:15.2496656Z SYM 02026606     68 panel_init
+2026-11-10T21:26:15.2496835Z SYM 0202664a     20 fm1_delay_ms
+2026-11-10T21:26:15.2497016Z SYM 0202665e    178 usb_start
+2026-11-10T21:26:15.2497191Z SYM 02026710     60 fm1_irq_attach
+2026-11-10T21:26:15.2497387Z SYM 0202674c     48 fm1_guard_lock_top
+2026-11-10T21:26:15.2497586Z SYM 0202677c     16 fm1_irq_enable_all
+2026-11-10T21:26:15.2497779Z SYM 0202678c     54 usb_retry
+2026-11-10T21:26:15.2497954Z SYM 020267c2     34 usb_detach
+2026-11-10T21:26:15.2498137Z SYM 020267e4     68 log_line_send
+2026-11-10T21:26:15.2498321Z SYM 02026828   1674 log_frame
+2026-11-10T21:26:15.2498497Z SYM 02026eb2     32 ota_service
+2026-11-10T21:26:15.2498682Z SYM 02026ed2    144 ota_show
+2026-11-10T21:26:15.2498862Z SYM 02026f62     34 ota_jl_enc_k
+2026-11-10T21:26:15.2499051Z SYM 02026f84     10 ota_jl_enc
+2026-11-10T21:26:15.2499228Z SYM 02026f8e     46 ota_crc16
+2026-11-10T21:26:15.2499405Z SYM 02026fbc     22 ota_memeq
+2026-11-10T21:26:15.2499590Z SYM 02026fd2     32 ota_prog
+2026-11-10T21:26:15.2499771Z SYM 02026ff2   1716 ota_session
+2026-11-10T21:26:15.2499961Z SYM 020276a6     80 enter_uboot
+2026-11-10T21:26:15.2500139Z SYM 020276f6     38 fm1__pc_out
+2026-11-10T21:26:15.2500320Z SYM 0202771c     22 fm1_input_edges
+2026-11-10T21:26:15.2500509Z SYM 02027732     24 bu_stop
+2026-11-10T21:26:15.2500683Z SYM 0202774a     16 rs_playing
+2026-11-10T21:26:15.2500858Z SYM 0202775a      4 rs_fetch
+2026-11-10T21:26:15.2501029Z SYM 0202775e    156 rs_show
+2026-11-10T21:26:15.2501262Z SYM 020277fa     28 rs_note
+2026-11-10T21:26:15.2501446Z SYM 02027816     12 rs_reload
+2026-11-10T21:26:15.2501622Z SYM 02027822     30 mr_link
+2026-11-10T21:26:15.2501791Z SYM 02027840     30 mr_in_letgo
+2026-11-10T21:26:15.2501976Z SYM 0202785e     52 mirror_off
+2026-11-10T21:26:15.2502158Z SYM 02027892     54 mr_ctl_send
+2026-11-10T21:26:15.2502334Z SYM 020278c8      8 bu_wr16
+2026-11-10T21:26:15.2502504Z SYM 020278d0     18 bu_wr32
+2026-11-10T21:26:15.2502695Z SYM 020278e2     94 bu_frame
+2026-11-10T21:26:15.2502883Z SYM 02027940      8 mr_wr16
+2026-11-10T21:26:15.2503057Z SYM 02027948     18 mr_wr32
+2026-11-10T21:26:15.2503228Z SYM 0202795a   7002 fm1_main
+2026-11-10T21:26:15.2503413Z SYM 020294b4    780 fm1_cstart
+2026-11-10T21:26:15.2503599Z SYM 020297c0     32 s_punch
+2026-11-10T21:26:15.2503774Z SYM 020297e0     10 s_scene
+2026-11-10T21:26:15.2504132Z SYM 020297ea     56 r_note_on
+2026-11-10T21:26:15.2504318Z SYM 02029822     32 r_note_off
+2026-11-10T21:26:15.2504495Z SYM 02029842     66 r_drum
+2026-11-10T21:26:15.2504670Z SYM 02029884     38 r_lock
+2026-11-10T21:26:15.2504840Z SYM 020298aa     32 r_bend
+2026-11-10T21:26:15.2505008Z SYM 020298ca     58 r_punch
+2026-11-10T21:26:15.2505177Z SYM 02029904     44 r_midi
+2026-11-10T21:26:15.2505342Z SYM 02029930     32 r_step
+2026-11-10T21:26:15.2505655Z SYM 02029950     28 r_scene
+2026-11-10T21:26:15.2505829Z SYM 0202996c     30 r_metro
+2026-11-10T21:26:15.2506008Z SYM 0202998a     32 r_pan
+2026-11-10T21:26:15.2506186Z SYM 020299aa     32 r_drum_off
+2026-11-10T21:26:15.2506360Z SYM 020299ca     40 r_ghost
+2026-11-10T21:26:15.2506529Z SYM 020299f2     22 set_get
+2026-11-10T21:26:15.2506700Z SYM 02029a08    144 st_get
+2026-11-10T21:26:15.2506872Z SYM 02029a98     88 st_put
+2026-11-10T21:26:15.2507042Z SYM 02029af0     44 set_put
+2026-11-10T21:26:15.2507220Z SYM 02029b1c    306 act_clear_scene
+2026-11-10T21:26:15.2507426Z SYM 02029c4e     66 do_clear_song
+2026-11-10T21:26:15.2507633Z SYM 02029c90    154 do_new_proj
+2026-11-10T21:26:15.2507830Z SYM 02029d2a     82 do_random_sounds
+2026-11-10T21:26:15.2508038Z SYM 02029d7c    154 do_bt_forget
+2026-11-10T21:26:15.2508226Z SYM 02029e3a    194 organ_bars
+2026-11-10T21:26:15.2508411Z SYM 02029efc      8 synth_load_hint
+2026-11-10T21:26:15.2508601Z SYM 02029f04     34 key_release
+2026-11-10T21:26:15.2508794Z SYM 02029f26    382 synth_note_off
+2026-11-10T21:26:15.2508988Z SYM 0202a0a4     22 voice_release
+2026-11-10T21:26:15.2509177Z SYM 0202a0ba    100 synth_all_off
+2026-11-10T21:26:15.2509469Z SYM 0202a11e    706 synth_cut
+2026-11-10T21:26:15.2509651Z SYM 0202a3e0     26 synth_perf
+2026-11-10T21:26:15.2509832Z SYM 0202a3fa     36 synth_lock
+2026-11-10T21:26:15.2510019Z SYM 0202a41e     34 synth_lock_value
+2026-11-10T21:26:15.2510213Z SYM 0202a440     28 synth_tempo
+2026-11-10T21:26:15.2510398Z SYM 0202a45c     16 synth_acid_lite
+2026-11-10T21:26:15.2510589Z SYM 0202a46c     20 synth_limit
+2026-11-10T21:26:15.2510779Z SYM 0202a480    274 synth_voice_cost
+2026-11-10T21:26:15.2510970Z SYM 0202a592    196 env_seconds
+2026-11-10T21:26:15.2511156Z SYM 0202a656    108 synth_duck_trigger
+2026-11-10T21:26:15.2511353Z SYM 0202a6c2    872 synth_init
+2026-11-10T21:26:15.2511534Z SYM 0202aa2a     12 synth_glfo_restart
+2026-11-10T21:26:15.2511732Z SYM 0202aa36     10 synth_glfo_now
+2026-11-10T21:26:15.2511928Z SYM 0202aa40    220 lfo_hz
+2026-11-10T21:26:15.2512106Z SYM 0202ab1c     10 smp_slots
+2026-11-10T21:26:15.2512286Z SYM 0202ab26    480 eknob_init
+2026-11-10T21:26:15.2512463Z SYM 0202ad06    440 tp_info
+2026-11-10T21:26:15.2512647Z SYM 0202aebe     66 fade_secs
+2026-11-10T21:26:15.2512832Z SYM 0202af00   2572 synth_prepare
+2026-11-10T21:26:15.2513023Z SYM 0202b90c   4420 char_coefs
+2026-11-10T21:26:15.2513199Z SYM 0202ca50     42 sat_c
+2026-11-10T21:26:15.2513370Z SYM 0202ca7a     94 sin_q
+2026-11-10T21:26:15.2513544Z SYM 0202cad8    144 fm_sin_turns
+2026-11-10T21:26:15.2513731Z SYM 0202cb68    166 fm_exp2f
+2026-11-10T21:26:15.2514111Z SYM 0202cc0e    184 ch_pivot_hz
+2026-11-10T21:26:15.2514310Z SYM 0202ccc6    154 fm_log2f
+2026-11-10T21:26:15.2514493Z SYM 0202cd60    454 char_picture
+2026-11-10T21:26:15.2514677Z SYM 0202cf26   3742 char_stage
+2026-11-10T21:26:15.2514858Z SYM 0202ddc4    286 char_bus
+2026-11-10T21:26:15.2515039Z SYM 0202dee2     66 pf
+2026-11-10T21:26:15.2515215Z SYM 0202df24     44 glide_to
+2026-11-10T21:26:15.2515396Z SYM 0202df50     30 wrap1
+2026-11-10T21:26:15.2515571Z SYM 0202df6e  18770 voice_chunk
+2026-11-10T21:26:15.2515751Z SYM 020328c0    120 env_step
+2026-11-10T21:26:15.2515937Z SYM 02032938   2412 voice_subblock
+2026-11-10T21:26:15.2516130Z SYM 020332a4  19406 eng_run
+2026-11-10T21:26:15.2516301Z SYM 02037e72    854 flt_channel
+2026-11-10T21:26:15.2516492Z SYM 020381c8   5606 voice_samples
+2026-11-10T21:26:15.2516688Z SYM 020397ae    190 tap_voice
+2026-11-10T21:26:15.2516875Z SYM 0203986c    952 synth_render_on
+2026-11-10T21:26:15.2517085Z SYM 02039c24    144 synth_order
+2026-11-10T21:26:15.2517267Z SYM 02039cb4    106 synth_idle
+2026-11-10T21:26:15.2517450Z SYM 02039d1e    170 synth_slice_now
+2026-11-10T21:26:15.2517649Z SYM 02039dc8     48 synth_voices_used
+2026-11-10T21:26:15.2517847Z SYM 02039df8    440 dknob_of
+2026-11-10T21:26:15.2518032Z SYM 02039fb0     24 midi_knob
+2026-11-10T21:26:15.2518210Z SYM 02039fc8    578 tp_info_par
+2026-11-10T21:26:15.2518389Z SYM 0203a20a     14 put_s
+2026-11-10T21:26:15.2518697Z SYM 0203a218    186 put_f1
+2026-11-10T21:26:15.2518879Z SYM 0203a2d2    156 hz_text
+2026-11-10T21:26:15.2519053Z SYM 0203a36e     80 put_i
+2026-11-10T21:26:15.2519241Z SYM 0203a3be    146 ms_text
+2026-11-10T21:26:15.2519423Z SYM 0203a450   1244 tp_text_i
+2026-11-10T21:26:15.2519603Z SYM 0203a92c    924 tp_text_par
+2026-11-10T21:26:15.2519787Z SYM 0203acc8    162 sound_default
+2026-11-10T21:26:15.2519982Z SYM 0203ad6a     28 preset_first
+2026-11-10T21:26:15.2520177Z SYM 0203ad86    132 drumline_init
+2026-11-10T21:26:15.2520367Z SYM 0203ae0a     70 drumline_choke
+2026-11-10T21:26:15.2520562Z SYM 0203ae50     84 drumline_release
+2026-11-10T21:26:15.2520757Z SYM 0203aea4    166 fm_exp2f
+2026-11-10T21:26:15.2520935Z SYM 0203af4a     74 slot_leave
+2026-11-10T21:26:15.2521113Z SYM 0203af94     26 holds
+2026-11-10T21:26:15.2521279Z SYM 0203afae    192 slot_claim
+2026-11-10T21:26:15.2521459Z SYM 0203b06e     36 noise
+2026-11-10T21:26:15.2521627Z SYM 0203b092     74 knob
+2026-11-10T21:26:15.2521807Z SYM 0203b0dc    232 dec_k
+2026-11-10T21:26:15.2521980Z SYM 0203b1c4    194 key_secs
+2026-11-10T21:26:15.2522158Z SYM 0203b286    240 lp_c
+2026-11-10T21:26:15.2522328Z SYM 0203b376    204 fm_expf
+2026-11-10T21:26:15.2522612Z SYM 0203b442    294 reso_set
+2026-11-10T21:26:15.2522786Z SYM 0203b568     86 fm_sqrtf
+2026-11-10T21:26:15.2522964Z SYM 0203b5be     10 smp_slots
+2026-11-10T21:26:15.2523147Z SYM 0203b5c8     28 fm_floorf
+2026-11-10T21:26:15.2523327Z SYM 0203b5e4  17632 start
+2026-11-10T21:26:15.2523503Z SYM 0203fac4    586 drumline_hit
+2026-11-10T21:26:15.2523692Z SYM 0203fd0e    174 fm_db2lin
+2026-11-10T21:26:15.2524026Z SYM 0203fdbc    338 drumline_filter
+2026-11-10T21:26:15.2524265Z SYM 0203ff0e  20888 drumline_render
+2026-11-10T21:26:15.2524465Z SYM 020450a6     84 drumline_sounding
+2026-11-10T21:26:15.2524669Z SYM 020450fa     68 ds_voice_init
+2026-11-10T21:26:15.2524860Z SYM 0204513e   1586 ds_voice_render
+2026-11-10T21:26:15.2525051Z SYM 02045770    102 ds_fold_block
+2026-11-10T21:26:15.2525242Z SYM 020457d6      4 smp_factory
+2026-11-10T21:26:15.2525428Z SYM 020457da     10 smp_user_count
+2026-11-10T21:26:15.2525617Z SYM 020457e4     38 smp_entry
+2026-11-10T21:26:15.2525802Z SYM 0204580a     14 smp_user_bytes
+2026-11-10T21:26:15.2525989Z SYM 02045818    236 fact_init
+2026-11-10T21:26:15.2526169Z SYM 02045904    104 smp_get
+2026-11-10T21:26:15.2526341Z SYM 0204596c    134 smp_name
+2026-11-10T21:26:15.2526512Z SYM 020459f2    188 ima_run
+2026-11-10T21:26:15.2526685Z SYM 02045aae     94 ima_span
+2026-11-10T21:26:15.2526861Z SYM 02045b0c    244 smp_fill
+2026-11-10T21:26:15.2527041Z SYM 02045c00    352 smp_play
+2026-11-10T21:26:15.2527221Z SYM 02045d60     36 smp_user_attach
+2026-11-10T21:26:15.2527414Z SYM 02045d84     14 smp_user_drop
+2026-11-10T21:26:15.2527600Z SYM 02045d92    228 smp_bank_crc
+2026-11-10T21:26:15.2527782Z SYM 02045e76    118 vptr
+2026-11-10T21:26:15.2527951Z SYM 02045eec     24 rd32
+2026-11-10T21:26:15.2528131Z SYM 02045f04    876 smp_user_scan
+2026-11-10T21:26:15.2528319Z SYM 02046270     62 fx_pick_name
+2026-11-10T21:26:15.2528502Z SYM 020462ae     62 fx_knob_name
+2026-11-10T21:26:15.2528685Z SYM 020462ec    204 fm_expf
+2026-11-10T21:26:15.2528862Z SYM 020463b8     52 onepole_k
+2026-11-10T21:26:15.2529049Z SYM 020463ec     30 k127
+2026-11-10T21:26:15.2529218Z SYM 0204640a    126 delay_time
+2026-11-10T21:26:15.2529398Z SYM 02046488   3164 fx_derive
+2026-11-10T21:26:15.2529572Z SYM 020470e4    630 fx_init
+2026-11-10T21:26:15.2529745Z SYM 0204735a    442 fx_clear
+2026-11-10T21:26:15.2529936Z SYM 02047514     46 fx_has
+2026-11-10T21:26:15.2530109Z SYM 02047542    166 fx_set
+2026-11-10T21:26:15.2530285Z SYM 020475e8    132 fx_tempo
+2026-11-10T21:26:15.2530459Z SYM 0204766c    178 fx_width
+2026-11-10T21:26:15.2530640Z SYM 0204771e    442 fx_filter
+2026-11-10T21:26:15.2530827Z SYM 020478d8     30 fx_lags
+2026-11-10T21:26:15.2531007Z SYM 020478f6  14720 fx_process_lag
+2026-11-10T21:26:15.2531198Z SYM 0204b276     20 fx_process
+2026-11-10T21:26:15.2531383Z SYM 0204b28a    186 master_pump_ms
+2026-11-10T21:26:15.2531704Z SYM 0204b344     30 master_max
+2026-11-10T21:26:15.2531896Z SYM 0204b362    700 biq_shelf
+2026-11-10T21:26:15.2532076Z SYM 0204b61e    438 eq_coefs
+2026-11-10T21:26:15.2532255Z SYM 0204b7d4    222 coef_ms
+2026-11-10T21:26:15.2532431Z SYM 0204b8b2    508 comp_coefs
+2026-11-10T21:26:15.2532612Z SYM 0204baae   1800 color_coefs
+2026-11-10T21:26:15.2532795Z SYM 0204c1b6     92 master_init
+2026-11-10T21:26:15.2532980Z SYM 0204c212     66 level_lin
+2026-11-10T21:26:15.2533159Z SYM 0204c254    130 master_set
+2026-11-10T21:26:15.2533338Z SYM 0204c2d6    234 master_clear
+2026-11-10T21:26:15.2533527Z SYM 0204c3c0      6 master_pump_db
+2026-11-10T21:26:15.2533716Z SYM 0204c3c6     92 master_key
+2026-11-10T21:26:15.2533979Z SYM 0204c422     14 bass303_get
+2026-11-10T21:26:15.2534174Z SYM 0204c430    166 c_exp2f
+2026-11-10T21:26:15.2534359Z SYM 0204c4d6     48 bass303_cutoff_hz
+2026-11-10T21:26:15.2534554Z SYM 0204c506    154 c_log2f
+2026-11-10T21:26:15.2534730Z SYM 0204c5a0    204 c_expf
+2026-11-10T21:26:15.2534918Z SYM 0204c66c    378 rat_coeffs
+2026-11-10T21:26:15.2535101Z SYM 0204c7e6   1460 square_set
+2026-11-10T21:26:15.2535282Z SYM 0204cd9a   1974 bass303_set
+2026-11-10T21:26:15.2535567Z SYM 0204d550    182 c_sinf
+2026-11-10T21:26:15.2535736Z SYM 0204d606    212 c_cosf
+2026-11-10T21:26:15.2535912Z SYM 0204d6da    266 bq_low_shelf
+2026-11-10T21:26:15.2536103Z SYM 0204d7e4     94 bq_lowpass
+2026-11-10T21:26:15.2536282Z SYM 0204d842     38 rc_coeff
+2026-11-10T21:26:15.2536458Z SYM 0204d868     26 powers
+2026-11-10T21:26:15.2536631Z SYM 0204d882    184 env_tables
+2026-11-10T21:26:15.2536812Z SYM 0204d93a    672 bass303_init
+2026-11-10T21:26:15.2536999Z SYM 0204dbda    352 bass303_note_on
+2026-11-10T21:26:15.2537196Z SYM 0204dd3a      6 bass303_note_off
+2026-11-10T21:26:15.2537396Z SYM 0204dd40     12 bass303_set_lite
+2026-11-10T21:26:15.2537591Z SYM 0204dd4c      4 bass303_pitch
+2026-11-10T21:26:15.2537780Z SYM 0204dd50    324 c_powf
+2026-11-10T21:26:15.2537950Z SYM 0204de94   1130 run_control
+2026-11-10T21:26:15.2538142Z SYM 0204e2fe   1072 run_osc_sqr
+2026-11-10T21:26:15.2538322Z SYM 0204e72e    352 run_osc_saw
+2026-11-10T21:26:15.2538500Z SYM 0204e88e    348 run_ladder
+2026-11-10T21:26:15.2538681Z SYM 0204e9ea    610 run_decim
+2026-11-10T21:26:15.2538861Z SYM 0204ec4c    238 run_amp
+2026-11-10T21:26:15.2539042Z SYM 0204ed3a    452 run_post
+2026-11-10T21:26:15.2539219Z SYM 0204eefe    986 drive_soft
+2026-11-10T21:26:15.2539402Z SYM 0204f2d8    808 drive_rat
+2026-11-10T21:26:15.2539579Z SYM 0204f600   2428 bass303_render
+2026-11-10T21:26:15.2539763Z SYM 0204ff7c    182 d9s_find
+2026-11-10T21:26:15.2539943Z SYM 02050032     48 d909_res_ok
+2026-11-10T21:26:15.2540118Z SYM 02050062    166 fm_exp2f
+2026-11-10T21:26:15.2540293Z SYM 02050108    330 pot_exp
+2026-11-10T21:26:15.2540468Z SYM 02050252     40 d9_len
+2026-11-10T21:26:15.2540642Z SYM 0205027a    184 drive_of
+2026-11-10T21:26:15.2540818Z SYM 02050332     42 pot_list
+2026-11-10T21:26:15.2540993Z SYM 0205035c     78 d9_tanh
+2026-11-10T21:26:15.2541167Z SYM 020503aa    212 d9_shape_prep
+2026-11-10T21:26:15.2541354Z SYM 0205047e    182 fm_sinf
+2026-11-10T21:26:15.2541527Z SYM 02050534    204 d9_biquad_set
+2026-11-10T21:26:15.2541720Z SYM 02050600    356 d9_exp_small
+2026-11-10T21:26:15.2541907Z SYM 02050764     12 d9_env_set
+2026-11-10T21:26:15.2542083Z SYM 02050770     20 d9_ceil
+2026-11-10T21:26:15.2542255Z SYM 02050784    250 d9_env_exp
+2026-11-10T21:26:15.2542433Z SYM 0205087e   1800 d909_start
+2026-11-10T21:26:15.2542612Z SYM 02050f86    662 d9_shape
+2026-11-10T21:26:15.2542789Z SYM 0205121c   7930 d909_render
+2026-11-10T21:26:15.2542970Z SYM 02053116    236 patterns_init
+2026-11-10T21:26:15.2543151Z SYM 02053202     40 lane_find
+2026-11-10T21:26:15.2543326Z SYM 0205322a    120 lane_alloc
+2026-11-10T21:26:15.2543504Z SYM 020532a2     28 lane_clear
+2026-11-10T21:26:15.2543695Z SYM 020532be     30 lane_count
+2026-11-10T21:26:15.2543962Z SYM 020532dc     76 step_has_lock
+2026-11-10T21:26:15.2544154Z SYM 02053328     66 step_tune
+2026-11-10T21:26:15.2544447Z SYM 0205336a     64 step_vel
+2026-11-10T21:26:15.2544630Z SYM 020533aa    118 step_hit
+2026-11-10T21:26:15.2544809Z SYM 02053420     66 lane_pool_get
+2026-11-10T21:26:15.2544999Z SYM 02053462    130 lane_pool_set
+2026-11-10T21:26:15.2545187Z SYM 020534e4     58 lane_pool_free
+2026-11-10T21:26:15.2545381Z SYM 0205351e     72 step_clear_locks
+2026-11-10T21:26:15.2545585Z SYM 02053566     62 pattern_clear_locks
+2026-11-10T21:26:15.2545789Z SYM 020535a4     40 cond_ab
+2026-11-10T21:26:15.2545973Z SYM 020535cc     70 step_set_notes
+2026-11-10T21:26:15.2546168Z SYM 02053612     96 step_toggle_note
+2026-11-10T21:26:15.2546368Z SYM 02053672     26 step_empty
+2026-11-10T21:26:15.2546554Z SYM 0205368c     16 kit_set
+2026-11-10T21:26:15.2546732Z SYM 0205369c     50 kit_toggle
+2026-11-10T21:26:15.2546913Z SYM 020536ce     60 kit_add
+2026-11-10T21:26:15.2547083Z SYM 0205370a     36 kit_first
+2026-11-10T21:26:15.2547262Z SYM 0205372e    226 notes_cross
+2026-11-10T21:26:15.2547440Z SYM 02053810    834 weave_step
+2026-11-10T21:26:15.2547623Z SYM 02053b52    170 pattern_woven
+2026-11-10T21:26:15.2547820Z SYM 02053bfc     44 punch_of_key
+2026-11-10T21:26:15.2548008Z SYM 02053c28    202 note_to_deg
+2026-11-10T21:26:15.2548295Z SYM 02053cf2     36 mask_len
+2026-11-10T21:26:15.2548473Z SYM 02053d16     22 floor_div
+2026-11-10T21:26:15.2548653Z SYM 02053d2c     56 deg_to_note
+2026-11-10T21:26:15.2548831Z SYM 02053d64    136 brain_shift
+2026-11-10T21:26:15.2549052Z SYM 02053dec     18 seq_tempo
+2026-11-10T21:26:15.2549232Z SYM 02053dfe    138 seq_step_q8
+2026-11-10T21:26:15.2549410Z SYM 02053e88     34 seq_six_to_bar
+2026-11-10T21:26:15.2549597Z SYM 02053eaa     32 punch_group_of
+2026-11-10T21:26:15.2549791Z SYM 02053eca    120 seq_punch_mask
+2026-11-10T21:26:15.2549978Z SYM 02053f42    108 bar_len_update
+2026-11-10T21:26:15.2550163Z SYM 02053fae    398 seq_init
+2026-11-10T21:26:15.2550340Z SYM 0205413c    654 seq_until_event
+2026-11-10T21:26:15.2550531Z SYM 020543ca    148 chord_word
+2026-11-10T21:26:15.2550722Z SYM 0205445e    198 brain_chord_of_root
+2026-11-10T21:26:15.2550925Z SYM 02054524     66 midi_off
+2026-11-10T21:26:15.2551101Z SYM 02054566     86 player_note_off
+2026-11-10T21:26:15.2551288Z SYM 020545bc    158 sounding_off
+2026-11-10T21:26:15.2551469Z SYM 0205465a    116 arp_off
+2026-11-10T21:26:15.2551636Z SYM 020546ce     32 arp_pan
+2026-11-10T21:26:15.2551814Z SYM 020546ee     70 arp_stop
+2026-11-10T21:26:15.2551993Z SYM 02054734    212 keys_all_off
+2026-11-10T21:26:15.2552174Z SYM 02054808    192 fire_off
+2026-11-10T21:26:15.2552349Z SYM 020548c8    124 kit_rt_clear
+2026-11-10T21:26:15.2552531Z SYM 02054944    284 grid_index
+2026-11-10T21:26:15.2552713Z SYM 02054a60    242 loop_release
+2026-11-10T21:26:15.2552892Z SYM 02054b52    204 fill_collect
+2026-11-10T21:26:15.2553081Z SYM 02054c1e   1588 punch_update
+2026-11-10T21:26:15.2553282Z SYM 02055252     28 song_plays
+2026-11-10T21:26:15.2553469Z SYM 0205526e    290 scene_read
+2026-11-10T21:26:15.2553650Z SYM 02055390    282 bar_end
+2026-11-10T21:26:15.2553820Z SYM 020554aa    118 now_h8
+2026-11-10T21:26:15.2554231Z SYM 02055520     30 st_hash
+2026-11-10T21:26:15.2554426Z SYM 0205553e     22 skip_clear
+2026-11-10T21:26:15.2554620Z SYM 02055554     76 ext_arm
+2026-11-10T21:26:15.2554810Z SYM 020555a0    184 track_reset
+2026-11-10T21:26:15.2555002Z SYM 02055658     32 tpat
+2026-11-10T21:26:15.2555184Z SYM 02055678     26 ts_halves
+2026-11-10T21:26:15.2555371Z SYM 02055692     22 pat_len
+2026-11-10T21:26:15.2555552Z SYM 020556a8     56 pat_loop
+2026-11-10T21:26:15.2555746Z SYM 020556e0     60 origins_zero
+2026-11-10T21:26:15.2555948Z SYM 0205571c    154 tracks_go
+2026-11-10T21:26:15.2556127Z SYM 020557b6     12 midi
+2026-11-10T21:26:15.2556306Z SYM 020557c2    356 do_start
+2026-11-10T21:26:15.2556491Z SYM 02055926     78 restart
+2026-11-10T21:26:15.2556664Z SYM 02055974    522 rec_step1
+2026-11-10T21:26:15.2556849Z SYM 02055b7e     62 loop_before
+2026-11-10T21:26:15.2557035Z SYM 02055bbc     70 loop_after
+2026-11-10T21:26:15.2557213Z SYM 02055c02     28 is_drum
+2026-11-10T21:26:15.2557524Z SYM 02055c1e    106 kit_rec_fresh
+2026-11-10T21:26:15.2557727Z SYM 02055c88    544 rec_key_on
+2026-11-10T21:26:15.2557913Z SYM 02055ea8     36 kit_has
+2026-11-10T21:26:15.2558096Z SYM 02055ecc    226 rec_key_off
+2026-11-10T21:26:15.2558276Z SYM 02055fae     90 fx_on
+2026-11-10T21:26:15.2558450Z SYM 02056008    208 midi_on
+2026-11-10T21:26:15.2558626Z SYM 020560d8    192 add_off
+2026-11-10T21:26:15.2558800Z SYM 02056198    264 emit_drum
+2026-11-10T21:26:15.2558977Z SYM 020562a0     60 phys_set
+2026-11-10T21:26:15.2559177Z SYM 020562dc    668 brain_note
+2026-11-10T21:26:15.2559365Z SYM 02056578     20 clamp_note
+2026-11-10T21:26:15.2559547Z SYM 0205658c    284 chord_at
+2026-11-10T21:26:15.2559735Z SYM 020566a8     52 player_note_on
+2026-11-10T21:26:15.2559955Z SYM 020566dc     24 sounding_add
+2026-11-10T21:26:15.2560155Z SYM 020566f4     22 brain_src
+2026-11-10T21:26:15.2560342Z SYM 0205670a     64 held_notes
+2026-11-10T21:26:15.2560535Z SYM 0205674a    234 brain_set_near_notes
+2026-11-10T21:26:15.2560752Z SYM 02056834   2650 key_in
+2026-11-10T21:26:15.2560931Z SYM 0205728e   1266 keys_play
+2026-11-10T21:26:15.2561118Z SYM 02057780    222 fill_hit
+2026-11-10T21:26:15.2561305Z SYM 0205785e    538 next_pos
+2026-11-10T21:26:15.2561377Z SYM 02057a78    554 resolve_set
+2026-11-10T21:26:15.2561457Z SYM 02057ca2    128 lane_masks_make
+2026-11-10T21:26:15.2561529Z SYM 02057d22    770 apply_locks
+2026-11-10T21:26:15.2561601Z SYM 02058024    416 jump_set
+2026-11-10T21:26:15.2561675Z SYM 020581c4    224 groove_vel
+2026-11-10T21:26:15.2561743Z SYM 020582a4    342 kit_lanes
+2026-11-10T21:26:15.2561812Z SYM 020583fa    734 kit_emit
+2026-11-10T21:26:15.2561879Z SYM 020586d8    806 kit_group
+2026-11-10T21:26:15.2561951Z SYM 020589fe    218 rand_wrap
+2026-11-10T21:26:15.2562019Z SYM 02058ad8     26 rng_next
+2026-11-10T21:26:15.2562094Z SYM 02058af2     44 len_of
+2026-11-10T21:26:15.2562164Z SYM 02058b1e     50 rand_track
+2026-11-10T21:26:15.2562236Z SYM 02058b50     44 skip_has
+2026-11-10T21:26:15.2562310Z SYM 02058b7c    684 step_note
+2026-11-10T21:26:15.2562380Z SYM 02058e28     78 emit_note
+2026-11-10T21:26:15.2562454Z SYM 02058e76   2656 fire_notes
+2026-11-10T21:26:15.2562522Z SYM 020598d6   1088 arp_fire
+2026-11-10T21:26:15.2562601Z SYM 02059d16    360 roll_fire
+2026-11-10T21:26:15.2562674Z SYM 02059e7e    358 step_roll_fire
+2026-11-10T21:26:15.2562748Z SYM 02059fe4  15168 seq_advance
+2026-11-10T21:26:15.2562826Z SYM 0205db24    450 seq_keys_live
+2026-11-10T21:26:15.2562898Z SYM 0205dce6     30 seq_start_at
+2026-11-10T21:26:15.2562969Z SYM 0205dd04     22 seq_start
+2026-11-10T21:26:15.2563039Z SYM 0205dd1a     12 seq_stop
+2026-11-10T21:26:15.2563113Z SYM 0205dd26     12 seq_continue
+2026-11-10T21:26:15.2563182Z SYM 0205dd32     18 seq_ext_clock
+2026-11-10T21:26:15.2563259Z SYM 0205dd44     40 seq_cue_scene
+2026-11-10T21:26:15.2563330Z SYM 0205dd6c     86 seq_cue_left
+2026-11-10T21:26:15.2563406Z SYM 0205ddc2     14 seq_set_scene
+2026-11-10T21:26:15.2563573Z SYM 0205ddd0     38 seq_cue_pattern
+2026-11-10T21:26:15.2563687Z SYM 0205ddf6     66 seq_key
+2026-11-10T21:26:15.2563839Z SYM 0205de38     68 seq_key_midi
+2026-11-10T21:26:15.2564113Z SYM 0205de7c     40 seq_key_all_off
+2026-11-10T21:26:15.2564421Z SYM 0205dea4     36 seq_midi_notes_off
+2026-11-10T21:26:15.2564548Z SYM 0205dec8     70 seq_repeat
+2026-11-10T21:26:15.2564701Z SYM 0205df0e     52 seq_brain_key
+2026-11-10T21:26:15.2564815Z SYM 0205df42     82 seq_punch_key
+2026-11-10T21:26:15.2564963Z SYM 0205df94     30 seq_rec
+2026-11-10T21:26:15.2565054Z SYM 0205dfb2    122 seq_rec_pos
+2026-11-10T21:26:15.2565263Z SYM 0205e02c     86 seq_rec_knob
+2026-11-10T21:26:15.2565414Z SYM 0205e082     90 seq_bar_go
+2026-11-10T21:26:15.2565624Z font T: BarlowSemiCondensed-SemiBold.ttf 10px h 12, digit adv 5, 3600 B
+2026-11-10T21:26:15.2565902Z font XS: BarlowSemiCondensed-SemiBold.ttf 12px h 15, digit adv 6, 7005 B
+2026-11-10T21:26:15.2566070Z font S: BarlowSemiCondensed-Medium.ttf 15px h 16, digit adv 7, 8576 B
+2026-11-10T21:26:15.2566457Z font B: BarlowSemiCondensed-Bold.ttf 15px h 16, digit adv 8, 8752 B
+2026-11-10T21:26:15.2566694Z font M: BarlowSemiCondensed-SemiBold.ttf 23px h 24, digit adv 12, 11832 B
+2026-11-10T21:26:15.2566873Z font L: BarlowSemiCondensed-Bold.ttf 31px h 32, digit adv 16, 19776 B
+2026-11-10T21:26:15.2567036Z font set barlow: 60782 B (approx)
+2026-11-10T21:26:15.2567287Z words: 202 own + 51 common -> /home/runner/work/fm1-loom/fm1-loom/app/web/words/1911da5582.json (5514 B)
+2026-11-10T21:26:15.2577381Z loader: image 13344 B at 0x1c0a800, bss end 0x1c14124
+2026-11-10T21:26:15.2577497Z loader: ota.bin 11356 B
+2026-11-10T21:26:15.2577710Z font XS: BarlowSemiCondensed-SemiBold.ttf 12px h 15, digit adv 6, 2646 B (huffman)
+2026-11-10T21:26:15.2577890Z font S: BarlowSemiCondensed-Medium.ttf 15px h 16, digit adv 7, 3170 B (huffman)
+2026-11-10T21:26:15.2578063Z font B: BarlowSemiCondensed-Bold.ttf 15px h 16, digit adv 8, 3250 B (huffman)
+2026-11-10T21:26:15.2578245Z font M: BarlowSemiCondensed-SemiBold.ttf 23px h 24, digit adv 12, 3471 B (huffman)
+2026-11-10T21:26:15.2578408Z font L: BarlowSemiCondensed-Bold.ttf 31px h 32, digit adv 16, 7179 B (huffman)
+2026-11-10T21:26:15.2578495Z font set barlow: 19716 B
+2026-11-10T21:26:15.2578569Z samples: 16, 88444 B
+2026-11-10T21:26:15.2578885Z   ok    the resource region: 88444 B (the 909 cymbals, the large type faces)
+2026-11-10T21:26:15.2579110Z size: 619 main-loop functions built for size; 19 in those files reachable from an interrupt keep -Os
+2026-11-10T21:26:15.2579216Z size: dsp/synth.c: 14 functions built for size
+2026-11-10T21:26:15.2579317Z size: dsp/drumline.c: 6 functions built for size
+2026-11-10T21:26:15.2579419Z size: dsp/digisophie.c: 0 functions built for size
+2026-11-10T21:26:15.2579520Z size: dsp/sample.c: 2 functions built for size
+2026-11-10T21:26:15.2579608Z size: dsp/fx.c: 8 functions built for size
+2026-11-10T21:26:15.2579707Z size: dsp/bass303.c: 4 functions built for size
+2026-11-10T21:26:15.2579796Z size: dsp/d909.c: 4 functions built for size
+2026-11-10T21:26:15.2579890Z size: dsp/bench.c: 0 functions built for size
+2026-11-10T21:26:15.2579993Z size: seq/pattern.c: 0 functions built for size
+2026-11-10T21:26:15.2580082Z size: seq/seq.c: 15 functions built for size
+2026-11-10T21:26:15.2580178Z   ok    .ram_text: 6015 insns, no calls
+2026-11-10T21:26:15.2580270Z   ok    no 64-bit multiply inlined beside a load
+2026-11-10T21:26:15.2580395Z   ok    no soft-double routines (single-precision FPU only)
+2026-11-10T21:26:15.2580658Z   ok    image 494820 B; SRAM 431784 B of 475136: RAM code 19708 B, .data+.bss 66200 B, pool 345872 B; free 43352 B (2048 kept spare)
+2026-11-10T21:26:15.2580830Z   ok    boot_pack: .ram_text + .data 19864 B stored as 9444 B (LZMA, unpacked at boot)
+2026-11-10T21:26:15.2581000Z   ok    register access: felucca-bsp only (device/, include/ and the app clean)
+2026-11-10T21:26:15.2581584Z parts    USB audio in, the second core, the screen reader, screen mirroring, backup and restore  (not built in: Bluetooth MIDI, Bluetooth MIDI devices, Bluetooth audio, USB audio out, USB MIDI host, USB disk mode, WiFi, velocity, pressure, a resource region)
+2026-11-10T21:26:15.2581743Z app      /home/runner/work/fm1-loom/fm1-loom/app/build/loom.bin  494820 B
+2026-11-10T21:26:15.2581921Z loader   /home/runner/work/fm1-loom/fm1-loom/app/build/loader/ota.bin  11356 B
+2026-11-10T21:26:15.2582190Z package  /home/runner/work/fm1-loom/fm1-loom/app/build/loom-smk37-elite.fwsc  655472 B, identity SMK-37 Elite_1000
+2026-11-10T21:26:15.2582369Z build    255059C3  (FM1B_BUILD: the build a crash record names, fm1_remote.py crashes)
+2026-11-10T21:26:15.2582552Z about    /home/runner/work/fm1-loom/fm1-loom/app/build/firmware.json  (for firmware hubs)
+2026-11-10T21:26:15.2582715Z font T: BarlowSemiCondensed-SemiBold.ttf 10px h 12, digit adv 5, 3600 B
+2026-11-10T21:26:15.2582864Z font XS: BarlowSemiCondensed-SemiBold.ttf 12px h 15, digit adv 6, 7005 B
+2026-11-10T21:26:15.2583013Z font S: BarlowSemiCondensed-Medium.ttf 15px h 16, digit adv 7, 8576 B
+2026-11-10T21:26:15.2583157Z font B: BarlowSemiCondensed-Bold.ttf 15px h 16, digit adv 8, 8752 B
+2026-11-10T21:26:15.2583488Z font M: BarlowSemiCondensed-SemiBold.ttf 23px h 24, digit adv 12, 11832 B
+2026-11-10T21:26:15.2583636Z font L: BarlowSemiCondensed-Bold.ttf 31px h 32, digit adv 16, 19776 B
+2026-11-10T21:26:15.2583722Z font set barlow: 60782 B (approx)
+2026-11-10T21:26:15.2584050Z words: 202 own + 51 common -> /home/runner/work/fm1-loom/fm1-loom/app/web/words/1911da5582.json (5514 B)
+2026-11-10T21:26:15.2584166Z loader: image 13340 B at 0x1c0a800, bss end 0x1c14124
+2026-11-10T21:26:15.2584243Z loader: ota.bin 11352 B
+2026-11-10T21:26:15.2584431Z font XS: BarlowSemiCondensed-SemiBold.ttf 12px h 15, digit adv 6, 2646 B (huffman)
+2026-11-10T21:26:15.2584597Z font S: BarlowSemiCondensed-Medium.ttf 15px h 16, digit adv 7, 3170 B (huffman)
+2026-11-10T21:26:15.2584762Z font B: BarlowSemiCondensed-Bold.ttf 15px h 16, digit adv 8, 3250 B (huffman)
+2026-11-10T21:26:15.2584930Z font M: BarlowSemiCondensed-SemiBold.ttf 23px h 24, digit adv 12, 3471 B (huffman)
+2026-11-10T21:26:15.2585099Z font L: BarlowSemiCondensed-Bold.ttf 31px h 32, digit adv 16, 7179 B (huffman)
+2026-11-10T21:26:15.2585180Z font set barlow: 19716 B
+2026-11-10T21:26:15.2585250Z samples: 16, 88444 B
+2026-11-10T21:26:15.2585505Z   ok    the resource region: 88444 B (the 909 cymbals, the large type faces)
+2026-11-10T21:26:15.2585721Z size: 619 main-loop functions built for size; 19 in those files reachable from an interrupt keep -Os
+2026-11-10T21:26:15.2585823Z size: dsp/synth.c: 14 functions built for size
+2026-11-10T21:26:15.2585917Z size: dsp/drumline.c: 6 functions built for size
+2026-11-10T21:26:15.2586020Z size: dsp/digisophie.c: 0 functions built for size
+2026-11-10T21:26:15.2586112Z size: dsp/sample.c: 2 functions built for size
+2026-11-10T21:26:15.2586197Z size: dsp/fx.c: 8 functions built for size
+2026-11-10T21:26:15.2586292Z size: dsp/bass303.c: 4 functions built for size
+2026-11-10T21:26:15.2586376Z size: dsp/d909.c: 4 functions built for size
+2026-11-10T21:26:15.2586469Z size: dsp/bench.c: 0 functions built for size
+2026-11-10T21:26:15.2586560Z size: seq/pattern.c: 0 functions built for size
+2026-11-10T21:26:15.2586649Z size: seq/seq.c: 15 functions built for size
+2026-11-10T21:26:15.2586740Z   ok    .ram_text: 6015 insns, no calls
+2026-11-10T21:26:15.2586829Z   ok    no 64-bit multiply inlined beside a load
+2026-11-10T21:26:15.2586951Z   ok    no soft-double routines (single-precision FPU only)
+2026-11-10T21:26:15.2587206Z   ok    image 494820 B; SRAM 431784 B of 475136: RAM code 19708 B, .data+.bss 66200 B, pool 345872 B; free 43352 B (2048 kept spare)
+2026-11-10T21:26:15.2587374Z   ok    boot_pack: .ram_text + .data 19864 B stored as 9444 B (LZMA, unpacked at boot)
+2026-11-10T21:26:15.2587535Z   ok    register access: felucca-bsp only (device/, include/ and the app clean)
+2026-11-10T21:26:15.2588120Z parts    USB audio in, the second core, the screen reader, screen mirroring, backup and restore  (not built in: Bluetooth MIDI, Bluetooth MIDI devices, Bluetooth audio, USB audio out, USB MIDI host, USB disk mode, WiFi, velocity, pressure, a resource region)
+2026-11-10T21:26:15.2588273Z app      /home/runner/work/fm1-loom/fm1-loom/app/build/loom.bin  494820 B
+2026-11-10T21:26:15.2588431Z loader   /home/runner/work/fm1-loom/fm1-loom/app/build/loader/ota.bin  11352 B
+2026-11-10T21:26:15.2588700Z package  /home/runner/work/fm1-loom/fm1-loom/app/build/loom-smk37-mke.fwsc  655468 B, identity MKE-P37_1000
+2026-11-10T21:26:15.2588881Z build    255059C3  (FM1B_BUILD: the build a crash record names, fm1_remote.py crashes)
+2026-11-10T21:26:15.2589066Z about    /home/runner/work/fm1-loom/fm1-loom/app/build/firmware.json  (for firmware hubs)
+2026-11-10T21:26:15.2603544Z ##[notice]samples: 16, 88444 B
+2026-11-10T21:26:15.2609496Z ##[notice]samples: 16, 88444 B
+2026-11-10T21:26:15.2610231Z ##[notice]samples: 16, 88444 B
+2026-11-10T21:26:15.2650682Z ##[group]Run eval "$TEST"
+2026-11-10T21:26:15.2650780Z [36;1meval "$TEST"[0m
+2026-11-10T21:26:15.2668507Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-10T21:26:15.2668582Z env:
+2026-11-10T21:26:15.2668714Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:26:15.2668878Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-10T21:26:15.2669005Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:26:15.2669127Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:26:15.2669232Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:26:15.2669359Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-10T21:26:15.2669459Z   JIELI_TOOLCHAIN: /home/runner/.jieli/toolchain
+2026-11-10T21:26:15.2669540Z   AC79_SDK: /home/runner/fw-AC79_AIoT_SDK
+2026-11-10T21:26:15.2670883Z   TEST: rc=0
+bash -euo pipefail > /tmp/l8-test.log 2>&1 <<'EOF' || rc=$?
+BOARD=smk37 ./build.sh --host
+mkdir -p /tmp/l8-scenarios
+for s in tests/scenarios_smk37/*.xy; do app/build/host/loom-smk37_host "$s" /tmp/l8-scenarios; done
+cc -std=c99 -Wall -Wno-unused-function -o /tmp/smk_daw_test tests/smk_daw_test.c
+/tmp/smk_daw_test
+python3 tests/smk37_backup_test.py
+python3 tests/smk37_rescue_test.py
+EOF
+cat /tmp/l8-test.log
+if [ "$rc" != 0 ]; then
+  echo "::error title=Tests failed::$(tail -n 60 /tmp/l8-test.log | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"
+  exit "$rc"
+fi
+
+2026-11-10T21:26:15.2671078Z ##[endgroup]
+2026-11-10T21:26:41.5824376Z /home/runner/work/fm1-loom/fm1-loom/base/host/plat_host.c:209: warning: "MRQ" redefined
+2026-11-10T21:26:41.5825000Z   209 | #define MRQ 4096u                               /* (felucca-bsp usb.c's mirror ring) */
+2026-11-10T21:26:41.5825463Z       | 
+2026-11-10T21:26:41.5825881Z In file included from /home/runner/work/fm1-loom/fm1-loom/base/host/plat_host.c:190:
+2026-11-10T21:26:41.5826693Z /home/runner/work/fm1-loom/fm1-loom/app/app.h:120: note: this is the location of the previous definition
+2026-11-10T21:26:41.5827572Z   120 | #define MRQ 2048u                       /* the mirror's frame ring (fm1-base's 4096: RAM), a rect frame 1.1 KB at most */
+2026-11-10T21:26:41.5828163Z       | 
+2026-11-10T21:26:41.5828523Z In file included from /home/runner/work/fm1-loom/fm1-loom/app/app.c:12,
+2026-11-10T21:26:41.5829112Z                  from /home/runner/work/fm1-loom/fm1-loom/base/host/plat_host.c:1722:
+2026-11-10T21:26:41.5830222Z /home/runner/work/fm1-loom/fm1-loom/app/ui.c: In function ‘step_pitch’:
+2026-11-10T21:26:41.5831483Z /home/runner/work/fm1-loom/fm1-loom/app/ui.c:930:68: warning: operand of ‘?:’ changes signedness from ‘int’ to ‘unsigned int’ due to unsignedness of other operand [-Wsign-compare]
+2026-11-10T21:26:41.5832495Z   930 |         pats.lane[ln].val[s] = (uint8_t)(v == TUNE_0 ? LOCK_NONE : v);
+2026-11-10T21:26:41.5832973Z       |                                                                    ^
+2026-11-10T21:26:41.5833631Z /home/runner/work/fm1-loom/fm1-loom/base/host/plat_host.c: In function ‘plat_enc’:
+2026-11-10T21:26:41.5834928Z /home/runner/work/fm1-loom/fm1-loom/base/host/plat_host.c:299:12: warning: array subscript [0, 6] is outside array bounds of ‘int32_t[7]’ {aka ‘int[7]’} [-Warray-bounds=]
+2026-11-10T21:26:41.5835480Z   299 |     enc_acc[role] = 0;
+2026-11-10T21:26:41.5835685Z       |     ~~~~~~~^~~~~~
+2026-11-10T21:26:41.5836103Z /home/runner/work/fm1-loom/fm1-loom/base/host/plat_host.c:221:16: note: while referencing ‘enc_acc’
+2026-11-10T21:26:41.5836481Z   221 | static int32_t enc_acc[NE];
+2026-11-10T21:26:41.5836689Z       |                ^~~~~~~
+2026-11-10T21:26:41.5836970Z font T: BarlowSemiCondensed-SemiBold.ttf 10px h 12, digit adv 5, 3600 B
+2026-11-10T21:26:41.5837364Z font XS: BarlowSemiCondensed-SemiBold.ttf 12px h 15, digit adv 6, 7005 B
+2026-11-10T21:26:41.5837731Z font S: BarlowSemiCondensed-Medium.ttf 15px h 16, digit adv 7, 8576 B
+2026-11-10T21:26:41.5838415Z font B: BarlowSemiCondensed-Bold.ttf 15px h 16, digit adv 8, 8752 B
+2026-11-10T21:26:41.5838783Z font M: BarlowSemiCondensed-SemiBold.ttf 23px h 24, digit adv 12, 11832 B
+2026-11-10T21:26:41.5839148Z font L: BarlowSemiCondensed-Bold.ttf 31px h 32, digit adv 16, 19776 B
+2026-11-10T21:26:41.5839433Z font set barlow: 60782 B (approx)
+2026-11-10T21:26:41.5839785Z words: 202 own + 51 common -> /home/runner/work/fm1-loom/fm1-loom/app/web/words/1911da5582.json (5514 B)
+2026-11-10T21:26:41.5840256Z font XS: BarlowSemiCondensed-SemiBold.ttf 12px h 15, digit adv 6, 2646 B (huffman)
+2026-11-10T21:26:41.5840684Z font S: BarlowSemiCondensed-Medium.ttf 15px h 16, digit adv 7, 3170 B (huffman)
+2026-11-10T21:26:41.5841081Z font B: BarlowSemiCondensed-Bold.ttf 15px h 16, digit adv 8, 3250 B (huffman)
+2026-11-10T21:26:41.5841548Z font M: BarlowSemiCondensed-SemiBold.ttf 23px h 24, digit adv 12, 3471 B (huffman)
+2026-11-10T21:26:41.5841949Z font L: BarlowSemiCondensed-Bold.ttf 31px h 32, digit adv 16, 7179 B (huffman)
+2026-11-10T21:26:41.5842263Z font set barlow: 19716 B
+2026-11-10T21:26:41.5842448Z samples: 16, 88444 B
+2026-11-10T21:26:41.5842701Z   ok    the resource region: 88444 B (the 909 cymbals, the large type faces)
+2026-11-10T21:26:41.5843068Z host     /home/runner/work/fm1-loom/fm1-loom/app/build/host/loom-smk37_host
+2026-11-10T21:26:41.5843559Z said!: Steps, page 1 of 2. T1 kit, P1, S1: PATTERN 1, LENGTH 16, SCALE 1, GROOVE 0. stopped, tempo 120, scene 1. steps on: none.
+2026-11-10T21:26:41.5844425Z said: PADS: steps. PLAY: play. hold a button: help. SELECT: page. ALGO: track. PRESETS: sound.
+2026-11-10T21:26:41.5844752Z   ok trk == 1
+2026-11-10T21:26:41.5844917Z   ok page "Steps"
+2026-11-10T21:26:41.5845088Z said!: step 1 on
+2026-11-10T21:26:41.5845254Z   ok note 1 1 1 == 1
+2026-11-10T21:26:41.5845423Z said!: step 10 on
+2026-11-10T21:26:41.5845585Z   ok note 1 1 10 == 1
+2026-11-10T21:26:41.5845756Z said!: step 1 off
+2026-11-10T21:26:41.5845918Z   ok note 1 1 1 == 0
+2026-11-10T21:26:41.5846266Z   pads: 000000 000000 000000 000000 000000 000000 000000 000000 |000000 371425 000000 000000 000000 000000 000000 000000  lit:
+2026-11-10T21:26:41.5846638Z said!: BAR 2
+2026-11-10T21:26:41.5846796Z   ok bar == 2
+2026-11-10T21:26:41.5846950Z said!: step 32 on
+2026-11-10T21:26:41.5847110Z   ok note 1 1 32 == 1
+2026-11-10T21:26:41.5847272Z said!: BAR 1
+2026-11-10T21:26:41.5847419Z   ok bar == 1
+2026-11-10T21:26:41.5847572Z said!: OCTAVE +1
+2026-11-10T21:26:41.5847735Z   ok bar == 1
+2026-11-10T21:26:41.5847893Z   ok said "OCTAVE"
+2026-11-10T21:26:41.5848061Z said!: OCTAVE +0
+2026-11-10T21:26:41.5848226Z   ok drumhits == 0
+2026-11-10T21:26:41.5848387Z   ok drumhits == 2
+2026-11-10T21:26:41.5848730Z   pads: c74887 20a19a c09e2c 5378c7 c76b33 53ab53 8d6bc7 a78b6d |2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d  lit:
+2026-11-10T21:26:41.5849119Z   ok trk == 2
+2026-11-10T21:26:41.5849280Z   ok drumhits == 3
+2026-11-10T21:26:41.5849441Z said!: T1 100% level
+2026-11-10T21:26:41.5849609Z   ok par1.level == 127
+2026-11-10T21:26:41.5849780Z said!: T1 0% level
+2026-11-10T21:26:41.5849944Z   ok par1.level == 0
+2026-11-10T21:26:41.5850114Z said!: FADERS T5 to T8
+2026-11-10T21:26:41.5850283Z said!: T5 50% level
+2026-11-10T21:26:41.5850453Z   ok par1.level == 0
+2026-11-10T21:26:41.5850613Z said!: T5 78% level
+2026-11-10T21:26:41.5850774Z   ok par5.level == 100
+2026-11-10T21:26:41.5850944Z   ok par1.level == 0
+2026-11-10T21:26:41.5851318Z   pads: c74887 20a19a c09e2c 5378c7 c76b33 53ab53 8d6bc7 a78b6d |2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d  lit: FADERBANK
+2026-11-10T21:26:41.5851727Z   ok voices == 0
+2026-11-10T21:26:41.5851887Z   ok voices == 1
+2026-11-10T21:26:41.5852045Z   ok voices == 0
+2026-11-10T21:26:41.5852200Z   ok voices == 1
+2026-11-10T21:26:41.5852429Z host: 2249 ms simulated, 78 blits, render 0.3% of real time (host CPU)
+2026-11-10T21:26:41.5852709Z   ok trk == 1
+2026-11-10T21:26:41.5852866Z   ok page "Steps"
+2026-11-10T21:26:41.5853025Z   ok bar == 1
+2026-11-10T21:26:41.5853173Z   ok bar == 2
+2026-11-10T21:26:41.5853335Z   ok bar == 1
+2026-11-10T21:26:41.5853618Z   ok pads_drums == 1
+2026-11-10T21:26:41.5853801Z   ok drumhits == 0
+2026-11-10T21:26:41.5854150Z   ok drumhits == 1
+2026-11-10T21:26:41.5854311Z   ok note 1 1 3 == 0
+2026-11-10T21:26:41.5854479Z   ok pads_drums == 0
+2026-11-10T21:26:41.5854643Z   ok note 1 1 3 == 3
+2026-11-10T21:26:41.5854802Z   ok note 1 1 3 == 0
+2026-11-10T21:26:41.5854972Z   ok page "Arrange"
+2026-11-10T21:26:41.5855150Z   ok page "Steps"
+2026-11-10T21:26:41.5855317Z   ok trk == 2
+2026-11-10T21:26:41.5855484Z   ok par2.cut == 127 (>120)
+2026-11-10T21:26:41.5855674Z   ok par2.cut == 30 (<40)
+2026-11-10T21:26:41.5855849Z   ok daw == 1
+2026-11-10T21:26:41.5856011Z   out 90 2A 5A -> USB
+2026-11-10T21:26:41.5856184Z   out 80 2A 00 -> USB
+2026-11-10T21:26:41.5856353Z   ok out 90 35 64 -> USB
+2026-11-10T21:26:41.5856527Z   ok out 80 35 00 -> USB
+2026-11-10T21:26:41.5856698Z   ok out 90 30 5A -> USB
+2026-11-10T21:26:41.5856871Z   ok out 90 41 64 -> USB
+2026-11-10T21:26:41.5857040Z   ok out B0 4A 03 -> USB
+2026-11-10T21:26:41.5857215Z   ok out B0 46 02 -> USB
+2026-11-10T21:26:41.5857386Z   ok out B0 6A 01 -> USB
+2026-11-10T21:26:41.5857556Z   ok out B0 15 64 -> USB
+2026-11-10T21:26:41.5857726Z   ok out 99 24 64 -> USB
+2026-11-10T21:26:41.5857898Z   ok out 89 24 00 -> USB
+2026-11-10T21:26:41.5858248Z   pads: 06122f 06122f 06122f 06122f 06122f 06122f 06122f 06122f |06122f 06122f 06122f 06122f 06122f 06122f 06122f 06122f  lit:
+2026-11-10T21:26:41.5858752Z   ok out B0 70 7F -> USB
+2026-11-10T21:26:41.5858928Z   ok out B0 70 00 -> USB
+2026-11-10T21:26:41.5859107Z   ok out B0 6F 7F -> USB
+2026-11-10T21:26:41.5859276Z   ok out B0 6F 00 -> USB
+2026-11-10T21:26:41.5859445Z   ok out E0 7F 7F -> USB
+2026-11-10T21:26:41.5859612Z   ok out B0 01 40 -> USB
+2026-11-10T21:26:41.5859779Z   ok daw == 1
+2026-11-10T21:26:41.5859936Z   ok local == 0
+2026-11-10T21:26:41.5860096Z   ok voices == 0
+2026-11-10T21:26:41.5860254Z   ok local == 1
+2026-11-10T21:26:41.5860408Z   ok voices == 1
+2026-11-10T21:26:41.5860562Z   ok dawch == 2
+2026-11-10T21:26:41.5860722Z   ok local == 1
+2026-11-10T21:26:41.5860880Z   ok out 91 35 64 -> USB
+2026-11-10T21:26:41.5861079Z   ok dawuser == 1
+2026-11-10T21:26:41.5861241Z   out 90 35 64 -> USB
+2026-11-10T21:26:41.5861404Z   out 80 35 00 -> USB
+2026-11-10T21:26:41.5861581Z   out 90 30 5A -> USB
+2026-11-10T21:26:41.5861744Z   out 80 30 00 -> USB
+2026-11-10T21:26:41.5861922Z   out 90 41 64 -> USB
+2026-11-10T21:26:41.5862085Z   out 80 41 00 -> USB
+2026-11-10T21:26:41.5862249Z   out B0 4A 03 -> USB
+2026-11-10T21:26:41.5862412Z   out B0 46 02 -> USB
+2026-11-10T21:26:41.5862572Z   out B0 6A 01 -> USB
+2026-11-10T21:26:41.5862730Z   out B0 15 64 -> USB
+2026-11-10T21:26:41.5862888Z   out 99 24 64 -> USB
+2026-11-10T21:26:41.5863051Z   out 89 24 00 -> USB
+2026-11-10T21:26:41.5863214Z   out B0 70 7F -> USB
+2026-11-10T21:26:41.5863381Z   out B0 70 00 -> USB
+2026-11-10T21:26:41.5863543Z   out B0 6F 7F -> USB
+2026-11-10T21:26:41.5863703Z   out B0 6F 00 -> USB
+2026-11-10T21:26:41.5863989Z   out E0 7F 7F -> USB
+2026-11-10T21:26:41.5864176Z   out E0 00 40 -> USB
+2026-11-10T21:26:41.5864339Z   out B0 01 40 -> USB
+2026-11-10T21:26:41.5864498Z   out B0 01 00 -> USB
+2026-11-10T21:26:41.5864656Z   out 90 3A 64 -> USB
+2026-11-10T21:26:41.5864819Z   out 91 3A 64 -> USB
+2026-11-10T21:26:41.5864983Z   out 80 3A 00 -> USB
+2026-11-10T21:26:41.5865144Z   out 81 3A 00 -> USB
+2026-11-10T21:26:41.5865306Z   out 91 35 64 -> USB
+2026-11-10T21:26:41.5865471Z   out 91 35 64 -> USB
+2026-11-10T21:26:41.5865636Z   out 81 35 00 -> USB
+2026-11-10T21:26:41.5865796Z   out 81 35 00 -> USB
+2026-11-10T21:26:41.5865965Z   ok out B1 1A 5A -> USB
+2026-11-10T21:26:41.5866144Z   ok dawobj == 702
+2026-11-10T21:26:41.5866309Z   ok daw == 1
+2026-11-10T21:26:41.5866460Z   ok dawch == 2
+2026-11-10T21:26:41.5866617Z   ok dawuser == 1
+2026-11-10T21:26:41.5866774Z   ok local == 1
+2026-11-10T21:26:41.5866932Z   ok daw == 0
+2026-11-10T21:26:41.5867091Z   ok dawobj == 602
+2026-11-10T21:26:41.5867255Z   ok daw == 0
+2026-11-10T21:26:41.5867597Z host: 8279 ms simulated, 150 blits, render 0.3% of real time (host CPU)
+2026-11-10T21:26:41.5867878Z   ok page "Arrange"
+2026-11-10T21:26:41.5868039Z   ok trk == 1
+2026-11-10T21:26:41.5868189Z   ok trk == 2
+2026-11-10T21:26:41.5868340Z   ok drumhits == 0
+2026-11-10T21:26:41.5868500Z   ok drumhits == 1
+2026-11-10T21:26:41.5868654Z   ok drumhits == 2
+2026-11-10T21:26:41.5868999Z   pads: c74887 20a19a c09e2c 5378c7 c76b33 53ab53 8d6bc7 a78b6d |2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d  lit:
+2026-11-10T21:26:41.5869394Z   ok page "Arrange"
+2026-11-10T21:26:41.5869736Z   pads: c74887 20a19a c09e2c 5378c7 c76b33 53ab53 8d6bc7 a78b6d |ff5dad 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d  lit:
+2026-11-10T21:26:41.5870120Z   ok drumhits == 7
+2026-11-10T21:26:41.5870450Z   pads: 261f08 261f08 261f08 e7be35 261f08 261f08 261f08 261f08 |2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d  lit:
+2026-11-10T21:26:41.5870827Z   ok page "Arrange"
+2026-11-10T21:26:41.5870993Z   ok drumhits == 16
+2026-11-10T21:26:41.5871154Z   ok drumhits == 17
+2026-11-10T21:26:41.5871321Z   ok playing == 1
+2026-11-10T21:26:41.5871477Z   ok playing == 0
+2026-11-10T21:26:41.5871638Z   ok note 1 1 1 == 0
+2026-11-10T21:26:41.5871803Z   ok note 1 1 2 == 2
+2026-11-10T21:26:41.5871972Z   ok note 1 1 3 == 2
+2026-11-10T21:26:41.5872130Z   ok note 1 1 4 == 2
+2026-11-10T21:26:41.5872289Z   ok note 1 1 5 == 2
+2026-11-10T21:26:41.5872446Z   ok note 1 1 6 == 0
+2026-11-10T21:26:41.5872713Z   ok trk == 2
+2026-11-10T21:26:41.5872872Z   ok page "LFO"
+2026-11-10T21:26:41.5873033Z   ok page "Steps"
+2026-11-10T21:26:41.5873187Z   ok trk == 1
+2026-11-10T21:26:41.5873341Z   ok pads_drums == 1
+2026-11-10T21:26:41.5873505Z   ok note 1 1 13 == 0
+2026-11-10T21:26:41.5874039Z   pads: c74887 20a19a c09e2c 5378c7 c76b33 53ab53 8d6bc7 a78b6d |2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d 2b0f1d  lit: KNOBBANK
+2026-11-10T21:26:41.5874533Z host: 4924 ms simulated, 70 blits, render 0.3% of real time (host CPU)
+2026-11-10T21:26:41.5874806Z   ok kv == 3
+2026-11-10T21:26:41.5874957Z   ok touch == 4
+2026-11-10T21:26:41.5875122Z   ok page "Setup"
+2026-11-10T21:26:41.5875288Z   ok kv == 7
+2026-11-10T21:26:41.5875439Z   ok touch == 4
+2026-11-10T21:26:41.5875588Z   ok daw == 1
+2026-11-10T21:26:41.5875744Z   out 90 24 64 -> USB
+2026-11-10T21:26:41.5875908Z   out 80 24 00 -> USB
+2026-11-10T21:26:41.5876072Z   ok out 90 35 64 -> USB
+2026-11-10T21:26:41.5876248Z   ok out 90 30 64 -> USB
+2026-11-10T21:26:41.5876421Z   ok kv == 0
+2026-11-10T21:26:41.5876578Z   ok touch == 1
+2026-11-10T21:26:41.5876727Z   ok local == 0
+2026-11-10T21:26:41.5876889Z   ok out 90 35 1E -> USB
+2026-11-10T21:26:41.5877057Z   ok kv == 1
+2026-11-10T21:26:41.5877205Z   ok touch == 2
+2026-11-10T21:26:41.5877363Z   ok kvobj == 2
+2026-11-10T21:26:41.5877583Z host: 4552 ms simulated, 78 blits, render 0.3% of real time (host CPU)
+2026-11-10T21:26:41.5878040Z said!: Steps, page 1 of 2. T1 kit, P1, S1: PATTERN 1, LENGTH 16, SCALE 1, GROOVE 0. stopped, tempo 120, scene 1. steps on: none.
+2026-11-10T21:26:41.5878546Z said: PADS: steps. PLAY: play. hold a button: help. SELECT: page. ALGO: track. PRESETS: sound.
+2026-11-10T21:26:41.5878869Z   ok trk == 2
+2026-11-10T21:26:41.5879061Z said!: CLICK off, COUNT off, QUANT 100, MODE overdub
+2026-11-10T21:26:41.5879322Z said!: PATTERN 1, LENGTH 16, SCALE 1, GROOVE 0
+2026-11-10T21:26:41.5879544Z   ok clicks == 0
+2026-11-10T21:26:41.5879721Z said!: STEP RECORD keys write steps
+2026-11-10T21:26:41.5879925Z   ok steprec == 1
+2026-11-10T21:26:41.5880104Z said!: COUNT-IN then recording
+2026-11-10T21:26:41.5880299Z said: Play, count-in
+2026-11-10T21:26:41.5880470Z   ok said "COUNT-IN"
+2026-11-10T21:26:41.5880635Z   ok steprec == 0
+2026-11-10T21:26:41.5880791Z   ok playing == 1
+2026-11-10T21:26:41.5880952Z   ok rec == 1
+2026-11-10T21:26:41.5881106Z   ok countin == 1
+2026-11-10T21:26:41.5881284Z said!: PATTERN 1, LENGTH 16, SCALE 1, GROOVE 0
+2026-11-10T21:26:41.5881496Z   ok countin == 1
+2026-11-10T21:26:41.5881652Z   ok countin == 0
+2026-11-10T21:26:41.5881809Z   ok clicks == 5
+2026-11-10T21:26:41.5881965Z said!: Stop
+2026-11-10T21:26:41.5882253Z   ok playing == 0
+2026-11-10T21:26:41.5882418Z   ok note 2 1 1 == 53
+2026-11-10T21:26:41.5882585Z   ok note 2 1 5 == 55
+2026-11-10T21:26:41.5882749Z   ok trk == 3
+2026-11-10T21:26:41.5882910Z said!: Play
+2026-11-10T21:26:41.5883080Z said!: RECORDING from the next bar
+2026-11-10T21:26:41.5883284Z   ok said "RECORDING"
+2026-11-10T21:26:41.5883450Z   ok recatbar == 1
+2026-11-10T21:26:41.5883617Z   ok rec == 0
+2026-11-10T21:26:41.5883790Z said!: PATTERN 1, LENGTH 16, SCALE 1, GROOVE 0
+2026-11-10T21:26:41.5884174Z   ok rec == 0
+2026-11-10T21:26:41.5884326Z   ok rec == 1
+2026-11-10T21:26:41.5884481Z   ok recatbar == 0
+2026-11-10T21:26:41.5884639Z   ok clicks == 3
+2026-11-10T21:26:41.5884794Z said!: Stop
+2026-11-10T21:26:41.5884948Z   ok note 3 1 1 == 57
+2026-11-10T21:26:41.5885118Z   ok note 3 1 5 == 62
+2026-11-10T21:26:41.5885281Z   ok note 3 1 7 == 0
+2026-11-10T21:26:41.5885441Z   ok note 3 1 16 == 0
+2026-11-10T21:26:41.5885601Z said!: Play
+2026-11-10T21:26:41.5885763Z said!: RECORDING from the next bar
+2026-11-10T21:26:41.5885968Z   ok recatbar == 2
+2026-11-10T21:26:41.5886142Z said!: PATTERN 1, LENGTH 16, SCALE 1, GROOVE 0
+2026-11-10T21:26:41.5886356Z   ok recatbar == 1
+2026-11-10T21:26:41.5886510Z   ok rec == 0
+2026-11-10T21:26:41.5886659Z said!: RECORD OFF
+2026-11-10T21:26:41.5886818Z   ok said "RECORD OFF"
+2026-11-10T21:26:41.5886996Z   ok recatbar == 0
+2026-11-10T21:26:41.5887151Z   ok clicks == 1
+2026-11-10T21:26:41.5887501Z said!: PATTERN 1, LENGTH 16, SCALE 1, GROOVE 0
+2026-11-10T21:26:41.5887706Z   ok rec == 0
+2026-11-10T21:26:41.5887857Z   ok clicks == 0
+2026-11-10T21:26:41.5888015Z said!: Stop
+2026-11-10T21:26:41.5888163Z   ok playing == 0
+2026-11-10T21:26:41.5888338Z said!: PATTERN 1, LENGTH 16, SCALE 1, GROOVE 0
+2026-11-10T21:26:41.5888544Z   ok clicks == 0
+2026-11-10T21:26:41.5888716Z said!: STEP RECORD keys write steps
+2026-11-10T21:26:41.5888928Z said!: COUNT-IN then recording
+2026-11-10T21:26:41.5889125Z said: Play, count-in
+2026-11-10T21:26:41.5889316Z said!: PATTERN 1, LENGTH 16, SCALE 1, GROOVE 0
+2026-11-10T21:26:41.5889525Z   ok clicks == 8
+2026-11-10T21:26:41.5889677Z said!: Stop
+2026-11-10T21:26:41.5889827Z   ok playing == 0
+2026-11-10T21:26:41.5890064Z host: 16988 ms simulated, 449 blits, render 0.4% of real time (host CPU)
+2026-11-10T21:26:41.5890520Z said!: Steps, page 1 of 2. T1 kit, P1, S1: PATTERN 1, LENGTH 16, SCALE 1, GROOVE 0. stopped, tempo 120, scene 1. steps on: none.
+2026-11-10T21:26:41.5891021Z said: PADS: steps. PLAY: play. hold a button: help. SELECT: page. ALGO: track. PRESETS: sound.
+2026-11-10T21:26:41.5891342Z   ok mute == 0
+2026-11-10T21:26:41.5891506Z said!: MUTED T3
+2026-11-10T21:26:41.5891666Z   ok mute == 4
+2026-11-10T21:26:41.5891818Z   ok said "MUTED"
+2026-11-10T21:26:41.5891980Z said!: UNMUTED T3
+2026-11-10T21:26:41.5892133Z   ok mute == 0
+2026-11-10T21:26:41.5892302Z said!: SOLO T2
+2026-11-10T21:26:41.5892467Z   ok mute == 1021
+2026-11-10T21:26:41.5892620Z   ok said "SOLO"
+2026-11-10T21:26:41.5892775Z said!: SOLO T3
+2026-11-10T21:26:41.5892932Z   ok mute == 1017
+2026-11-10T21:26:41.5893086Z   ok mute == 1021
+2026-11-10T21:26:41.5893251Z   ok mute == 0
+2026-11-10T21:26:41.5893408Z said!: MUTED T5
+2026-11-10T21:26:41.5893564Z   ok mute == 16
+2026-11-10T21:26:41.5893718Z said!: SOLO T2
+2026-11-10T21:26:41.5894031Z   ok mute == 1021
+2026-11-10T21:26:41.5894226Z   ok mute == 16
+2026-11-10T21:26:41.5894381Z said!: UNMUTED T5
+2026-11-10T21:26:41.5894539Z said!: MUTED T4
+2026-11-10T21:26:41.5894699Z said!: SOLO T4
+2026-11-10T21:26:41.5894850Z   ok mute == 1015
+2026-11-10T21:26:41.5895006Z   ok said "SOLO"
+2026-11-10T21:26:41.5895160Z   ok mute == 1015
+2026-11-10T21:26:41.5895314Z said!: SOLO OFF
+2026-11-10T21:26:41.5895472Z   ok mute == 0
+2026-11-10T21:26:41.5895627Z   ok said "SOLO OFF"
+2026-11-10T21:26:41.5895857Z host: 6252 ms simulated, 36 blits, render 0.3% of real time (host CPU)
+2026-11-10T21:26:41.5896244Z smk_daw: the DEFAULT map: every entry valid for its control                               ok
+2026-11-10T21:26:41.5896845Z smk_daw: DEFAULT CCs: none with a fixed meaning (bank, data entry, RPN, volume, pan, pedals, mode), each once ok
+2026-11-10T21:26:41.5897316Z smk_daw: knobs K1..K8 CC 70..77, bank B CC 102..109                                       ok
+2026-11-10T21:26:41.5897693Z smk_daw: faders CC 20..23, bank B CC 24..27                                               ok
+2026-11-10T21:26:41.5898067Z smk_daw: PAD 9 (bottom left): note 36 (C2) on channel 10                                  ok
+2026-11-10T21:26:41.5898458Z smk_daw: the bottom row 36..43, the top row 44..51 (PAD 1 = 44)                           ok
+2026-11-10T21:26:41.5898836Z smk_daw: pad bank B: 16 notes higher (52..67)                                             ok
+2026-11-10T21:26:41.5899215Z smk_daw: SEQ PLAY CC 115, SEQ REC CC 117, < CC 110, BT CC 88                              ok
+2026-11-10T21:26:41.5899607Z smk_daw: pitch wheel: pitch bend; mod wheel: CC 1                                         ok
+2026-11-10T21:26:41.5900019Z smk_daw: channel: MAIN (the menu's CHANNEL) for all but the pads (10)                     ok
+2026-11-10T21:26:41.5900424Z smk_daw: NOTE: pads and buttons, not knobs or faders                                      ok
+2026-11-10T21:26:41.5900796Z smk_daw: MMC: buttons only                                                                ok
+2026-11-10T21:26:41.5901153Z smk_daw: MMC command 0: refused                                                           ok
+2026-11-10T21:26:41.5901627Z smk_daw: PITCH BEND: the pitch wheel only                                                 ok
+2026-11-10T21:26:41.5902005Z smk_daw: a number past 127: refused                                                       ok
+2026-11-10T21:26:41.5902368Z smk_daw: a channel past 16: refused                                                       ok
+2026-11-10T21:26:41.5902742Z smk_daw: a pad's types round: OFF CC TOGGLE NOTE                                          ok
+2026-11-10T21:26:41.5903120Z smk_daw: a knob: CC <-> OFF, both ways                                                    ok
+2026-11-10T21:26:41.5903471Z smk_daw: a button to MMC: PLAY                                                            ok
+2026-11-10T21:26:41.5903841Z smk_daw: back to CC: the default number                                                   ok
+2026-11-10T21:26:41.5904395Z smk_daw: K3 at 99: B2 48 63 (CC 72 on channel 3 = MAIN)                                   ok
+2026-11-10T21:26:41.5904784Z smk_daw: a fixed channel 16, a value clamped to 127                                       ok
+2026-11-10T21:26:41.5905180Z smk_daw: PAD 9 hit at 100: 99 24 64 (note on, channel 10)                                 ok
+2026-11-10T21:26:41.5905543Z smk_daw: PAD 9 let go: 89 24 00 (note off)                                                ok
+2026-11-10T21:26:41.5905892Z smk_daw: pitch wheel at rest: E2 00 40                                                    ok
+2026-11-10T21:26:41.5906255Z smk_daw: full up E2 7F 7F, full down E2 00 00                                             ok
+2026-11-10T21:26:41.5906627Z smk_daw: MMC PLAY: F0 7F 7F 06 02 F7 in two packets (CIN 4, 7)                            ok
+2026-11-10T21:26:41.5906981Z smk_daw: OFF: nothing                                                                     ok
+2026-11-10T21:26:41.5907339Z smk_daw: ABSOLUTE: 0..127, stops at the ends                                              ok
+2026-11-10T21:26:41.5907723Z smk_daw: RELATIVE: 64 + detents (1..127), the value untouched                             ok
+2026-11-10T21:26:41.5908116Z smk_daw: a toggle: on at the first press                                                  ok
+2026-11-10T21:26:41.5908505Z smk_daw: a second press 100 ms later (a wobbling pad): nothing                            ok
+2026-11-10T21:26:41.5908882Z smk_daw: 180 ms later: off                                                                ok
+2026-11-10T21:26:41.5909205Z smk_daw: at ms 0 too                                                                      ok
+2026-11-10T21:26:41.5909659Z smk_daw: a value never sent: due                                                          ok
+2026-11-10T21:26:41.5910030Z smk_daw: a new value, nothing sent yet: due                                               ok
+2026-11-10T21:26:41.5910410Z smk_daw: the next one waits DAW_RATE_MS (8 ms)                                            ok
+2026-11-10T21:26:41.5910775Z smk_daw: unchanged: never                                                                 ok
+2026-11-10T21:26:41.5911151Z smk_daw: RELATIVE: no detents, nothing (whatever the value)                               ok
+2026-11-10T21:26:41.5911557Z smk_daw: RELATIVE: detents to send                                                        ok
+2026-11-10T21:26:41.5911971Z smk_daw: the USER map starts as the DEFAULT                                               ok
+2026-11-10T21:26:41.5912351Z smk_daw: two entries changed                                                              ok
+2026-11-10T21:26:41.5912737Z smk_daw: the object: the same bytes each time (padding too), small                        ok
+2026-11-10T21:26:41.5913147Z smk_daw: round trip: MODE, CHANNEL, LOCAL, CC MAP, KNOBS, the USER map                    ok
+2026-11-10T21:26:41.5913551Z smk_daw: an entry out of range: its default (the others kept)                             ok
+2026-11-10T21:26:41.5914095Z smk_daw: an older map (60 entries): the rest the defaults                                 ok
+2026-11-10T21:26:41.5914505Z smk_daw: cut short: what is there, the rest the defaults                                  ok
+2026-11-10T21:26:41.5915012Z smk_daw: a bad magic (another format): not taken, nothing changes                         ok
+2026-11-10T21:26:41.5915395Z smk_daw: too short: not taken                                                             ok
+2026-11-10T21:26:41.5915751Z smk_daw: a channel out of range: 1                                                        ok
+2026-11-10T21:26:41.5916110Z smk_daw: KEY VELOCITY: round trip                                                         ok
+2026-11-10T21:26:41.5916494Z smk_daw: older data (rsv 0): NORMAL, the touch four                                       ok
+2026-11-10T21:26:41.5916859Z smk_daw: out of range: NORMAL                                                             ok
+2026-11-10T21:26:41.5917221Z smk_daw: a touch: the velocity as played                                                  ok
+2026-11-10T21:26:41.5917608Z smk_daw: FIXED 100: every press 100, a let-go stays 0                                     ok
+2026-11-10T21:26:41.5917973Z smk_daw: FIXED 127                                                                        ok
+2026-11-10T21:26:41.5918341Z smk_daw: the touches rise, HEAVY the earlier builds' reading                              ok
+2026-11-10T21:26:41.5918751Z smk_daw: names for the screen (K3, PAD 12, FADER 2, SEQ PLAY, PITCH WHEEL), their banks   ok
+2026-11-10T21:26:41.5919053Z smk_daw: ok
+2026-11-10T21:26:41.5919324Z factory firmware: the update's check step only (its reads served, no write)          ok
+2026-11-10T21:26:41.5919737Z the UBOOT key went to LOOM-8's loader, and only to it                                ok
+2026-11-10T21:26:41.5920126Z one backup file kept, the two reads folded into it                                   ok
+2026-11-10T21:26:41.5920487Z the backup is the flash read                                                         ok
+2026-11-10T21:26:41.5920854Z its SHA-256 written beside it, with the flash ID                                     ok
+2026-11-10T21:26:41.5921234Z says it is done, and to switch the keyboard off and on                               ok
+2026-11-10T21:26:41.5921629Z LOOM-8 running: the key straight to it, no update step                               ok
+2026-11-10T21:26:41.5922013Z already in LOOM-8's update mode: the key to the loader                               ok
+2026-11-10T21:26:41.5922396Z the disk search: the WL82 UBOOT disk, by an inquiry only                             ok
+2026-11-10T21:26:41.5922788Z no UBOOT disk, one refused: noted (run as administrator)                             ok
+2026-11-10T21:26:41.5923279Z a UBOOT disk already: nothing over MIDI, two reads                                   ok
+2026-11-10T21:26:41.5923692Z refused, nothing sent: an SMK-37 Elite with the Pro package                          ok
+2026-11-10T21:26:41.5924244Z refused, nothing sent: an FM-1 with the SMK package                                  ok
+2026-11-10T21:26:41.5924634Z M-VAVE's own update mode: refused, nothing sent                                      ok
+2026-11-10T21:26:41.5925011Z answered no: nothing sent                                                            ok
+2026-11-10T21:26:41.5925392Z another loader after the check step: no key, stops                                   ok
+2026-11-10T21:26:41.5925776Z the key not taken (still on MIDI): stops, no reads                                   ok
+2026-11-10T21:26:41.5926155Z not an administrator: stops before MIDI                                              ok
+2026-11-10T21:26:41.5926531Z an FM-1 package: stops before MIDI                                                   ok
+2026-11-10T21:26:41.5926899Z no jl-uboot-tool: stops before MIDI                                                  ok
+2026-11-10T21:26:41.5927274Z two reads that differ: no backup, both left to see                                   ok
+2026-11-10T21:26:41.5927658Z no calibration mark at 0xC1224: no backup                                            ok
+2026-11-10T21:26:41.5928027Z a read that wrote nothing: no backup                                                 ok
+2026-11-10T21:26:41.5928506Z --check: two good copies                                                             ok
+2026-11-10T21:26:41.5928845Z --check: one short copy                                                              ok
+2026-11-10T21:26:41.5929212Z jl-uboot-tool asked for one thing: read 0 0x100000, the WL82, that disk              ok
+2026-11-10T21:26:41.5929605Z its flash ID taken from what it printed                                              ok
+2026-11-10T21:26:41.5929982Z the tool holds no erase or write command for the keyboard                            ok
+2026-11-10T21:26:41.5930295Z smk37 backup tests passed
+2026-11-10T21:26:41.5930503Z error: cancelled: nothing was written
+2026-11-10T21:26:41.5930965Z error: the keyboard's boot head differs from the backup's (at 0x1000): this tool never writes it, so it writes nothing. Keep both files and ask for help
+2026-11-10T21:26:41.5931705Z error: the keyboard's calibration differs from the backup's: the backup is another keyboard's (or another time's). Nothing is written. Use this keyboard's own backup
+2026-11-10T21:26:41.5932376Z error: /tmp/tmpdterib9o/smk37-backup-test.bin is not a good backup: no calibration mark at 0xc1224 ("trimdat")
+2026-11-10T21:26:41.5932889Z error: /tmp/tmpnrms2899/b.bin does not match b.sha256.txt: the file has changed since the backup
+2026-11-10T21:26:41.5933418Z error: the keyboard answers as SMK-37 Pro_016: it works, so use fm1_install.py (the stock package, or LOOM-8's) instead of this
+2026-11-10T21:26:41.5934055Z error: the UBOOT disk did not appear. Ask for help before trying more
+2026-11-10T21:26:41.5934518Z error: /tmp/tmp2jiqj894/SMK-37-Pro_016.fwsc's boot head is not the keyboard's (the backup's): nothing is written
+2026-11-10T21:26:41.5935063Z error: /tmp/tmpp9neffwy/FM-1_016.fwsc is 'FM-1_016': --stock takes M-VAVE's own SMK-37 firmware (SMK-37 Pro_016.fwsc)
+2026-11-10T21:26:41.5935572Z error: /tmp/tmptwkh3m12/SMK-37-Pro_016.fwsc: no SMK-37 flash image in it (589824 bytes, not 643072)
+2026-11-10T21:26:41.5936015Z the flash the same as the backup: nothing written                                    ok
+2026-11-10T21:26:41.5936408Z check: 9 sectors listed, nothing written                                             ok
+2026-11-10T21:26:41.5936760Z   as two ranges                                                                      ok
+2026-11-10T21:26:41.5937095Z --write: the flash equals the backup                                                 ok
+2026-11-10T21:26:41.5937472Z   only the differing ranges written                                                  ok
+2026-11-10T21:26:41.5937971Z   the boot head never written                                                        ok
+2026-11-10T21:26:41.5938338Z   one read, then one run: the writes and the read back                               ok
+2026-11-10T21:26:41.5938719Z --write without yes, answered no: nothing written                                    ok
+2026-11-10T21:26:41.5939125Z a sector that missed the first time: written again, then equal                       ok
+2026-11-10T21:26:41.5939528Z the boot head differs: refused, nothing written                                      ok
+2026-11-10T21:26:41.5939931Z another keyboard's calibration: refused, nothing written                             ok
+2026-11-10T21:26:41.5940343Z calibration erased on the keyboard: put back from the backup                         ok
+2026-11-10T21:26:41.5940755Z a backup without the calibration mark: refused                                       ok
+2026-11-10T21:26:41.5941151Z a backup that does not match its .sha256.txt: refused                                ok
+2026-11-10T21:26:41.5941549Z LOOM-8 answering: told to restart into UBOOT, then restored                          ok
+2026-11-10T21:26:41.5941965Z the factory firmware answering: nothing sent, fm1_install.py instead                 ok
+2026-11-10T21:26:41.5942366Z no disk appearing: stops, nothing written                                            ok
+2026-11-10T21:26:41.5942763Z --stock: the factory firmware, the update area blank, the store as backed up         ok
+2026-11-10T21:26:41.5943241Z   the boot head never written                                                        ok
+2026-11-10T21:26:41.5943580Z   the calibration kept                                                               ok
+2026-11-10T21:26:41.5944104Z --stock without --write: nothing written                                             ok
+2026-11-10T21:26:41.5944509Z --stock with another boot head: refused, nothing written                             ok
+2026-11-10T21:26:41.5944911Z --stock with the FM-1's firmware: refused, nothing written                           ok
+2026-11-10T21:26:41.5945301Z --stock with a flash image of another size: refused                                  ok
+2026-11-10T21:26:41.5945693Z --stock with another version: its firmware put back, said so                         ok
+2026-11-10T21:26:41.5946004Z smk37 rescue tests passed
+2026-11-10T21:26:41.5971546Z ##[group]Run shopt -s nullglob
+2026-11-10T21:26:41.5971802Z [36;1mshopt -s nullglob[0m
+2026-11-10T21:26:41.5972001Z [36;1mfiles=($PACKAGES)[0m
+2026-11-10T21:26:41.5972264Z [36;1m[ ${#files[@]} -gt 0 ] || { echo "no package matches: $PACKAGES"; exit 1; }[0m
+2026-11-10T21:26:41.5972588Z [36;1msha256sum "${files[@]}" | tee SHA256SUMS[0m
+2026-11-10T21:26:41.5990634Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-11-10T21:26:41.5990905Z env:
+2026-11-10T21:26:41.5991160Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:26:41.5991620Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-10T21:26:41.5992057Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:26:41.6006225Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:26:41.6006604Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:26:41.6006952Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-10T21:26:41.6007245Z   JIELI_TOOLCHAIN: /home/runner/.jieli/toolchain
+2026-11-10T21:26:41.6007498Z   AC79_SDK: /home/runner/fw-AC79_AIoT_SDK
+2026-11-10T21:26:41.6007719Z   PACKAGES: build/loom8/*
+2026-11-10T21:26:41.6007909Z ##[endgroup]
+2026-11-10T21:26:41.6063458Z c2481bc770f570816c1822b88c37e18dbeafa40e7bab6d552d6a7e0741bb1292  build/loom8/START-HERE.txt
+2026-11-10T21:26:41.6064172Z 090f41fd22fdd3f9d38e1243ab6556f546f35e5f78a6923d5ea5db57d93e15dd  build/loom8/fm1_install.py
+2026-11-10T21:26:41.6065078Z 17d6b82d98c8130d46d678d9159e70fdcf1e9901d109c7b6999ea5a2c6695bec  build/loom8/fm1_remote.py
+2026-11-10T21:26:41.6065920Z 921553e3e5c6a234b5d03362605418624888e32c838e749ac723ad05bee690cf  build/loom8/fm1ports.py
+2026-11-10T21:26:41.6068701Z ba8897c9a21c1f3d6d1fe32333c2fb8a8dd1755635e730dfbc10aef597f4e276  build/loom8/loom-smk37-elite.fwsc
+2026-11-10T21:26:41.6073007Z fb9ba4273976fc47b2767bd6261720f8749d4493e34823d0f4633589a51140ca  build/loom8/loom-smk37-mke.fwsc
+2026-11-10T21:26:41.6077548Z 7ec8cc82ca4dce02507570911271340f8da287b0660748e6f507b1323780ae7a  build/loom8/loom-smk37.fwsc
+2026-11-10T21:26:41.6078459Z 7f03f597cd8761050fa8252607240e46c7aad52249f58b1791d683d4a3389dfe  build/loom8/smk37_backup.py
+2026-11-10T21:26:41.6079314Z 62894a132e140b37c7d2b8a25b9f8ca13dae58b2f4b9c1057f09c2182f8a8513  build/loom8/smk37_rescue.py
+2026-11-10T21:26:41.6170493Z ##[group]Run actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be
+2026-11-10T21:26:41.6170846Z with:
+2026-11-10T21:26:41.6171031Z   subject-path: build/loom8/*
+2026-11-10T21:26:41.6171248Z   push-to-registry: false
+2026-11-10T21:26:41.6171442Z   show-summary: true
+2026-11-10T21:26:41.6173487Z   github-token: ***
+2026-11-10T21:26:41.6173674Z env:
+2026-11-10T21:26:41.6174045Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:26:41.6174403Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-10T21:26:41.6174738Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:26:41.6175040Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:26:41.6175493Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:26:41.6175798Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-10T21:26:41.6176083Z   JIELI_TOOLCHAIN: /home/runner/.jieli/toolchain
+2026-11-10T21:26:41.6176356Z   AC79_SDK: /home/runner/fw-AC79_AIoT_SDK
+2026-11-10T21:26:41.6176576Z ##[endgroup]
+2026-11-10T21:26:41.6231136Z ##[start-action display=Run actions/attest-build-provenance/predicate@1176ef556905f349f669722abf30bce1a6e16e01;id=__actions_attest-build-provenance.generate-build-provenance-predicate]
+2026-11-10T21:26:41.6259609Z ##[group]Run actions/attest-build-provenance/predicate@1176ef556905f349f669722abf30bce1a6e16e01
+2026-11-10T21:26:41.6259971Z env:
+2026-11-10T21:26:41.6260186Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:26:41.6260524Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-10T21:26:41.6260853Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:26:41.6261161Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:26:41.6261452Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:26:41.6261764Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-10T21:26:41.6262057Z   JIELI_TOOLCHAIN: /home/runner/.jieli/toolchain
+2026-11-10T21:26:41.6262307Z   AC79_SDK: /home/runner/fw-AC79_AIoT_SDK
+2026-11-10T21:26:41.6262520Z ##[endgroup]
+2026-11-10T21:26:42.6308637Z ##[end-action id=__actions_attest-build-provenance.generate-build-provenance-predicate;outcome=success;conclusion=success;duration_ms=1007]
+2026-11-10T21:26:42.6311603Z ##[start-action display=Run actions/attest@ce27ba3b4a9a139d9a20a4a07d69fabb52f1e5bc;id=__actions_attest-build-provenance.attest]
+2026-11-10T21:26:42.6343438Z ##[group]Run actions/attest@ce27ba3b4a9a139d9a20a4a07d69fabb52f1e5bc
+2026-11-10T21:26:42.6343728Z with:
+2026-11-10T21:26:42.6344114Z   subject-path: build/loom8/*
+2026-11-10T21:26:42.6344369Z   predicate-type: https://slsa.dev/provenance/v1
+2026-11-10T21:26:42.6346507Z   predicate: {"buildDefinition":{"buildType":"https://actions.github.io/buildtypes/workflow/v1","externalParameters":{"workflow":{"ref":"refs/heads/loom8-smk37","repository":"https://github.com/durutti320/fm1-loom","path":".github/workflows/loom8-smk37.yml"}},"internalParameters":{"github":{"event_name":"push","repository_id":"1428932500","repository_owner_id":"292760006","runner_environment":"github-hosted"}},"resolvedDependencies":[{"uri":"git+https://github.com/durutti320/fm1-loom@refs/heads/loom8-smk37","digest":{"gitCommit":"5e3e8ad595fd8a539fae5b3d3f39dd72963bc25d"}}]},"runDetails":{"builder":{"id":"https://github.com/zvenson/fm1-build/.github/workflows/build.yml@refs/tags/v1"},"metadata":{"invocationId":"https://github.com/durutti320/fm1-loom/actions/runs/42904772895/attempts/1"}}}
+2026-11-10T21:26:42.6348520Z   push-to-registry: false
+2026-11-10T21:26:42.6348716Z   show-summary: true
+2026-11-10T21:26:42.6350864Z   github-token: ***
+2026-11-10T21:26:42.6351053Z env:
+2026-11-10T21:26:42.6351280Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:26:42.6351623Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-10T21:26:42.6352154Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:26:42.6352456Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:26:42.6352744Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:26:42.6353040Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-10T21:26:42.6353336Z   JIELI_TOOLCHAIN: /home/runner/.jieli/toolchain
+2026-11-10T21:26:42.6353588Z   AC79_SDK: /home/runner/fw-AC79_AIoT_SDK
+2026-11-10T21:26:42.6353806Z ##[endgroup]
+2026-11-10T21:26:44.2796471Z Attestation created for 9 subjects
+2026-11-10T21:26:44.2798004Z ##[group][36mAttestation signed using certificate from Public Good Sigstore instance[39m
+2026-11-10T21:26:44.2798650Z -----BEGIN CERTIFICATE-----
+2026-11-10T21:26:44.2799511Z MIIHCTCCBo+gAwIBAgIUU3cfSDoz1zsGgjWqCbElXsDyULMwCgYIKoZIzj0EAwMw
+2026-11-10T21:26:44.2800243Z NzEVMBMGA1UEChMMc2lnc3RvcmUuZGV2MR4wHAYDVQQDExVzaWdzdG9yZS1pbnRl
+2026-11-10T21:26:44.2800972Z cm1lZGlhdGUwHhcNMjYxMTEwMjEyNjQzWhcNMjYxMTEwMjEzNjQzWjAAMFkwEwYH
+2026-11-10T21:26:44.2801707Z KoZIzj0CAQYIKoZIzj0DAQcDQgAEuzkjwkNzUZwZxkWJWNaYSC6/rvobhBZOALuK
+2026-11-10T21:26:44.2802428Z 2hqUYewUabgCPTyMskGAk4sDRdQq36aW5mjFyKXuMWlFmxKTDqOCBa4wggWqMA4G
+2026-11-10T21:26:44.2803163Z A1UdDwEB/wQEAwIHgDATBgNVHSUEDDAKBggrBgEFBQcDAzAfBgNVHSMEGDAWgBTf
+2026-11-10T21:26:44.2803820Z 0+nPViQRlvmo2OkoVaLGLhhkPzBbBgNVHREBAf8EUTBPhk1odHRwczovL2dpdGh1
+2026-11-10T21:26:44.2804639Z Yi5jb20venZlbnNvbi9mbTEtYnVpbGQvLmdpdGh1Yi93b3JrZmxvd3MvYnVpbGQu
+2026-11-10T21:26:44.2805272Z eW1sQHJlZnMvdGFncy92MTA5BgorBgEEAYO/MAEBBCtodHRwczovL3Rva2VuLmFj
+2026-11-10T21:26:44.2805883Z dGlvbnMuZ2l0aHVidXNlcmNvbnRlbnQuY29tMBIGCisGAQQBg78wAQIEBHB1c2gw
+2026-11-10T21:26:44.2806530Z NgYKKwYBBAGDvzABAwQoNWUzZThhZDU5NWZkOGE1MzlmYWU1YjNkM2YzOWRkNzI5
+2026-11-10T21:26:44.2807163Z NjNiYzI1ZDAkBgorBgEEAYO/MAEEBBZMT09NLTggU01LLTM3IGZpcm13YXJlMCEG
+2026-11-10T21:26:44.2807760Z CisGAQQBg78wAQUEE2R1cnV0dGkzMjAvZm0xLWxvb20wJAYKKwYBBAGDvzABBgQW
+2026-11-10T21:26:44.2808378Z cmVmcy9oZWFkcy9sb29tOC1zbWszNzA7BgorBgEEAYO/MAEIBC0MK2h0dHBzOi8v
+2026-11-10T21:26:44.2809007Z dG9rZW4uYWN0aW9ucy5naXRodWJ1c2VyY29udGVudC5jb20wXQYKKwYBBAGDvzAB
+2026-11-10T21:26:44.2809631Z CQRPDE1odHRwczovL2dpdGh1Yi5jb20venZlbnNvbi9mbTEtYnVpbGQvLmdpdGh1
+2026-11-10T21:26:44.2810084Z Yi93b3JrZmxvd3MvYnVpbGQueW1sQHJlZnMvdGFncy92MTA4BgorBgEEAYO/MAEK
+2026-11-10T21:26:44.2810582Z BCoMKDViYThjMzU5YjE3NDRjYzUzYzQ1MzBiMTVlZmY1MmQwZDVjMTI1NWIwHQYK
+2026-11-10T21:26:44.2811003Z KwYBBAGDvzABCwQPDA1naXRodWItaG9zdGVkMDYGCisGAQQBg78wAQwEKAwmaHR0
+2026-11-10T21:26:44.2811396Z cHM6Ly9naXRodWIuY29tL2R1cnV0dGkzMjAvZm0xLWxvb20wOAYKKwYBBAGDvzAB
+2026-11-10T21:26:44.2811776Z DQQqDCg1ZTNlOGFkNTk1ZmQ4YTUzOWZhZTViM2QzZjM5ZGQ3Mjk2M2JjMjVkMCYG
+2026-11-10T21:26:44.2812289Z CisGAQQBg78wAQ4EGAwWcmVmcy9oZWFkcy9sb29tOC1zbWszNzAaBgorBgEEAYO/
+2026-11-10T21:26:44.2812856Z MAEPBAwMCjE0Mjg5MzI1MDAwLQYKKwYBBAGDvzABEAQfDB1odHRwczovL2dpdGh1
+2026-11-10T21:26:44.2813228Z Yi5jb20vZHVydXR0aTMyMDAZBgorBgEEAYO/MAERBAsMCTI5Mjc2MDAwNjBvBgor
+2026-11-10T21:26:44.2813602Z BgEEAYO/MAESBGEMX2h0dHBzOi8vZ2l0aHViLmNvbS9kdXJ1dHRpMzIwL2ZtMS1s
+2026-11-10T21:26:44.2814192Z b29tLy5naXRodWIvd29ya2Zsb3dzL2xvb204LXNtazM3LnltbEByZWZzL2hlYWRz
+2026-11-10T21:26:44.2814823Z L2xvb204LXNtazM3MDgGCisGAQQBg78wARMEKgwoNWUzZThhZDU5NWZkOGE1Mzlm
+2026-11-10T21:26:44.2815446Z YWU1YjNkM2YzOWRkNzI5NjNiYzI1ZDAUBgorBgEEAYO/MAEUBAYMBHB1c2gwWgYK
+2026-11-10T21:26:44.2816037Z KwYBBAGDvzABFQRMDEpodHRwczovL2dpdGh1Yi5jb20vZHVydXR0aTMyMC9mbTEt
+2026-11-10T21:26:44.2816419Z bG9vbS9hY3Rpb25zL3J1bnMvNDI5MDQ3NzI4OTUvYXR0ZW1wdHMvMTAWBgorBgEE
+2026-11-10T21:26:44.2816799Z AYO/MAEWBAgMBnB1YmxpYzBYBgorBgEEAYO/MAEYBEoMSHJlcG86ZHVydXR0aTMy
+2026-11-10T21:26:44.2817207Z MEAyOTI3NjAwMDYvZm0xLWxvb21AMTQyODkzMjUwMDpyZWY6cmVmcy9oZWFkcy9s
+2026-11-10T21:26:44.2817591Z b29tOC1zbWszNzCBigYKKwYBBAHWeQIEAgR8BHoAeAB2AN09MGrGxxEyYxkeHJln
+2026-11-10T21:26:44.2817964Z NwKiSl643jyt/4eKcoAvKe6OAAABocdbKusAAAQDAEcwRQIhAMGiBA8REUH0mTe2
+2026-11-10T21:26:44.2818335Z V61kjcveGUWKQqwP70L0Rl4IDe4IAiAorM+kADqCla7s169E0V40asAIXYpspyON
+2026-11-10T21:26:44.2818923Z 0Xo73asDkTAKBggqhkjOPQQDAwNoADBlAjEA/JTC1ZhI6D98oLKNE8NfYGE/g43G
+2026-11-10T21:26:44.2819306Z 28Eb/gQFS9rB1A+jMa954MgBbhDMeD6IQMT+AjAeE7lS4AvcIbZDl93YmCuHNAo/
+2026-11-10T21:26:44.2819730Z DjySZ6fkYWyJHPYzrRCP3EB86BdNdFutpXDBeNA=
+2026-11-10T21:26:44.2820102Z -----END CERTIFICATE-----
+2026-11-10T21:26:44.2820286Z 
+2026-11-10T21:26:44.2820593Z ##[endgroup]
+2026-11-10T21:26:44.2820966Z [36mAttestation signature uploaded to Rekor transparency log[39m
+2026-11-10T21:26:44.2821518Z https://search.sigstore.dev?logIndex=3793901743
+2026-11-10T21:26:44.2821963Z [36mAttestation uploaded to repository[39m
+2026-11-10T21:26:44.2822390Z https://github.com/durutti320/fm1-loom/attestations/66007487
+2026-11-10T21:26:44.3307782Z ##[end-action id=__actions_attest-build-provenance.attest;outcome=success;conclusion=success;duration_ms=1699]
+2026-11-10T21:26:44.3383460Z ##[group]Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+2026-11-10T21:26:44.3383790Z with:
+2026-11-10T21:26:44.3384149Z   name: packages
+2026-11-10T21:26:44.3384331Z   path: build/loom8/*
+SHA256SUMS
+
+2026-11-10T21:26:44.3384543Z   if-no-files-found: error
+2026-11-10T21:26:44.3384740Z   compression-level: 6
+2026-11-10T21:26:44.3384919Z   overwrite: false
+2026-11-10T21:26:44.3385094Z   include-hidden-files: false
+2026-11-10T21:26:44.3385294Z env:
+2026-11-10T21:26:44.3385498Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:26:44.3385829Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib/pkgconfig
+2026-11-10T21:26:44.3386152Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:26:44.3386445Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:26:44.3386741Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
+2026-11-10T21:26:44.3387072Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
+2026-11-10T21:26:44.3387376Z   JIELI_TOOLCHAIN: /home/runner/.jieli/toolchain
+2026-11-10T21:26:44.3387619Z   AC79_SDK: /home/runner/fw-AC79_AIoT_SDK
+2026-11-10T21:26:44.3387830Z ##[endgroup]
+2026-11-10T21:26:44.4788966Z (node:2786) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-10T21:26:44.4789656Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-10T21:26:44.4848656Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-11-10T21:26:44.4850760Z The least common ancestor is /home/runner/work/fm1-loom/fm1-loom. This will be the root directory of the artifact
+2026-11-10T21:26:44.4851468Z With the provided path, there will be 10 files uploaded
+2026-11-10T21:26:44.4856379Z Artifact name is valid!
+2026-11-10T21:26:44.4856910Z Root directory input is valid!
+2026-11-10T21:26:44.8786413Z Beginning upload of artifact content to blob storage
+2026-11-10T21:26:44.9603367Z (node:2786) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-11-10T21:26:45.6877123Z Uploaded bytes 1702584
+2026-11-10T21:26:45.7664629Z Finished uploading artifact content to blob storage!
+2026-11-10T21:26:45.7665162Z SHA256 digest of uploaded artifact zip is a96bec1380ce953df5acf294be27c4db1a7e86c9f013c5c81cdeb634c97f5024
+2026-11-10T21:26:45.7666671Z Finalizing artifact upload
+2026-11-10T21:26:46.1932607Z Artifact packages.zip successfully finalized. Artifact ID 13804073239
+2026-11-10T21:26:46.1933386Z Artifact packages has been successfully uploaded! Final size is 1702584 bytes. Artifact ID is 13804073239
+2026-11-10T21:26:46.1939315Z Artifact download URL: https://github.com/durutti320/fm1-loom/actions/runs/42904772895/artifacts/13804073239
+2026-11-10T21:26:46.2131624Z Post job cleanup.
+2026-11-10T21:26:46.3171934Z (node:2798) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-10T21:26:46.3172537Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-10T21:26:46.3325434Z Post job cleanup.
+2026-11-10T21:26:46.4100734Z [command]/usr/bin/git version
+2026-11-10T21:26:46.4175540Z git version 2.56.0
+2026-11-10T21:26:46.4211213Z Temporarily overriding HOME='/home/runner/work/_temp/d86384b9-448f-45a5-9a75-ef6713aa31fb' before making global git config changes
+2026-11-10T21:26:46.4211961Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-10T21:26:46.4216569Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/fm1-loom/fm1-loom
+2026-11-10T21:26:46.4264598Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-10T21:26:46.4297980Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-10T21:26:46.4516215Z Entering 'base'
+2026-11-10T21:26:46.4571269Z Entering 'base/bsp'
+2026-11-10T21:26:46.4630812Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-10T21:26:46.4673228Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-10T21:26:46.4898221Z Entering 'base'
+2026-11-10T21:26:46.4934785Z Entering 'base/bsp'
+2026-11-10T21:26:46.5121338Z Cleaning up orphan processes
+2026-11-10T21:26:46.5411461Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/attest-build-provenance/predicate@1176ef556905f349f669722abf30bce1a6e16e01, actions/attest@ce27ba3b4a9a139d9a20a4a07d69fabb52f1e5bc, actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683, actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065, actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
