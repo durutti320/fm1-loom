@@ -1,0 +1,22 @@
+  echo "::error title=Build failed::$(tail -n 60 /tmp/l8-build.log | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"
+  echo "::error title=Tests failed::$(tail -n 60 /tmp/l8-test.log | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"
+  echo "::error title=Build failed::$(tail -n 60 /tmp/l8-build.log | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"
+2026-11-11T00:44:20.2348086Z   ok    image 585612 B; RAM .data+.bss 76892 B of 98304; pool 321928 B of 344064
+2026-11-11T00:44:20.2650929Z   ok    image 585628 B; RAM .data+.bss 76892 B of 98304; pool 321928 B of 344064
+2026-11-11T00:44:20.2661980Z   ok    image 585612 B; RAM .data+.bss 76892 B of 98304; pool 321928 B of 344064
+2026-11-11T00:44:20.2693255Z ##[notice]ok    image 585612 B; RAM .data+.bss 76892 B of 98304; pool 321928 B of 344064
+2026-11-11T00:44:20.2695968Z ##[notice]ok    image 585628 B; RAM .data+.bss 76892 B of 98304; pool 321928 B of 344064
+2026-11-11T00:44:20.2698573Z ##[notice]ok    image 585612 B; RAM .data+.bss 76892 B of 98304; pool 321928 B of 344064
+  echo "::error title=Tests failed::$(tail -n 60 /tmp/l8-test.log | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"
+2026-11-11T00:44:47.4864136Z error: cancelled: nothing was written
+2026-11-11T00:44:47.4864750Z error: the keyboard's boot head differs from the backup's (at 0x1000): this tool never writes it, so it writes nothing. Keep both files and ask for help
+2026-11-11T00:44:47.4866114Z error: the keyboard's calibration differs from the backup's: the backup is another keyboard's (or another time's). Nothing is written. Use this keyboard's own backup
+2026-11-11T00:44:47.4867015Z error: /tmp/tmpbb69oa7j/smk37-backup-test.bin is not a good backup: no calibration mark at 0xc1224 ("trimdat")
+2026-11-11T00:44:47.4867696Z error: /tmp/tmpjrs144wd/b.bin does not match b.sha256.txt: the file has changed since the backup
+2026-11-11T00:44:47.4868404Z error: the keyboard answers as SMK-37 Pro_016: it works, so use fm1_install.py (the stock package, or LOOM-8's) instead of this
+2026-11-11T00:44:47.4869030Z error: the UBOOT disk did not appear. Ask for help before trying more
+2026-11-11T00:44:47.4869641Z error: /tmp/tmp3k0fpg3m/SMK-37-Pro_016.fwsc's boot head is not the keyboard's (the backup's): nothing is written
+2026-11-11T00:44:47.4870367Z error: /tmp/tmp2ce161w6/FM-1_016.fwsc is 'FM-1_016': --stock takes M-VAVE's own SMK-37 firmware (SMK-37 Pro_016.fwsc)
+2026-11-11T00:44:47.4871149Z error: /tmp/tmpnht56oy3/SMK-37-Pro_016.fwsc: no SMK-37 flash image in it (589824 bytes, not 643072)
+2026-11-11T00:44:49.2920484Z   if-no-files-found: error
+2026-11-11T00:44:49.8044388Z (node:3053) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
