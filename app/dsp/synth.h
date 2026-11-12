@@ -60,6 +60,7 @@ enum { EG_KNIT, EG_RAYON, EG_JACQUARD, EG_BELLOWS, EG_CANE, EG_VOILE, EG_SAMPLE,
 #define NVOILE 4
 #define CN_SLOTS 4
 #define CN_LEN 1536
+#define BLOODCLOT BOARD_SMK37                           /* this branch's SMK-37 build is BLOODCLOT (app/bloodclot.c) */
 #if BOARD_SMK37
 #define EG_DROPPED(e) ((e) >= EG_KNIT && (e) <= EG_VOILE)   /* SPIDER leaves LOOM-8's knit .. voile out (their numbers
                                                          * kept: a project's saved engine still means the same) */

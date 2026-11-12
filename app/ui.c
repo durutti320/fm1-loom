@@ -4894,7 +4894,11 @@ void ui_init(void)
 #if defined(PLAT_HOST) && !defined(PLAT_WEB)
     cards_audit();
 #endif
+#if BLOODCLOT
+    ui.page = P_MIX;                             /* BLOODCLOT starts at its desk */
+#else
     ui.page = P_STEPS;
+#endif
     ui.rem[0] = 60;
     ui.nrem = 1;
     ui.wv_step = 0xFF;

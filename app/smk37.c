@@ -189,6 +189,33 @@ static void lsmk_pads(void)
                 lsmk.latch |= m;
                 continue;
             }
+#if BLOODCLOT
+            if (!lsmk.pad_drums) {                 /* the desk: the top row drops, the bottom row throws */
+                if (p < 8)
+                    bc_drop(p, 1);
+                else
+                    bc_throw(p - 8, 1);
+                continue;
+            }
+            {                                      /* the drums: pads 1-8 DRUM's sounds, 9-16 HAND's */
+                int kit = p < 8 ? 0 : NTRK - 1, key = (p & 7) + 1;
+                lsmk_drum_off(p);
+                if (!is_drum(kit) && (kit = lsmk_kit()) < 0) {
+                    say_no("NO KIT", "make a channel a kit");
+                    continue;
+                }
+                lsmk.pad_trk[p] = (uint8_t)kit;
+                lsmk.pad_note[p] = (uint8_t)key;
+                lsmk.pad_vel[p] = (uint8_t)v;
+                engine_key(kit, key, 1, v);
+                if (lsmk.nr_on) {
+                    engine_repeat(kit, key, 1, v);
+                    lsmk.pad_rp[p] = 1;
+                }
+                ui.dsound = (uint8_t)(kit == sel_trk() ? key - 1 : ui.dsound);
+                continue;
+            }
+#endif
             if (p < 8) {                           /* the top row: T1-T8's mutes (a tap), solos (held): at the let go */
                 if (p < NTRK && p < NSEQT) {
                     lsmk.mute_held |= (uint8_t)m;
@@ -214,6 +241,12 @@ static void lsmk_pads(void)
         } else {                                   /* let go: what it started ends, whatever the page is now */
             lsmk.nr_pads &= ~m;
             lsmk_drum_off(p);
+#if BLOODCLOT
+            if (p < 8)
+                bc_drop(p, 0);
+            else
+                bc_throw(p - 8, 0);
+#endif
             if (p < 8 && (lsmk.mute_held >> p & 1u)) {
                 lsmk.mute_held &= (uint8_t)~m;
                 lsmk_mute_up(p, lsmk.mute_t[p]);
@@ -281,6 +314,15 @@ static void lsmk_pad_mode(void)
     lsmk.latch = 0;
     if (ui.ask || lst.open)
         return;
+#if BLOODCLOT
+    bc_pads_quiet();                               /* KNOB BANK: the desk <-> the drums (SEQ's Steps: the steps, unless
+                                                    * the drums are on) */
+    for (int p = 0; p < NPADS; p++)
+        lsmk_drum_off(p);
+    lsmk.pad_drums = !lsmk.pad_drums;
+    say(lsmk.pad_drums ? "PADS DRUMS" : "PADS DESK", lsmk.pad_drums ? "DRUM and HAND" : "drops and throws");
+    return;
+#endif
     if (lsmk_pads_steps()) {
         lsmk.pad_drums = 1;
         say("PADS LIVE", "mutes and drums");
@@ -543,6 +585,19 @@ static void lsmk_lights(void)
             }
             plat_pad_rgb(c, lv == 0x1000000u ? 0xC8C8C8u : lsmk_rgb(ink, lv));
         }
+#if BLOODCLOT
+    } else if (!lsmk.pad_drums) {              /* the desk: green playing, red dropped; the throws gold, bright held */
+        uint32_t held = plat_pads_held();
+        for (c = 0; c < 8; c++) {
+            int out = seq.mute >> c & 1u;
+            plat_pad_rgb(c, c >= NTRK ? 0u : lsmk_rgb(out ? BC_RED : BC_GREEN, held >> c & 1u ? 256u : out ? 60u : 150u));
+            plat_pad_rgb(8 + c, c >= NTRK ? 0u : bc.thr[c] == 2 ? 0xC8C8A0u : lsmk_rgb(BC_GOLD, bc.thr[c] ? 256u : 36u));
+        }
+    } else if (1) {                            /* the drums: DRUM's ink above, HAND's below */
+        uint32_t held = plat_pads_held();
+        for (c = 0; c < NPADS; c++)
+            plat_pad_rgb(c, lsmk_rgb(trk_ink(c < 8 ? 0 : NTRK - 1), held >> c & 1u ? 256u : 44u));
+#endif
     } else {                                   /* mutes (lit while the track plays) and the drums */
         int kit = lsmk_kit();
         uint32_t held = plat_pads_held(), col[NPADS];

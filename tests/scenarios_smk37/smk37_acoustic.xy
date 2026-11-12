@@ -2,6 +2,7 @@
 # user slots, dsp/sample.c SMP_XTRA): a new project's T1; its eleven keys on the sample model, samples 48.. (16 factory,
 # 32 user before them), each sounding; the kit's key on the screen named for its sample
 wait 300
+plainproject
 expect par1.engine 8
 expect par1.d1.model 10
 expect par1.d1.k1 48

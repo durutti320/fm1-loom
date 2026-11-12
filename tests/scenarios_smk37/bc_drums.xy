@@ -1,0 +1,40 @@
+# BLOODCLOT: KNOB BANK turns the pads from the desk to the drums (pads 1-8 DRUM's sounds, 9-16 HAND's) and back; on
+# SEQ's Steps page the pads are the bar's steps unless the drums are on; the riddim is there in a new project
+wait 300
+listen
+expect pads_drums 0
+expect note 1 1 9 1
+expect note 2 1 1 33
+expect note 3 1 3 57
+expect tempo 75
+smktap KNOBBANK
+wait 60
+said PADS DRUMS
+expect pads_drums 1
+expect drumhits 0
+tappad 0 100
+expect drumhits 1
+tappad 12 100
+expect drumhits 2
+expect mute 0
+expect thrown 0
+smktap KNOBBANK
+wait 60
+said PADS DESK
+expect pads_drums 0
+# the desk again: a pad drops, no drum
+tappad 0 100
+wait 60
+expect mute 1
+expect drumhits 2
+tappad 0 100
+wait 60
+expect mute 0
+# SEQ: the selected channel's steps on the pads
+tap SEQ
+wait 60
+expect page Steps
+tappad 1 100
+wait 60
+expect mute 0
+shot bc_steps

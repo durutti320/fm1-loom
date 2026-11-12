@@ -1,0 +1,48 @@
+# BLOODCLOT: a new project starts at the desk with its riddim; the top row drops a channel (a tap: it stays out; a
+# hold: out while held), the bottom row throws it into the echo while held (PATCH held: the spring)
+wait 300
+listen
+expect page Mix
+expect mute 0
+shot bc_desk_rest
+# a tap on pad 2 (BASS): dropped, and it stays
+tappad 1 100
+wait 60
+said DROP
+expect mute 2
+# again: back in
+tappad 1 100
+wait 60
+said IN
+expect mute 0
+# held past a tap: out while held, back as it was at the let go
+pad 2 100
+wait 500
+expect mute 4
+pad 2 0
+wait 60
+expect mute 0
+# the bottom row: thrown while held
+pad 9 100
+wait 100
+expect thrown 2
+shot bc_desk_throw
+pad 9 0
+wait 60
+expect thrown 0
+# PATCH held: the spring
+press HOME
+pad 10 100
+wait 100
+expect thrown 1024
+pad 10 0
+release HOME
+wait 60
+expect thrown 0
+expect page Mix
+# it plays: the riddim sounds, and a throw of the skank is heard in the echo's return
+tap PLAY
+wait 2000
+expect playing 1
+shot bc_desk_play
+tap PLAY

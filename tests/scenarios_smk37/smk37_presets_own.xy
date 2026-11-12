@@ -1,5 +1,6 @@
 # SPIDER: the SCALE list's PRESET keeps to the track's own engine (acid shows acid's sounds), K4 too
 wait 300
+plainproject
 turn ALGO 3
 wait 60
 expect trk 4

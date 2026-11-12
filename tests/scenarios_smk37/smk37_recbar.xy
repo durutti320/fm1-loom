@@ -5,6 +5,7 @@
 # press while it waits turns it off. The count-in clicks with the metronome off, and only the count-in does.
 # (120 BPM: a sixteenth 125 ms, a bar 2000 ms; times from PLAY's press)
 wait 300
+plainproject
 listen
 turn ALGO 1
 expect trk 2

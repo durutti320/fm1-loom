@@ -124,6 +124,18 @@ int engine_cc_take(uint32_t *pkt)
     ccq_r = (uint8_t)(r + 1u);
     return 1;
 }
+#if BLOODCLOT
+static uint8_t dub_throw[2][NTRK];                /* BLOODCLOT's throws: a channel's send to FX I / FX II raised while its pad
+                                                   * is held (0..127, on top of its own send; engine_throw, the main loop) */
+static float dub_kit_g[2][NTRK];                  /* a kit's throw gain, glided a stretch at a time (its keys have their own
+                                                   * sends: the whole kit is thrown after them) */
+void engine_throw(int trk, int slot, int amount)
+{
+    if (trk >= 0 && trk < NTRK)
+        dub_throw[slot ? 1 : 0][trk] = (uint8_t)(amount < 0 ? 0 : amount > 127 ? 127 : amount);
+}
+int engine_thrown(int trk, int slot) { return trk >= 0 && trk < NTRK ? dub_throw[slot ? 1 : 0][trk] : 0; }
+#endif
 static uint8_t perf_tail[NTRK], perf_mute[NTRK];  /* the drum tracks' punch state (the synth's perf_t is the synth's) */
 static int8_t perf_pan[NTRK];
 static int8_t perf_pan_base[NTRK];                /* the sequencer's pan offset (the arp's stereo), under the LFO */
@@ -911,8 +923,13 @@ static void perf_tick(uint32_t n)
         pan = perf_pan_base[t] + (pan_on ? (int)(lfo * 60.0f) : 0);
         p->pan = (int8_t)(pan < -127 ? -127 : pan > 127 ? 127 : pan);
         p->mute = (uint8_t)mute;
+#if BLOODCLOT
+        p->send1 = dub_throw[0][t];
+        p->send2 = dub_throw[1][t];
+#else
         p->send1 = 0;
         p->send2 = 0;
+#endif
         p->long_tail = (uint8_t)tail;
         perf_tail[t] = (uint8_t)tail;
         perf_mute[t] = (uint8_t)mute;
@@ -1292,6 +1309,19 @@ static void render_drums(uint32_t n)                    /* the drum tracks (the 
         glide_set(&trk_glide[t][GL_SEND], g);
         add_glide(perc_l, tl, &trk_glide[t][GL_L], n);
         add_glide(perc_r, tr, &trk_glide[t][GL_R], n);
+#if BLOODCLOT
+        for (int k2 = 0; k2 < 2; k2++) {                  /* the kit thrown: its sound into the send, on top of its keys' */
+            float to = (float)dub_throw[k2][t] * (1.0f / 127.0f), a = dub_kit_g[k2][t], *sb = k2 ? ts2 : ts1;
+            if (to > 0.0f || a > 0.0005f) {
+                float d = (to - a) / (float)n;
+                for (uint32_t i2 = 0; i2 < n; i2++) {
+                    a += d;
+                    sb[i2] += (tl[i2] + tr[i2]) * 0.5f * a;
+                }
+                dub_kit_g[k2][t] = to;
+            }
+        }
+#endif
         add_glide(s1, ts1, &trk_glide[t][GL_SEND], n);
         add_glide(s2, ts2, &trk_glide[t][GL_SEND], n);
         meter(t, tl, tr, g * gl, g * gr, n);

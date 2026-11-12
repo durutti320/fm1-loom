@@ -1,6 +1,7 @@
 # SPIDER's rhythms (app/rhythms.h): a kit track's Steps list, RHYTHM (K3 picks, SCALE writes it into the pattern) and
 # RHYTHM + KIT (the kit it was written for too); PATCH + REC undoes
 wait 300
+plainproject
 listen
 expect trk 1
 tap SEQ

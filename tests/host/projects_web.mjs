@@ -24,7 +24,8 @@ const check = (what, ok) => { console.log(`  ${ok ? "ok  " : "FAIL"} ${what}`); 
 const same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
 const throws = (fn) => { try { fn(); return null; } catch (e) { return e; } };
 const dir = mkdtempSync(join(tmpdir(), "spider-proj-"));
-const SAVE = ["wait 300", "tap HOME", "spin K1 20", "wait 40", "expect tempo 140", "projsave 1 ALPHA", "spin K1 -45", "wait 40",
+const SAVE = ["wait 300", "plainproject", "tap HOME",   // (BLOODCLOT: SPIDER's new project, 120 BPM, for this test)
+              "spin K1 20", "wait 40", "expect tempo 140", "projsave 1 ALPHA", "spin K1 -45", "wait 40",
               "expect tempo 95", "projsave 2 BETA_TWO", "wait 100"];
 function run(name, lines) {
   writeFileSync(join(dir, name), lines.join("\n") + "\n");

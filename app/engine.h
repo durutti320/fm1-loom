@@ -60,6 +60,11 @@ void engine_fx(int slot, int pick, const uint8_t knob[4], int hp, int lp, int wi
 int engine_fx_has(int slot, int pick);                   /* the slot can do this effect (fx.h fx_has) */
 void engine_panic(void);
 #if BOARD_SMK37
+#if BLOODCLOT
+void engine_throw(int trk, int slot, int amount);       /* BLOODCLOT: channel trk's send to FX I (slot 0) / FX II (1) raised
+                                                          * by amount (0..127; 0: as its own send has it) */
+int engine_thrown(int trk, int slot);
+#endif
 void engine_bend(int trk, int32_t v);                    /* a panel's pitch wheel, -8192..8191 (the SMK-37's) */
 void engine_repeat(int trk, int key, int on, int vel);   /* note repeat: kit key 1..11 of trk held / let go (seq.h) */
 void engine_repeat_rate(int rate);                       /* SEQ_RP_* */

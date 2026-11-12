@@ -7,7 +7,7 @@ name: LOOM-8 SMK-37 firmware
 
 on:
   push:
-    branches: [loom8-smk37, spider2]   # (spider2: SPIDER, rebuilt on LOOM-SMK; each branch builds onto BRANCH-emu)
+    branches: [loom8-smk37, spider2, bloodclot]   # (spider2: SPIDER, rebuilt on LOOM-SMK; each branch builds onto BRANCH-emu)
     tags: ["loom8-v*"]
   workflow_dispatch:
 

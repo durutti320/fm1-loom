@@ -4,6 +4,7 @@
 # it) is taken whole (its CRC over all three windows: "user 8") and plays to its last sample on T6, the sampler (the
 # sweep, rising: quiet at first)
 wait 300
+plainproject
 samples build/gen/user_bank_smk37_full.bin
 expect user 8
 expect rate8 32000

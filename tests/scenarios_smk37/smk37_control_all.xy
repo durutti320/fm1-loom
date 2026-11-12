@@ -1,6 +1,7 @@
 # the mod wheel as CONTROL ALL (Setup's MOD WHEEL): cutoff on every synth track at once, each from its own value;
 # KNOB BANK within 5 s of the wheel's last move reverts; later it keeps the values (and does its own job)
 wait 300
+plainproject
 listen
 modw 0
 wait 40

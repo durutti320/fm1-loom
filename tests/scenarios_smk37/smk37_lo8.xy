@@ -3,6 +3,7 @@
 # track is SPIDER's own for that place (project.c lo8_track, track_sound_new), a track of SPIDER's own stays. NEW
 # PROJECT: SPIDER's layout every time (no random band)
 wait 300
+plainproject
 trkraw 2 0 sub
 trkraw 3 11 glass
 trkraw 4 2 jacquard

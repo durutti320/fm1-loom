@@ -10,6 +10,7 @@
 #include "project.c"
 #include "pages.c"
 #include "ui.c"
+#include "bloodclot.c"                              /* BLOODCLOT: the channels, the desk, the drops and throws */
 #include "midicc.c"
 #if BOARD_SMK37
 #include "smk37.c"                                  /* the M-VAVE SMK-37's panel: pads, faders, outer keys, wheels */

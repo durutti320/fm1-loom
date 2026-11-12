@@ -1,4 +1,4 @@
-<title>SPIDER SMK Emulator</title>
+<title>BLOODCLOT SMK Emulator</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -128,7 +128,7 @@ body.learn [data-learn] { cursor: crosshair; }
 
 <main>
   <header>
-    <h1>SPIDER · SMK-37</h1>
+    <h1>BLOODCLOT · SMK-37</h1>
     <p>the firmware for the M-VAVE SMK-37, running in your browser: the same code the keyboard runs</p>
     <div class="hdr-actions">
       <a href="qrg.html" title="The controls on one page, to print (A4 landscape)">Cheat sheet</a>
@@ -162,7 +162,7 @@ body.learn [data-learn] { cursor: crosshair; }
     </div>
     <div class="keys-wrap"><div class="keys" id="keys" aria-label="37 keys, C3 to C6"></div></div>
     <div class="start" id="start"><div><button class="primary" id="go" type="button">Switch on</button>
-      <p>SPIDER (LOOM-8 rebuilt for the SMK-37), the same code the keyboard runs.</p></div></div>
+      <p>BLOODCLOT (a dub box on BLOODCLOT's base), the same code the keyboard runs. Milestone 1: the desk, the drops and the throws.</p></div></div>
   </div></div>
   <p class="swipe">The panel is as wide as the keyboard's: swipe it sideways.</p>
 
@@ -189,10 +189,10 @@ body.learn [data-learn] { cursor: crosshair; }
     </section>
     <section id="samples">
       <h2>Samples</h2>
-      <p>Your own samples, up to 32 in SPIDER's 180 KB. They come after its own: turn the sample engine's sample knob
+      <p>Your own samples, up to 32 in BLOODCLOT's 180 KB. They come after its own: turn the sample engine's sample knob
         (PARA, then K5), or a drum key's on the sample model, past the factory ones to user 1, user 2 and so on. Here they
         stay in this browser. For the keyboard itself: <a href="samples/">the samples page</a> (Chrome or Edge, the
-        SMK-37 by USB with SPIDER on it). Its two projects, to name, swap and keep copies of:
+        SMK-37 by USB with BLOODCLOT on it). Its two projects, to name, swap and keep copies of:
         <a href="projects/">the projects page</a>.</p>
       <div class="inrow">
         <button id="smpAdd" type="button">Add samples</button>
@@ -875,7 +875,7 @@ function frTick() {                               // the time (bars.beats.ticks)
   }
   frSend(pk);
 }
-function fakeReaperHears(pkts, to) {              // what SPIDER sent it on the second port
+function fakeReaperHears(pkts, to) {              // what BLOODCLOT sent it on the second port
   if (!fr.on) return;
   let all = false;
   pkts.forEach((p, i) => {
@@ -922,7 +922,7 @@ reset.addEventListener("click", () => {
 });
 </script>
 <script type="module">
-// SPIDER's samples in the emulator: files dropped or picked become a user bank as the samples page builds it
+// BLOODCLOT's samples in the emulator: files dropped or picked become a user bank as the samples page builds it
 // (loom_samples.js beside this page, for the SMK-37's 180 KB), kept in this browser and handed to the firmware as an
 // upload would leave it (worklet.js "bank", app/web.c web_bank). The samples already there are kept as stored.
 import { setBoard, build, keptOf, cleanName, noteFromName, BANK_HDR, BANK_MAX_DATA, BANK_N } from "./loom_samples.js";
@@ -958,7 +958,7 @@ function hand() { if (window.send) window.send({ type: "bank", img: img ? img.sl
 window.addEventListener("spider-on", () => { if (img) hand(); });
 window.addEventListener("spider-bank", (e) => {
   const n = e.detail.n, used = img ? img.length - BANK_HDR : 0;
-  say(n < 0 ? "This SPIDER could not take the samples." : n ? `${n} sample${n === 1 ? "" : "s"} of your own in SPIDER: ` +
+  say(n < 0 ? "This BLOODCLOT could not take the samples." : n ? `${n} sample${n === 1 ? "" : "s"} of your own in BLOODCLOT: ` +
       `${(used / 1024).toFixed(0)} of ${(BANK_MAX_DATA / 1024).toFixed(0)} KB.` : "No samples of your own now.");
 });
 async function decode(f) {
@@ -984,14 +984,14 @@ async function add(files) {
   try {
     img = build(items).img;
   } catch (e) {
-    say(`Too much for SPIDER's bank: ${e.message.replace(/^too long: /, "")}. Add fewer or shorter samples.`);
+    say(`Too much for BLOODCLOT's bank: ${e.message.replace(/^too long: /, "")}. Add fewer or shorter samples.`);
     return;
   }
   keep();
   render();
   if (bad.length) say(`Couldn't add ${bad.join(", ")}.`);
   if (window.send && window.emuLast) hand();
-  else if (!bad.length) say("Added: switch SPIDER on above to play them.");
+  else if (!bad.length) say("Added: switch BLOODCLOT on above to play them.");
 }
 $("smpAdd").addEventListener("click", () => $("smpFiles").click());
 $("smpFiles").addEventListener("change", (e) => { add([...e.target.files]); e.target.value = ""; });
@@ -1008,6 +1008,6 @@ $("smpClear").addEventListener("click", () => {
 });
 {
   const n = render().length;
-  if (n) say(`${n} sample${n === 1 ? "" : "s"} kept in this browser: they go in when SPIDER is switched on.`);
+  if (n) say(`${n} sample${n === 1 ? "" : "s"} kept in this browser: they go in when BLOODCLOT is switched on.`);
 }
 </script>

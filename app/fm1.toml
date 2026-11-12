@@ -20,14 +20,14 @@ boot_pack = true               # .ram_text and .data LZMA-packed in the image, u
 cpu2 = true                    # the second core: fm1-base's (felucca-bsp's chip/fm1_cpu1.h, Melodee's), plat_cpu2_*
 # the M-VAVE SMK-37 build (BOARD=smk37): its USB names; for now without Bluetooth and the USB host (its radio and its
 # flash map for pairing records not yet checked on the device; its USB port a device's)
-smk37_name = "spider"         # the SMK-37 build is SPIDER: spider-smk37.fwsc (app.h APP_NAME)
-smk37_usb_manufacturer = "SPIDER"
-smk37_usb_product = "SPIDER SMK-37"
+smk37_name = "bloodclot"      # the SMK-37 build is BLOODCLOT: bloodclot-smk37.fwsc (app.h APP_NAME)
+smk37_usb_manufacturer = "BLOODCLOT"
+smk37_usb_product = "BLOODCLOT SMK-37"
 smk37_ble = false
 smk37_bt_audio = false
 smk37_usb_host = false
 smk37_usb_midi_ports = 2               # a second USB MIDI port: DAW mode's REAPER profile speaks Mackie Control on it
-smk37_usb_midi_name2 = "SPIDER DAW"    # (its name where the computer shows one; Windows: MIDIIN2 (SPIDER SMK-37))
+smk37_usb_midi_name2 = "BLOODCLOT DAW"    # (its name where the computer shows one; Windows: MIDIIN2 (SPIDER SMK-37))
 smk37_resources = ""                   # (no resource region on the SMK-37 yet: its store has no 88 KB to spare; the 909
                                        # cymbals are silent there, large type uses the faces built in)
 # the DSP and the sequencer at -O2, apart (as LOOM-8's own build had them); bench.c: the profiler, empty unless XY_BENCH=1

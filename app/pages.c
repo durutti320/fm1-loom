@@ -39,13 +39,24 @@ static const theme_t THEMES[] = {
      RGB(170, 158, 186), RGB(236, 228, 214), RGB(140, 120, 164), RGB(222, 30, 56), RGB(222, 204, 194),
      {RGB(214, 44, 64), RGB(232, 112, 52), RGB(228, 182, 82), RGB(142, 202, 92), RGB(72, 182, 162), RGB(104, 142, 232),
       RGB(164, 104, 232), RGB(222, 112, 192)}, 7, 10},
+    /* BLOODCLOT's (its default): a sound system at night. Warm black, cream text, and red, gold and green only: each
+     * channel one of them, light or deep, so its steps and its pad say whose they are */
+    {"dub", RGB(12, 10, 8), RGB(34, 28, 20), RGB(54, 44, 30), RGB(66, 54, 36), RGB(112, 98, 70),
+     RGB(184, 168, 128), RGB(244, 234, 204), RGB(150, 132, 92), RGB(232, 40, 40), RGB(244, 214, 150),
+     {RGB(226, 52, 44), RGB(40, 170, 84), RGB(250, 196, 44), RGB(120, 204, 96), RGB(244, 140, 44), RGB(252, 226, 130),
+      RGB(240, 84, 96), RGB(24, 150, 120)}, 7, 10},
 #endif
 };
 #define NTHEMES (sizeof THEMES / sizeof THEMES[0])
 #define THEME_BW 2
 #if BOARD_SMK37
 #define THEME_WEB 3                                   /* SPIDER's own, last so the others keep their numbers */
+#define THEME_DUB 4                                   /* BLOODCLOT's own */
+#if BLOODCLOT
+#define THEME_DEF THEME_DUB
+#else
 #define THEME_DEF THEME_WEB
+#endif
 #else
 #define THEME_DEF THEME_BW
 #endif
@@ -168,7 +179,7 @@ static const char *const BTN_LABEL[NB] = {"FX", "SEL", "ENV", "LFO", "EDIT", "GL
  * its own (K5..K8: the theme's inks 5..8; SELECT, ALGORITHM, PRESETS, KNOBS 2..5). Other themes: as LOOM-8 */
 static const uint8_t GROUP_INK[8] = {4, 3, 1, 2, 6, 5, 7, 0};   /* HOME SEQ EDIT ENV FX LFO ARP GLO */
 static int s_eq(const char *a, const char *b);
-static int web_ink(void) { return theme == &THEMES[THEME_WEB]; }
+static int web_ink(void) { return theme == &THEMES[THEME_WEB] || theme == &THEMES[THEME_DUB]; }
 static uint16_t page_ink(int p) { return web_ink() ? theme->ink[GROUP_INK[page_group(p) & 7]] : K_DIM; }
 static uint16_t knob_ink(int i) { return web_ink() ? theme->ink[4 + (i & 3)] : K_DIM; }
 static uint16_t ctl_ink(const char *b)          /* a control named in the footer: its colour */
@@ -193,8 +204,15 @@ static uint16_t ctl_ink(const char *b)          /* a control named in the footer
 #endif
 
 /* the tracks: 1-8, then the aux tracks (the tag's short names, the pages' long ones) */
+#if BLOODCLOT
+static const char *const TRACK_NAME[NALLTRK] = {"DRUM", "BASS", "SKNK", "ORGN", "HORN", "VOX", "SIRN", "HAND", "COND", "THROW",
+                                                "ECHO", "SPRING", "WEAVE"};   /* the desk's channels (bloodclot.c) */
+static void draw_desk(void);
+static const char *const BC_SHORT[NTRK] = {"DR", "BA", "SK", "OR", "HO", "VX", "SI", "HA"};   /* (where four letters do not fit) */
+#else
 static const char *const TRACK_NAME[NALLTRK] = {"T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "COND", "THROW",
                                                 "FX I", "FX II", "WEAVE"};
+#endif
 static const char *const NOTE_NAME[12] = {"C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"};
 /* the step components (SC_*: the OP-XY's 14, on the white keys with HOME and a step held), their letter on
  * the grid and their name */
@@ -1714,7 +1732,7 @@ static void page_knobs(knob_t *k)
             char c[8], *ce;
             kn(&k[2], "AMOUNT", tp->groove, 0);
             pn[0] = 0;
-            if (s_len(TRACK_NAME[trk]) > 4)
+            if (s_len(TRACK_NAME[trk]) > (BLOODCLOT ? 3 : 4))   /* (BLOODCLOT's channels: four letters) */
                 s_cat(pn, "PATTERN");
             else
                 s_cat(s_cat(pn, TRACK_NAME[trk]), " PAT");
@@ -2326,7 +2344,11 @@ static void page_footer(char *t)
 #endif
         break;
     case P_MIX:
+#if BLOODCLOT
+        s_cat(t, "PADS drop|below: throw|KEYS play");   /* (the desk: bloodclot.c) */
+#else
         s_cat(t, "BLACK mute|hold: solo|WHITE play");
+#endif
         break;
     case P_THROWS:
         s_cat(t, "KEYS throw: low drums, high melodic|REC held: record");
@@ -6026,7 +6048,11 @@ static void draw_glfo(void)
     for (int i = 0; i < NTRK; i++) {             /* the tracks it moves: black keys 1-8 */
         int32_t x = 16 + i * 26, on = route >> i & 1;
         cv_round(x, 90, 22, 16, 4, on ? trk_ink(i) : K_PANEL);
+#if BLOODCLOT
+        text_c(x + 11, 92, &FONT_XS, BC_SHORT[i], on ? K_BG : K_DIM);
+#else
         text_c(x + 11, 92, &FONT_XS, TRACK_NAME[i], on ? K_BG : K_DIM);
+#endif
     }
     cv_blit(0, MAIN_Y);
 }
@@ -6327,7 +6353,11 @@ static void draw_page(void)
         else
             draw_players();
         break;
+#if BLOODCLOT
+    case P_MIX: (void)draw_mix; draw_desk(); break;   /* (the desk is BLOODCLOT's mix) */
+#else
     case P_MIX: draw_mix(); break;
+#endif
     case P_THROWS: draw_punch(); break;
     case P_WEAVE: draw_weave(); break;
     case P_MASTER: case P_MASTER3: draw_master(); break;

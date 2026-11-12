@@ -4,6 +4,7 @@
 # SPIDER sends, byte for byte: the query, the transport, the buttons, the V-pots and the jog, NAV's CCs, the faders'
 # pick-up, the pads' three pages, the lights from REAPER's, waiting again after 3 s of nothing, kept in flash.
 wait 300
+plainproject
 smkbtn < down
 smkbtn > down
 wait 60

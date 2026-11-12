@@ -2,6 +2,7 @@
 # mode (< + >): the keys, knobs, faders, pads, buttons and wheels as USB MIDI (the DEFAULT map: SMK37.md), LOCAL,
 # the settings under PATCH, the map editor, kept in flash (the mode too)
 wait 300
+plainproject
 expect trk 1
 tap SEQ
 expect page Steps
@@ -28,10 +29,10 @@ tappad 2
 expect note 1 1 3 3
 tappad 2
 expect note 1 1 3 0
-# KNOB BANK elsewhere: the Steps page, its cells on the pads
+# (SPIDER: KNOB BANK elsewhere goes to Steps; BLOODCLOT's is the desk <-> the drums: SEQ for the steps)
 tap HOME
 expect page Arrange
-smktap KNOBBANK
+tap SEQ
 wait 40
 expect page Steps
 # the mod wheel: the filter of the track the keys play, once it passes the value it has (a pick-up)

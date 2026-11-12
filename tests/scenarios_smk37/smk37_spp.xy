@@ -2,6 +2,7 @@
 # new project's), stopped, F2 then Continue plays from there (as a DAW starting mid-song sends them): each track at
 # the step it would be on then, in its loop, and the bar count with it; a Start forgets it; while playing it is ignored
 wait 300
+plainproject
 expect clock 2
 expect playing 0
 # sixteenth 5, Continue, the first clock: step 6 (0-based 5), the bar's sixteenth 5

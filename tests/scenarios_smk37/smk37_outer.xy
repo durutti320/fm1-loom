@@ -2,6 +2,7 @@
 # outer_note): among the notes held, which Steps' head shows all of, low to high (a chord of six on poly: past the four a
 # step takes, the sound's name gives way), what a step tapped takes, and step record's
 wait 300
+plainproject
 turn ALGO 2
 wait 60
 expect trk 3

@@ -423,6 +423,14 @@ int app_expect(const char *what, int *got)
         *got = seq.scene + 1;
     else if (!strcmp(what, "mute"))
         *got = seq.mute;
+#if BLOODCLOT
+    else if (!strcmp(what, "thrown")) {             /* BLOODCLOT: the channels thrown into the echo (bit t), the spring
+                                                     * (bit 8 + t) */
+        *got = 0;
+        for (int t = 0; t < NTRK; t++)
+            *got |= (engine_thrown(t, 0) ? 1 << t : 0) | (engine_thrown(t, 1) ? 256 << t : 0);
+    }
+#endif
     else if (!strncmp(what, "epar", 4) && strchr(what, '.')) {   /* eparT.P: the engine's own value of a parameter
                                                      * (with the locks and the shared LFO on a kit) */
         int t = atoi(what + 4) - 1, p = param_of(strchr(what, '.') + 1);
@@ -1462,6 +1470,17 @@ int app_host_cmd(const char *cmd, const char *a, const char *b, const char *c, c
         host_fails++;
         return 1;
     }
+#if BLOODCLOT
+    if (!strcmp(cmd, "plainproject")) {             /* SPIDER's new project from here on (no riddim, its eight tracks),
+                                                     * and one now, at Steps: SPIDER's scenarios, on what BLOODCLOT keeps */
+        bc_plain = 1;
+        do_new_proj();
+        ui.dirty = 0;
+        ui.page = P_STEPS;
+        run_ms(60);
+        return 1;
+    }
+#endif
     if (!strcmp(cmd, "passkey")) {                  /* passkey N: a pairing waits for code N to be typed (-1 none) */
         sim_passkey = atoi(a);
         run_ms(1);

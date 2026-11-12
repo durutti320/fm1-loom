@@ -3,6 +3,7 @@
 # settings (OBJ_DAW). The touches hand the keys a time base (fm1-base plat_key_touch: heavy 1, the earlier builds' ..
 # normal 4, the default .. lightest 8); FIXED 100 / 127 every key that velocity. The pads keep their own
 wait 300
+plainproject
 expect kv 3
 expect touch 4
 # Setup: KEY VELOCITY, normal -> fixed 100

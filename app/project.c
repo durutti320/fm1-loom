@@ -241,9 +241,19 @@ void project_device_put(void)
 #endif
 /* a new project's tracks, by engine */
 #if BOARD_SMK37
+#if BLOODCLOT
+static void bc_project(void);                         /* (bloodclot.c: the channels' sounds, the echo, the riddim) */
+static const uint8_t ORDER_BC[NTRK] = {EG_DRUMLINE, EG_MONO, EG_POLY, EG_POLY, EG_SAMPLE, EG_SAMPLE, EG_MONO,
+                                       EG_DRUMLINE};  /* BLOODCLOT's desk: DRUM BASS SKNK ORGN HORN VOX SIRN HAND */
+static const uint8_t ORDER_SP[NTRK] = {EG_DRUMLINE, EG_MONO, EG_POLY, EG_ACID, EG_FM, EG_SAMPLE, EG_POLY, EG_MONO};
+static uint8_t bc_plain;                              /* the simulator's "plainproject": SPIDER's new project, no riddim
+                                                       * (SPIDER's scenarios run on it: what BLOODCLOT keeps of SPIDER) */
+#define ORDER (bc_plain ? ORDER_SP : ORDER_BC)
+#else
 static const uint8_t ORDER[NTRK] = {EG_DRUMLINE, EG_MONO, EG_POLY, EG_ACID, EG_FM, EG_SAMPLE, EG_POLY,
                                     EG_MONO};         /* SPIDER: its kit, mono bass, poly, acid, fm, the sampler, a
                                                        * second poly and mono (their second presets) */
+#endif
 #else
 static const uint8_t ORDER[NTRK] = {EG_DRUMLINE, EG_KNIT, EG_RAYON, EG_JACQUARD, EG_KNIT, EG_BELLOWS, EG_CANE,
                                     EG_VOILE};
@@ -373,6 +383,10 @@ void project_defaults(void)
     proj.master[MS_PUMP_ACC] = 1;
     proj.master[MS_LEVEL] = 100;
     patterns_init(&pats);
+#if BLOODCLOT
+    if (!bc_plain)
+        bc_project();
+#endif
 }
 
 /* ---- validation ----------------------------------------------------------------------------- */
