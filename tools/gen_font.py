@@ -56,10 +56,18 @@ FONTSETS = {
                ("B", "ChakraPetch-Bold.ttf", 14, 1, False, 32, 126),
                ("M", "ChakraPetch-SemiBold.ttf", 21, 1, False, 32, 95),
                ("L", "ChakraPetch-Bold.ttf", 29, 1, False, 32, 95)],
+    # SPIDER's (the SMK-37 build's look, 2026-11-18): Terminus's bitmaps for the small roles, crisp at 1:1, and
+    # Handjet (Rosetta, SIL OFL 1.1: assets/fonts) for the values and the big readout, a condensed pixel face
+    "spider": [("XS", "ter-u12n.bdf", 12, 1, True, 32, 126),
+               ("S", "ter-u16n.bdf", 16, 1, True, 32, 126),
+               ("B", "ter-u16b.bdf", 16, 1, True, 32, 126),
+               ("M", "Handjet-Bold.ttf", 24, 1, True, 32, 95),
+               ("L", "Handjet-Bold.ttf", 32, 1, True, 32, 126)],
 }
 import os  # noqa: E402
-FONTSET = os.environ.get("X0X_FONTSET", "barlow")    # the others need X0X_FONT_DIRS (not in assets/)
-FONTDIRS = [Path(p) for p in os.environ.get("X0X_FONT_DIRS", "").split(":") if p]
+FONTSET = os.environ.get("X0X_FONTSET", "spider" if os.environ.get("BOARD") == "smk37" else "barlow")
+FONTDIRS = [Path(__file__).resolve().parents[1] / "assets" / "fonts"] + \
+    [Path(p) for p in os.environ.get("X0X_FONT_DIRS", "").split(":") if p]   # (the app's own faces, then others)
 SIZES = FONTSETS[FONTSET]
 PAD = 2
 

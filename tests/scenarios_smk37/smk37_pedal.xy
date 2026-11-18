@@ -67,7 +67,7 @@ wait 2700
 said toe down
 pedal 100
 wait 2700
-said PEDAL LEARNED
+said PEDAL learned: heel
 expect pedalset 39010101
 # halfway: the cutoff halfway
 pedal 500

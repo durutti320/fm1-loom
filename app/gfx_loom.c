@@ -48,6 +48,8 @@ static void ga_report(const char *what, const char *a, const char *b, int32_t x,
     ga_findings++;
     printf("LAYOUT %s: \"%s\"%s%s%s at %d,%d (%s)\n", what, a, *b ? " / \"" : "", b, *b ? "\"" : "", (int)x, (int)y, w);
 }
+static int ga_goes;                                  /* a band drawn in goes (a card taller than the canvas): a line cut
+                                                      * at a go's foot is whole in the next */
 static void ga_text(const char *s, int32_t x0, int32_t y0, int32_t x1, int32_t y1, int clipped)
 {
     ga_box_t *t;
@@ -269,7 +271,7 @@ static int32_t loom_text(int32_t x, int32_t y, const loom_font_t *f, const char 
                     if (px > ix1) ix1 = px;
                     if (py < iy0) iy0 = py;
                     if (py > iy1) iy1 = py;
-                    if ((uint32_t)px >= cv_w || py < cv_y0 || py >= cv_y1)
+                    if ((uint32_t)px >= cv_w || (!ga_goes && (py < cv_y0 || py >= cv_y1)))
                         clip = 1;
                     else
                         shown = 1;

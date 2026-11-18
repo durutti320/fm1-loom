@@ -1,0 +1,63 @@
+# SPIDER's look (C, 2026-11-18): every main page, a knob turned (its cell the track's ink), a help card over the tag,
+# a list with its hints; the layout audit fails on any label cut, clipped or overlapping in Terminus and Handjet
+wait 300
+tappad 0
+tappad 4
+tappad 9
+tappad 12
+tap PLAY
+wait 260
+shot a_steps.png
+turn ALGO 1
+wait 100
+shot b_steps_mono.png
+tap EDIT
+wait 100
+shot c_engine.png
+turn SELECT 1
+wait 100
+shot d_play.png
+tap ENV
+wait 100
+turn K2 5
+wait 60
+shot e_env.png
+turn SELECT 1
+wait 100
+shot f_filter.png
+tap FX
+wait 100
+shot g_character.png
+tap GLO
+wait 100
+shot h_mix.png
+tap HOME
+wait 100
+shot i_arrange.png
+tap ARP
+wait 100
+shot j_players.png
+press SEQ
+wait 1300
+shot k_card.png
+release SEQ
+wait 100
+tap SEL
+wait 100
+shot l_list.png
+tap HOME
+wait 100
+tap PLAY
+wait 100
+shot m_stopped.png
+press SEQ
+wait 1300
+shot n_card_seq.png
+release SEQ
+wait 100
+tap GLO
+turn SELECT 6
+wait 100
+tap SEL
+wait 100
+shot o_setup.png

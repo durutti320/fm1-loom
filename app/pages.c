@@ -649,7 +649,14 @@ static int32_t segs(int32_t x, int32_t y, const felucca_font_t *f, const char *s
  * encoders' line, the footer). Large type (Setup > SEL > LARGE TYPE, gfx_loom.c loom_type) gives the header, the
  * tag and the knobs more room and the picture less; the hints stay where and as they are */
 typedef struct { int16_t hdr_h, main_y, main_h, tag_y, tag_h, knb_y, knb_h, enc_y, foot_y; } bands_t;
+#if BOARD_SMK37
+#define LOOK_C 1                                     /* SPIDER's look (2026-11-18, "C"): no hints at the foot; the knobs'
+                                                      * band is K1..K4's row (what each does, what it is at) over K5..K8's
+                                                      * cells; a list's hints at the foot still (FOOT_Y) */
+static const bands_t BANDS[3] = {{24, 24, 120, 144, 14, 158, 82, 240, 224},
+#else
 static const bands_t BANDS[3] = {{24, 24, 120, 144, 14, 158, 50, 208, 224},
+#endif
                                  {30, 30, 82, 112, 24, 136, 72, 208, 224},
                                  {30, 30, 98, 128, 24, 152, 72, 224, 224}};   /* (large, Steps: one hint row) */
 static const bands_t *band = &BANDS[0];
@@ -663,6 +670,11 @@ static const bands_t *band = &BANDS[0];
 #define ENC_Y (band->enc_y)
 #define FOOT_Y (band->foot_y)
 #define LARGE (band != &BANDS[0])                    /* large type on (its faces there: gfx_loom.c lt_on) */
+#ifdef LOOK_C
+#define LOOKC (!LARGE)                               /* (large type keeps its own bands and hints) */
+#else
+#define LOOKC 0
+#endif
 #define PIC_H (MAIN_H - 32)                          /* an engine's picture under its name (88 today) */
 #define LY(a, b) (LARGE ? (b) : (a))                 /* a coordinate today, in large type */
 #define MY(y) (LARGE ? (y) * MAIN_H / 120 : (y))     /* a y in the main band, scaled to large type's shorter band */
@@ -1067,6 +1079,89 @@ static void hdr_cut_(const felucca_font_t *f, const char *s, int32_t room)   /* 
     msg_too_wide++;
 }
 #endif
+#ifdef LOOK_C
+/* look C's header: the track's chip in its ink, the page's name, what the track sounds as (dim, as room allows); at the
+ * right the pattern and scene, PLAY's mark in the ink (a square when stopped), the tempo */
+static void hdr_c_sound(int trk, char *a, char *b)
+{
+    a[0] = b[0] = 0;
+    if (is_aux(trk))
+        return;
+    s_cat(a, EG_NAME[proj.trk[trk].par[TP_ENGINE] % NENGINE]);
+    if (is_drum(trk)) {
+        for (int i = 0; i < NAME_LEN && proj.trk[trk].name[i]; i++)
+            a[i] = proj.trk[trk].name[i], a[i + 1] = 0;
+        s_cat(b, DL_SOUND_NAME[ui.dsound % DL_NSOUND]);
+    } else {
+        for (int i = 0; i < NAME_LEN && proj.trk[trk].name[i]; i++)
+            b[i] = proj.trk[trk].name[i], b[i + 1] = 0;
+        if (s_eq(a, b))
+            b[0] = 0;
+    }
+    upcase(a);
+    upcase(b);
+}
+static void header_c(int rec, int ext)
+{
+    char t[24], a[NAME_LEN + 12], b[NAME_LEN + 12];
+    int tp = ((ui.page >= P_STEPS && ui.page <= P_PLAYERS3) || ui.page == P_WEAVE) && ui.page != P_THROWS;
+    int pt = tp ? page_trk(ui.page) : sel_trk();
+    const char *pn = lst.open && lst.bt ? (lst.bt == 1 ? "Audio devices" : "MIDI devices") : page_name_of(ui.page, sel_trk());
+    int32_t x = 4, r = 236, tw = text_w(&FONT_XS, TRACK_NAME[pt]) + 7;
+    uint16_t ink = trk_ink(pt);
+    cv_round(x, 4, tw, 16, 2, ink);                  /* the chip */
+    cv_text(x + 4, 6, &FONT_XS, TRACK_NAME[pt], K_BG);
+    x += tw + 6;
+    x = cv_text(x, 4, &FONT_B, pn, K_TEXT) + 8;
+    if (ext)
+        s_cat(t, "ext");
+    else
+        tempo_text(t);
+    r -= text_w(&FONT_B, t);
+    cv_text(r, 4, &FONT_B, t, K_TEXT);
+    r -= 11;
+    if (playing())                                   /* PLAY's mark: a triangle in the ink, a square stopped */
+        for (int j = 0; j < 5; j++)
+            cv_rect(r + j, 12 - (8 - 2 * j) / 2 - 1, 1, 9 - 2 * j, ink);
+    else
+        cv_rect(r, 9, 6, 6, K_FAINT);
+    r -= 6;
+    if (rec) {
+        r -= 10;
+        cv_round(r, 7, 9, 9, 4, K_REC);
+        r -= 4;
+    }
+    {   /* the pattern (a track that plays steps) and the scene */
+        char *e = t;
+        t[0] = 0;
+        if (is_seqt(sel_trk()))
+            e = s_cat(num_s((uint32_t)cur_pat(sel_trk()) + 1u, s_cat(t, "P")), " ");
+        num_s((uint32_t)cur_scene() + 1u, s_cat(e, "S"));
+        if (r - text_w(&FONT_XS, t) - 4 >= x) {
+            r -= text_w(&FONT_XS, t);
+            cv_text(r, 6, &FONT_XS, t, K_DIM);
+            r -= 4;
+        }
+    }
+    if (ui.dirty && r - 6 >= x) {                    /* unsaved: a dot */
+        r -= 4;
+        cv_rect(r, 10, 3, 3, K_DIM);
+        r -= 5;
+    }
+    if (tp || !is_aux(pt)) {                         /* what it sounds as: "MONO · DUB BASS", "ACOUSTIC · KICK" */
+        hdr_c_sound(pt, a, b);
+        if (ui.page >= P_MIX && ui.page <= P_STATUS)
+            s_cat(a, "ALL TRACKS"), b[0] = 0;
+        if (a[0] && text_w(&FONT_XS, a) <= r - x - 4) {
+            int32_t e = cv_text(x, 6, &FONT_XS, a, K_DIM);
+            if (b[0] && text_w(&FONT_XS, b) <= r - e - 12) {
+                cv_rect(e + 3, 11, 2, 2, K_DIM);
+                cv_text(e + 8, 6, &FONT_XS, b, K_DIM);
+            }
+        }
+    }
+}
+#endif
 static void draw_header(void)
 {
     char t[40];
@@ -1092,6 +1187,15 @@ static void draw_header(void)
     if (((ui.page >= P_STEPS && ui.page <= P_PLAYERS3) || ui.page == P_WEAVE) && ui.page != P_THROWS)
         mh = hdr_meter(page_trk(ui.page));
     h = hash_u(h, (uint32_t)mh);
+#ifdef LOOK_C
+    if (LOOKC) {                                     /* (what look C's header shows besides) */
+        int st = sel_trk();
+        h = hash_u(h, (uint32_t)st | (uint32_t)ui.dsound << 8 | (uint32_t)cur_pat(st) << 16 |
+                          (uint32_t)proj.trk[st < NTRK ? st : 0].par[TP_ENGINE] << 24);
+        for (int i = 0; st < NTRK && i < NAME_LEN; i++)
+            h = hash_u(h, (uint8_t)proj.trk[st].name[i]);
+    }
+#endif
     if (h == ui.sig[0])
         return;
     ui.sig[0] = h;
@@ -1170,6 +1274,10 @@ static void draw_header(void)
     } else if (seq.rec_wait && playing()) {      /* recording on the first note: waiting for it */
         cv_text(8, 4, &FONT_B, "Play a note", K_TEXT);
         cv_round(222, 8, 9, 9, 4, K_REC);
+#ifdef LOOK_C
+    } else if (LOOKC) {
+        header_c(rec, ext);
+#endif
     } else {
         int32_t r = 232, x = 8, py = LARGE ? 3 : 4, ph = LARGE ? 24 : 17;   /* (large type: taller pills, 30 px) */
         const char *bn = smk_name(BTN_LABEL[PAGE_BTN[page_group(ui.page)].btn]);
@@ -1975,6 +2083,7 @@ static void knob_large(int32_t cx, const knob_t *k, int hot, uint16_t vc)
         }
     }
 }
+static void draw_knobs_c(knob_t *k, int now_touch, uint32_t h);
 static void draw_knobs(void)
 {
     knob_t k[4];
@@ -1987,6 +2096,12 @@ static void draw_knobs(void)
         h = hash_u(h, (uint32_t)k[i].num << 8 | (uint32_t)(k[i].name != 0) | (uint32_t)(k[i].live + 1) << 20);
     }
     h = hash_u(h, (uint32_t)now_touch | (uint32_t)ui.lockpg << 1);
+#ifdef LOOK_C
+    if (LOOKC) {
+        draw_knobs_c(k, now_touch, h);
+        return;
+    }
+#endif
     if (h == ui.sig[2])
         return;
     ui.sig[2] = h;
@@ -2132,6 +2247,8 @@ static void draw_tag(void)
     int big = band != &BANDS[0], st = big && steps_page(ui.page) && is_seqt(sel_trk()) && sel_trk() != AUX_WEAVE;
     char nm[NAME_LEN + 2], hd[56];
     int nb = 0, pb = -1;
+    if (LOOKC && ui.card)                            /* (look C: a card over it) */
+        return;
     page_tag(t);
     h = hash_s(hash_u(2166136261u, ui.page | (uint32_t)n << 8 | (uint32_t)big << 7), t);
     if (big && ui.page == P_ARRANGE) {               /* (the scenes there: which, cued, their use) */
@@ -2198,6 +2315,37 @@ static void draw_tag(void)
         cv_blit(0, TAG_Y);
         return;
     }
+#ifdef LOOK_C
+    if (LOOKC) {                                     /* (look C: the header says the track, pattern and scene: the
+                                                      * tag what is past them: a step held, a cue, the effect) */
+        char o[80], *e = o, *c = t;
+        int seg = 0;
+        *o = 0;
+        while (*c) {
+            char *b = c;
+            int keep = 1;
+            while (*c && *c != '>')
+                c++;
+            if ((b[0] == 'P' || b[0] == 'S') && b[1] >= '0' && b[1] <= '9' && (c - b <= 3))
+                keep = 0;
+            if (!seg && (c - b >= 2 && (b[0] == 'T' || b[0] == 'F' || b[0] == 'C' || b[0] == 'a') &&
+                         !(b[0] == 'a' && b[1] != 'l')))
+                keep = 0;                            /* (its first: a track's name, "all tracks") */
+            if (keep) {
+                if (e != o)
+                    *e++ = '>';
+                while (b < c)
+                    *e++ = *b++;
+                *e = 0;
+            }
+            seg++;
+            if (*c)
+                c++;
+        }
+        s_cat(t, o);
+        v = t;
+    }
+#endif
     while ((w = segs_w(&FONT_XS, v)) > r - 16 && *v) {
         char *c = v;
         while (*c && *c != '>')
@@ -2208,7 +2356,7 @@ static void draw_tag(void)
             v[s_len(v) - 1] = 0;
     }
     x = r - w;
-    segs(x, big ? 1 : -2, &FONT_XS, v, K_TEXT);
+    segs(x, big ? 1 : LOOKC ? 0 : -2, &FONT_XS, v, K_TEXT);
     if (x - 16 >= 24)
         cv_rect(8, big ? 12 : 6, x - 16, 1, K_LINE);
     cv_blit(0, TAG_Y);
@@ -2562,6 +2710,8 @@ static void draw_footer_as(void);
 static void draw_footer(void)                        /* the hints keep today's faces in large type: they are hints */
 {
     int was = lt_on;
+    if (LOOKC && !(lst.open && !ui.card))            /* (look C: a list's hints alone; the knobs' band has the rest) */
+        return;
     loom_type(0);
     draw_footer_as();
     loom_type(was);
@@ -2631,7 +2781,7 @@ static void draw_footer_as(void)
                     }
         }
 #if defined(PLAT_HOST) && !defined(PLAT_WEB)
-    if (split < 0 || job != &FONT_S) {
+    if (split < 0 || (job != &FONT_S && !(LOOKC && list))) {
         printf("  FAIL bottom lines too wide: %s / %s\n", e, t);
         msg_too_wide++;
     }
@@ -2653,6 +2803,172 @@ static void draw_footer_as(void)
     }
     cv_blit(0, ENC_Y);
 }
+
+#ifdef LOOK_C
+/* look C's knobs' band: K1..K4's row (each a line: the knob and its job; under it what that is at now), then K5..K8's
+ * cells (the name, the value large, a bar in the track's ink); the knob turned last a cell of the ink. K2..K4's jobs
+ * are the hints' (enc_line, page_footer): SELECT, ALGO, PRESET with a word after them */
+static void kc_job(const char *t, const char *ctl, char *job)
+{
+    uint32_t n = s_len(ctl);
+    while (*t) {
+        uint32_t i = 0;
+        while (i < n && t[i] == ctl[i])
+            i++;
+        if (i == n && t[n] == ' ') {
+            uint32_t j = 0;
+            for (t += n + 1; *t && *t != '|' && j < 23u; t++)
+                job[j++] = *t;
+            job[j] = 0;
+            return;
+        }
+        while (*t && *t != '|')
+            t++;
+        if (*t)
+            t++;
+    }
+}
+static void kc_value(int32_t x, int32_t y, int32_t w, const char *v, uint16_t c, uint16_t uc)
+{   /* a cell's value: large (a number and its unit: the unit small after it), else a size down, else two lines */
+    uint32_t sp = s_find_sp(v);
+    char a[24];
+    uint32_t i;
+    for (i = 0; i < sp && i < sizeof a - 1u; i++)
+        a[i] = v[i];
+    a[i] = 0;
+    char up[24];
+    s_cat(up, v);
+    upcase(up);
+    if (v[sp] && ((a[0] >= '0' && a[0] <= '9') || a[0] == '-' || a[0] == '+') && s_len(v + sp + 1) <= 3 &&
+        text_w(&FONT_M, a) + 2 + text_w(&FONT_XS, v + sp + 1) <= w) {
+        int32_t e = cv_text(x, y, &FONT_M, a, c);
+        cv_text(e + 2, y + FONT_M.h - FONT_XS.h - 3, &FONT_XS, v + sp + 1, uc);
+    } else if (text_w(&FONT_M, up) <= w)
+        cv_text(x, y, &FONT_M, up, c);
+    else if (text_w(&FONT_B, v) <= w)
+        cv_text(x, y + (FONT_M.h - FONT_B.h) / 2, &FONT_B, v, c);
+    else if (v[sp] && text_w(&FONT_XS, a) <= w) {
+        cv_text(x, y, &FONT_XS, a, c);
+        text_fit(x, y + 12, &FONT_XS, v + sp + 1, w, c);
+    } else
+        text_fit(x, y + (FONT_M.h - FONT_XS.h) / 2, &FONT_XS, v, w, c);
+}
+static void draw_knobs_c(knob_t *k, int now_touch, uint32_t h)
+{
+    static const char *const KN[4] = {"K1", "K2", "K3", "K4"};
+    char e[64], t[80], job[4][24], val[4][24], nm[24];
+    int trk = sel_trk();
+    uint32_t i;
+    for (i = 0; i < 4; i++)
+        job[i][0] = val[i][0] = 0;
+    enc_line(e);
+    page_footer(t);
+    s_cat(job[0], "vol");                            /* K1: the volume (fm1-base's MASTER) */
+    s_cat(num_s((plat_master() * 100u + 2048u) / 4096u, val[0]), "%");
+    kc_job(e, "SELECT", job[1]);
+    if (!job[1][0])
+        kc_job(t, "SELECT", job[1]);
+    kc_job(e, "ALGO", job[2]);
+    if (!job[2][0])
+        kc_job(t, "ALGO", job[2]);
+    kc_job(e, "PRESET", job[3]);
+    if (!job[3][0])
+        kc_job(t, "PRESET", job[3]);
+    if (job[1][0] && !s_eq(job[1], "tempo") && !s_eq(job[1], "pick") && !s_eq(job[1], "change")) {   /* SELECT's
+                                                      * page words (page, filter, sends, more ..): the page */
+        s_cat(val[1], page_name_of(ui.page, trk));
+        job[1][0] = 0;
+        s_cat(job[1], "page");
+    } else if (s_eq(job[1], "tempo"))
+        tempo_text(val[1]);
+    if (s_eq(job[2], "track")) {
+        char *v = s_cat(val[2], TRACK_NAME[trk]);
+        if (!is_aux(trk))
+            s_cat(s_cat(v, " "), EG_NAME[proj.trk[trk].par[TP_ENGINE] % NENGINE]);
+    }
+    if (s_eq(job[3], "sound") || s_eq(job[3], "key"))
+        s_cat(val[3], DL_SOUND_NAME[ui.dsound % DL_NSOUND]);
+    else if (s_eq(job[3], "pattern"))
+        num_s((uint32_t)cur_pat(trk) + 1u, s_cat(val[3], "P"));
+    else if (s_eq(job[3], "scene"))
+        num_s((uint32_t)cur_scene() + 1u, s_cat(val[3], "S"));
+    else if (s_eq(job[3], "track"))
+        s_cat(val[3], TRACK_NAME[trk]);
+    upcase(val[1]);
+    upcase(val[2]);
+    upcase(val[3]);
+    for (i = 0; i < 4; i++)
+        h = hash_s(hash_s(h, job[i]), val[i]);
+    if (h == ui.sig[2])
+        return;
+    ui.sig[2] = h;
+    cv_begin(240, KNB_H, K_BG);
+    cv_rect(0, 0, 240, 1, K_PANEL2);
+    for (i = 0; i < 4; i++) {                        /* K1..K4: "K3 TRACK" / "T2 MONO"; a job with nothing to show: the
+                                                      * job under the knob ("K4" / "next sound") */
+        int32_t x = i ? 50 + ((int32_t)i - 1) * 63 : 4, cw = i ? 61 : 44;
+        char jv[24];
+        const char *v = val[i][0] ? val[i] : "-";
+        char *ne = s_cat(nm, KN[i]);
+        if (val[i][0] && job[i][0])
+            s_cat(s_cat(ne, " "), job[i]);
+        else if (job[i][0]) {                        /* the job under the knob; too long: its last word under, the rest
+                                                      * by the knob ("K4 FILTER" / "TYPE") */
+            uint32_t sp = 0;
+            s_cat(jv, job[i]);
+            upcase(jv);
+            v = jv;
+            if (text_w(&FONT_XS, jv) > cw) {
+                for (uint32_t j = 0; jv[j]; j++)
+                    if (jv[j] == ' ')
+                        sp = j;
+                if (sp) {
+                    jv[sp] = 0;
+                    s_cat(s_cat(ne, " "), jv);
+                    v = jv + sp + 1;
+                }
+            }
+        }
+        upcase(nm);
+        if (v != jv && text_w(&FONT_XS, v) > cw) {   /* ("MASTER COLOR": "MASTER"; the header has it whole) */
+            s_cat(jv, v);
+            v = jv;
+            for (uint32_t j = s_len(jv); j > 1 && text_w(&FONT_XS, jv) > cw; j--)
+                if (jv[j - 1] == ' ')
+                    jv[j - 1] = 0;
+        }
+        text_fit(x, 3, &FONT_XS, nm, cw, K_NOW_M);
+        if (text_w(&FONT_S, v) <= cw)
+            cv_text(x, 15, &FONT_S, v, v[0] == '-' && !v[1] ? K_FAINT : K_TEXT);
+        else
+            text_fit(x, 17, &FONT_XS, v, cw, K_TEXT);
+    }
+    for (i = 0; i < 4; i++) {                        /* K5..K8: the cells */
+        int32_t x = 3 + (int32_t)i * 59, y = 33, w = 57, hc = 47;
+        int hot = now_touch && ui.touched == (int)i, lock = ui.lockpg && !s_eq(k[i].val, "-");
+        uint16_t bg = hot ? K_NOW : K_PANEL, fg = hot ? K_BG : lock ? K_REC : K_TEXT;
+        uint16_t lc = hot ? col_mix(K_NOW, K_BG, 11) : K_DIM;
+        cv_round(x, y, w, hc, 2, bg);
+        if (!k[i].name)
+            continue;
+        s_cat(nm, k[i].name);
+        upcase(nm);
+        text_fit(x + 4, y + 3, &FONT_XS, nm, w - 6, lc);
+        kc_value(x + 4, y + 16, w - 7, k[i].val, fg, hot ? lc : K_DIM);
+        if (k[i].max > 0) {
+            int32_t bw = (w - 8) * k[i].num / k[i].max;
+            cv_rect(x + 4, y + hc - 5, w - 8, 2, hot ? col_mix(K_NOW, K_BG, 6) : K_PANEL2);
+            if (bw > 0)
+                cv_rect(x + 4, y + hc - 5, bw, 2, hot ? K_BG : K_NOW);
+            if (k[i].live >= 0) {                    /* a lock or a motion holds it now: where, a mark on the bar */
+                int32_t lx = x + 4 + (w - 11) * k[i].live / k[i].max;
+                cv_rect(lx, y + hc - 8, 3, 8, K_REC);
+            }
+        }
+    }
+    cv_blit(0, KNB_Y);
+}
+#endif
 
 /* the help cards: a button held alone for a second says what it does on this page */
 #define PG(p) (1u << (p))
@@ -2750,13 +3066,27 @@ static int card_find(int btn)
     return -1;
 }
 /* a card's band: the main band (large type: down to the hints, over the tag and the knobs), its lines' pitch */
-#define CARD_H (LARGE ? ENC_Y - MAIN_Y : MAIN_H)
-#define CARD_LH (LARGE ? FONT_S.h + 1 : 17)
+#define CARD_H (LARGE ? ENC_Y - MAIN_Y : LOOKC ? MAIN_H + TAG_H : MAIN_H)   /* (look C: over the tag too) */
+#define CARD_LH (LARGE ? FONT_S.h + 1 : 17)          /* (wrap's pitch: 17 for the small faces, XS too) */
+static int card_xs;                                  /* (look C: the card's text a size down, Terminus being wide) */
 /* where card i's text ends (the box's top in *top): both lines wrapped at 200 px */
+static int32_t card_end_(int i, int32_t *top);
 static int32_t card_end(int i, int32_t *top)
 {
-    int32_t n = wrap_do(0, 0, 200, &FONT_S, CARD[i].l1, 0, 0) / CARD_LH +
-                (CARD[i].l2 ? wrap_do(0, 0, 200, &FONT_S, CARD[i].l2, 0, 0) / CARD_LH : 0);
+    int32_t e;
+    card_xs = 0;
+    e = card_end_(i, top);
+    if (LOOKC && e - 1 > CARD_H - 4) {
+        card_xs = 1;
+        e = card_end_(i, top);
+    }
+    return e;
+}
+static int32_t card_end_(int i, int32_t *top)
+{
+    const felucca_font_t *cf = card_xs ? &FONT_XS : &FONT_S;
+    int32_t n = wrap_do(0, 0, 200, cf, CARD[i].l1, 0, 0) / CARD_LH +
+                (CARD[i].l2 ? wrap_do(0, 0, 200, cf, CARD[i].l2, 0, 0) / CARD_LH : 0);
     int32_t bh = 42 + (n - 1) * CARD_LH + (CARD[i].l2 ? 4 : 0), t = 4 + (CARD_H - 8 - bh) / 2;
     if (t < 10)
         t = 10;
@@ -2783,8 +3113,11 @@ static void draw_card(void)
     if (h == ui.sig[1])
         return;
     ui.sig[1] = h;
-    if (LARGE)
+    if (LARGE || LOOKC)
         ui.sig[2] = ui.sig[3] = 0;                   /* (the tag and the knobs under it: drawn again after it) */
+#ifdef GFX_AUDIT
+    ga_goes = CARD_H > 120;
+#endif
     for (int32_t off = 0; off < CARD_H; off += 120) {   /* (taller than the canvas, large type: in two goes) */
         int32_t hh = CARD_H - off < 120 ? CARD_H - off : 120;
         cv_begin(240, (uint32_t)hh, K_BG);
@@ -2792,6 +3125,9 @@ static void draw_card(void)
         card_paint(i);
         cv_blit(0, (uint32_t)(MAIN_Y + off));
     }
+#ifdef GFX_AUDIT
+    ga_goes = 0;
+#endif
 }
 static void card_paint(int i)
 {
@@ -2809,9 +3145,9 @@ static void card_paint(int i)
     if (i >= 0) {
         cv_text(x + 10, cap_y(y - 30, 20, &FONT_B), &FONT_B, CARD[i].title, K_TEXT);
         cv_rect(18, y - 6, 204, 1, K_DIM);
-        y = wrap(20, y, 200, &FONT_S, CARD[i].l1, K_TEXT);
+        y = wrap(20, y, 200, card_xs ? &FONT_XS : &FONT_S, CARD[i].l1, K_TEXT);
         if (CARD[i].l2)
-            y = wrap(20, y + 4, 200, &FONT_S, CARD[i].l2, K_DIM);
+            y = wrap(20, y + 4, 200, card_xs ? &FONT_XS : &FONT_S, CARD[i].l2, K_DIM);
     }
 }
 
@@ -3358,7 +3694,8 @@ static void list_paint(int32_t oy)
             continue;
         }
         if (k == LK_NOTE) {
-            cv_text(14, ty, &FONT_S, lst.row[i].name, K_DIM);
+            const felucca_font_t *nf = LOOKC && text_w(&FONT_S, lst.row[i].name) > 212 ? &FONT_XS : &FONT_S;
+            cv_text(14, nf == &FONT_S ? ty : cap_y(y, LIST_RH - 1, nf) - 1, nf, lst.row[i].name, K_DIM);
             continue;
         }
         cv_round(6, y, 222, LIST_RH - 1, 5, on ? K_TEXT : K_PANEL);
@@ -3372,7 +3709,11 @@ static void list_paint(int32_t oy)
                 nm[j] = (char)(lst.row[i].name[j] >= 'a' && lst.row[i].name[j] <= 'z' ? lst.row[i].name[j] - 32
                                                                                       : lst.row[i].name[j]);
             nm[j] = 0;
-            ne = cv_text(14, ty, &FONT_S, nm, fg);
+            if (LOOKC && *v && text_w(&LFONT_XS, v) > 202 - (14 + text_w(&FONT_S, nm) + 6))   /* (look C: the name a
+                                                      * size down where the value would be cut) */
+                ne = cv_text(14, cap_y(y, LIST_RH - 1, &FONT_XS) - 1, &FONT_XS, nm, fg);
+            else
+                ne = cv_text(14, ty, &FONT_S, nm, fg);
             room = 202 - (ne + 6);
             if (*v && room > 8) {                    /* (too long bold: regular, then 15 px, then cut) */
                 const felucca_font_t *vf = text_w(&FONT_B, v) <= room ? &FONT_B : text_w(&FONT_S, v) <= room ? &FONT_S
@@ -3879,8 +4220,15 @@ static void draw_steps_as(void)
         bg = !in ? K_BG : on && !implicit ? K_TINT : K_PANEL;
         if (playing() && s == ph && in)
             bg = on ? K_NOW : K_NOW_T;
+        if (LOOKC && in) {                           /* (look C: a note's step the ink, solid; the playhead an outline
+                                                      * in cream over it, an empty step's a shade lighter) */
+            int here = playing() && s == ph;
+            bg = on && !implicit ? K_NOW : here ? K_PANEL2 : K_PANEL;
+        }
         fg = bg == K_NOW ? K_BG : K_TEXT;
-        cv_round(x, y, ST_CW - 2, ST_CH, 4, bg);
+        cv_round(x, y, ST_CW - 2, ST_CH, LOOKC ? 2 : 4, bg);
+        if (LOOKC && in && playing() && s == ph)
+            cv_frame(x, y, ST_CW - 2, ST_CH, 2, K_TEXT, bg);
         if (!in)
             cv_frame(x, y, ST_CW - 2, ST_CH, 4, K_LINE, K_BG);
         if (held)
@@ -3888,7 +4236,7 @@ static void draw_steps_as(void)
         if ((ui.rec_armed && s == ui.cursor) || (seq.rec_wait && s == 0 && (ui.frame / 8 & 1u)))
             cv_frame(x, y, ST_CW - 2, ST_CH, 4, K_REC, bg);
         num_s((uint32_t)s + 1u, t);
-        cv_text(x + 4, y + ST_NUM, &FONT_XS, t, bg == K_NOW ? K_BG : K_DIM);
+        cv_text(x + 4, y + ST_NUM + (LOOKC ? 1 : 0), &FONT_XS, t, bg == K_NOW ? K_BG : LOOKC && !(playing() && s == ph) ? K_FAINT : K_DIM);
         /* the cell, top down, every row in the small font (ink rows from the cell's top): the number and the lock's
          * dot (3-11), line 1 (13-21), line 2 (23-31) or a kit's ticks (26-29), the marks (33-41: the chance's sign
          * at the left, the tricks' letters at the right), the length's bar (42-43). A line is at most ST_TW wide. */
@@ -3991,8 +4339,11 @@ static void draw_steps_as(void)
             ga_text("%", x + 3, y + ST_MK + 4 + cv_oy, x + 7, y + ST_MK + 10 + cv_oy, 0);   /* audited as a label */
 #endif
         }
-        if (step_has_lock(pats.lane, trk, pt, s))
+        if (step_has_lock(pats.lane, trk, pt, s)) {
+            if (bg == K_NOW)                         /* (on the ink: a ring of the background, T1's ink near red) */
+                cv_round(x + ST_CW - 10, y + 2, 6, 6, 3, K_BG);
             cv_round(x + ST_CW - 9, y + 3, 4, 4, 2, K_REC);
+        }
     }
     {   /* lengths: a bar from a step across the steps its note covers, past the bar and round from the pattern's end
          * to its start; an arrow where it goes on onto another bar (or round), one in where it came from one */
@@ -5614,14 +5965,14 @@ static void draw_players(void)
         return;
     if (is_drum(trk)) {
         cv_text(12, 4, &FONT_B, "no player", K_DIM);
-        cv_text(12, 24, F_CAP, "a kit's keys are its sounds: no arp, no strum", K_DIM);
-        cv_text(12, LY(48, 40), LY(&FONT_S, F_CAP), "WEAVE is on the last page (SELECT)", K_DIM);
+        cv_text(12, 24, F_CAP, LOOKC ? "a kit's keys are its sounds" : "a kit's keys are its sounds: no arp, no strum", K_DIM);
+        cv_text(12, LY(48, 40), LOOKC ? F_CAP : LY(&FONT_S, F_CAP), "WEAVE is on the last page (SELECT)", K_DIM);
         cv_blit(0, MAIN_Y);
         return;
     }
     int32_t ty = title_sub(tp_info_par(TP_PLAYER, proj.trk[trk].par)->names[pl],
                            pl == PL_OFF ? "the keys play as they are" : pl == PL_ARP ? "held notes play one after another"
-                           : pl == PL_STRUM ? "one key strums the chord; keys together set it"
+                           : pl == PL_STRUM ? (LOOKC ? "a key strums; keys together set it" : "one key strums the chord; keys together set it")
                            : pl == PL_RAND ? "active slots: the pool picks notes" : "notes stay until the next", K_DIM);
     e = s_cat(t, pl == PL_STRUM ? "chord: " : "held: ");
     if (pl == PL_STRUM) {
@@ -5880,11 +6231,19 @@ static void draw_mix(void)
         int32_t x = 4 + COL[t] * 18 + (COL[t] >= 8 ? 14 : 0);
         int muted = t < NSEQT && (seq.mute >> t & 1u), sound = t < NTRK || is_fx(t);
         uint16_t ink = muted ? K_FAINT : trk_ink(t);      /* (muted: its steps, grey) */
-        text_c(x + 7, 94, &FONT_XS, SHORT_NM[t], t == sel ? K_TEXT : muted || !sound ? K_FAINT : K_DIM);
-        if (muted)
-            cv_rect(x + 2, 108, 10, 2, K_FAINT);
-        if (t == sel)
-            cv_frame(x - 2, MIX_TOP - 2, 18, MIX_H + 4, 4, K_SEL, K_BG);
+        if (LOOKC) {                                 /* (look C: the picked one's number a chip; muted: struck through) */
+            if (t == sel)
+                cv_round(x - 1, 93, 16, 14, 2, trk_ink(t));
+            text_c(x + 7, 94, &FONT_XS, SHORT_NM[t], t == sel ? K_BG : muted || !sound ? K_FAINT : trk_ink(t));
+            if (muted)
+                cv_rect(x + 1, 100, 12, 1, t == sel ? K_BG : K_FAINT);
+        } else {
+            text_c(x + 7, 94, &FONT_XS, SHORT_NM[t], t == sel ? K_TEXT : muted || !sound ? K_FAINT : K_DIM);
+            if (muted)
+                cv_rect(x + 2, 108, 10, 2, K_FAINT);
+            if (t == sel)
+                cv_frame(x - 2, MIX_TOP - 2, 18, MIX_H + 4, 4, K_SEL, K_BG);
+        }
         if (!sound)
             continue;
         int32_t lv = mix_y(m_db[t]), pk = mix_y(m_hold[t]);
@@ -5893,10 +6252,19 @@ static void draw_mix(void)
         cv_round(x, MIX_TOP, 14, MIX_H, 3, K_PANEL);
         for (int i = 0; i < 3; i++)              /* 0, -12, -24 dB */
             cv_rect(x + (i ? 4 : 0), y0 - mix_y((float)MARK[i]), i ? 6 : 14, 1, K_PANEL2);
-        if (lv > 0)
-            cv_round(x + 3, y0 - lv, 8, lv, 2, ink);
-        if (pk > 1)
-            cv_rect(x + 3, y0 - pk, 8, 1, ink);
+        if (LOOKC) {                                 /* segments: 5 lit, 2 dark, from the foot */
+            if (lv > 0)
+                cv_rect(x + 2, y0 - lv, 10, lv, ink);
+            for (int32_t g = y0 - 5; g > y0 - lv - 2; g -= 7)
+                cv_rect(x + 2, g - 2, 10, 2, K_PANEL);
+            if (pk > 1)
+                cv_rect(x + 2, y0 - pk, 10, 2, ink);
+        } else {
+            if (lv > 0)
+                cv_round(x + 3, y0 - lv, 8, lv, 2, ink);
+            if (pk > 1)
+                cv_rect(x + 3, y0 - pk, 8, 1, ink);
+        }
         cv_round(x - 1, y0 - fy - 2, 16, 4, 1, t == sel ? K_SEL : K_DIM);   /* the fader */
         cv_rect(x + 1, y0 - fy, 12, 1, K_BG);
     }
@@ -6076,6 +6444,8 @@ static void draw_status(void)
         return;
     if (LARGE)                                       /* (large type: the debug build's seven rows at 12 px) */
         setup_f = &LFONT_XS;
+    else if (LOOKC)                                  /* (look C: Terminus's small face, its 16 being wide) */
+        setup_f = &FONT_XS;
     e = num_s(cpu, t);
     e = s_cat(e, "%, peak ");
     e = num_s(peak, e);

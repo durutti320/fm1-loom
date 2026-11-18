@@ -62,7 +62,8 @@ endorsed by or derived from teenage engineering; the name is only used descripti
 
 - The fonts LOOM-8 draws with (`base/assets/fonts/`, rendered by `tools/gen_font.py`): Barlow Semi Condensed
   (SIL Open Font License 1.1, `base/assets/fonts/Barlow-OFL.txt`) and Terminus (SIL Open Font License 1.1,
-  `base/assets/fonts/Terminus-LICENSE.txt`).
+  `base/assets/fonts/Terminus-LICENSE.txt`). SPIDER's look (the SMK-37 build) draws its small text in Terminus and
+  its values and large numbers in Handjet Bold (Rosetta Type; SIL Open Font License 1.1, `assets/fonts/Handjet-OFL.txt`).
 - JieLi's AC79 SDK (Apache-2.0; not part of this tree: see `BUILDING.md`): the package tool (fm1-base's
   `tools/fm1pkg_make.py`) uses three of its files. No JieLi library is linked: Bluetooth runs on fm1-base's own
   stack (fm1.toml `ble_stack = "own"`), and the build checks that nothing of JieLi's is in. The radio's tables and

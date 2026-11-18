@@ -57,7 +57,9 @@ static void say_as(const char *a, const char *b, uint32_t flags)
             }
     }
 #if defined(PLAT_HOST) && !defined(PLAT_WEB)
-    if (!LARGE && 8 + text_w(&FONT_B, ui.msg[0]) + 8 + text_w(&FONT_B, ui.msg[1]) > 232) {   /* (large type: the
+    if (!LARGE && (LOOKC ? AL_X + text_w(&FONT_B, ui.msg[0]) + 8 + text_w(&FONT_XS, ui.msg[1])   /* (look C: the
+                                                     * second part as small as the header takes it) */
+                         : 8 + text_w(&FONT_B, ui.msg[0]) + 8 + text_w(&FONT_B, ui.msg[1])) > 232) {   /* (large type: the
                                                      * header's own check, pages.c hdr_cut) */
         printf("  FAIL message too wide for the header: %s %s\n", ui.msg[0], ui.msg[1]);
         msg_too_wide++;

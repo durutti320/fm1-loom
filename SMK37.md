@@ -41,7 +41,7 @@ is DAW mode's REAPER profile), also on the emulator's site as `qrg.html` (the em
 | Mod wheel | as Setup's **MOD WHEEL** (GLOBE) says. **filter** (the default): the filter of the track the keys play: its cutoff (a DYNAMIC filter: its hi cut). A pick-up: the wheel acts once it passes the value the track has, so nothing jumps; the screen says where to pick it up. Or **CONTROL ALL**, as on an Elektron box: cutoff, LFO amount, send I, send II or decay (cutoff all .. decay all) on every synth track at once, each moved from its own value by the wheel's travel since the move began. KNOB BANK within 5 s of the wheel's last move puts every track back as the move found it (REVERTED); after that the values stay. Kept with DAW mode's settings |
 | K1 | the volume (the FM-1's MASTER); the screen shows the level as it turns |
 | K2 / K3 / K4 | SELECT / ALGORITHM / PRESETS |
-| K5..K8 | KNOB 1..4. The screen's hints and help cards use the SMK's names throughout (K2, SCALE, PATCH, PARA, CHORD, REPEAT, GLOBE, BT) |
+| K5..K8 | KNOB 1..4. The screen's foot is the eight knobs as they sit: K1..K4 in a row (what each does here and what it is at: VOL 80%, PAGE STEPS, TRACK T2 MONO, SOUND KICK), K5..K8 as cells under it (the value large, a bar in the track's colour; the knob turned last a cell of that colour). The header: the track's chip, the page, its sound, the pattern and scene, PLAY's mark, the tempo. Help cards and lists use the SMK's names throughout (K2, SCALE, PATCH, PARA, CHORD, REPEAT, GLOBE, BT) |
 | FX, SCALE, CHORD, PARA, GLOBE | FX, SEL, ENV, EDIT, GLO |
 | PATCH / BT | HOME / SAVE |
 | ARP / SEQ / SEQ PLAY / SEQ REC | ARP / SEQ / PLAY / REC |

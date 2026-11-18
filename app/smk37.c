@@ -900,9 +900,9 @@ static void lpd_learning(void)
     daw_pd_toe = (uint16_t)(v + 1);
     lsmk_daw_dirty();
     lpd_reset();
-    e = num_s((uint32_t)lpd.heel, s_cat(s, "heel "));
-    num_s((uint32_t)v, s_cat(e, ", toe "));
-    say("PEDAL LEARNED", s);
+    e = num_s((uint32_t)lpd.heel, s_cat(s, "learned: heel "));
+    num_s((uint32_t)v, s_cat(e, " toe "));
+    say("PEDAL", s);
 }
 /* the expression pedal's parameter on track t: WAH its cutoff (as the macro bank's), LEVEL, SEND I / II */
 static int lpd_par(int t, int m)
@@ -1226,7 +1226,7 @@ static void lrp_service(void)
         lrp.fb_seen = ld.fb;
         lrp.on = 1;
         lrp.drew = 0xFF;
-        lrp_say("REAPER", "Mackie Control on SPIDER DAW");
+        lrp_say("REAPER", "Mackie on SPIDER DAW");
         lrp_query();
     } else if ((!mcu_connected(&lrp_m, now) && now - (lrp.query_t & ~1u) >= MCU_SILENT_MS) ||
                plat_midi_out_link() != lrp.link)
@@ -1726,7 +1726,7 @@ static void lsmk_daw_draw(void)
             if (kl[0])
                 cv_text(12, 50, &FONT_S, kl, K_TEXT);
             else
-                cv_text(12, 50, &FONT_S, "play a key to see its velocity", K_DIM);
+                cv_text(12, 50, &FONT_S, "play a key: its velocity", K_DIM);
         } else if (ld.edit == 1u) {
             text_c(120, 14, &FONT_B, "Touch a control", K_TEXT);
             text_c(120, 38, &FONT_XS, "a knob, fader, wheel, pad or button", K_DIM);
@@ -1807,7 +1807,7 @@ static void lsmk_daw_draw(void)
         ld.sig[4] = h;
         cv_begin(240, 28, K_BG);
         cv_rect(0, 0, 240, 1, K_LINE);
-        text_c(120, 7, &FONT_XS, ld.btn >> B_HOME & 1u ? "K5 ch  K6 map  K7 knobs  K8 vel  OCT+ edit"
+        text_c(120, 7, &FONT_XS, ld.btn >> B_HOME & 1u ? "K5 ch K6 map K7 knobs K8 vel OCT+ edit"
                                  : ld.edit ? "OCT+ next control    OCT- done"
                                            : "< + >  LOOM-8        PATCH  local", K_DIM);
         cv_blit(0, 212);
@@ -1913,8 +1913,8 @@ static void lrp_draw(void)
             s_cat(t, "TRACKS -");
         cv_text(12, 8, &FONT_XS, t, K_TEXT);
         s_cat(s_cat(u, "PADS "), RP_PAGE_NAME[lrp.page % RP_NPAGE]);
-        cv_text(100, 8, &FONT_XS, u, K_TEXT);
-        num_i(ld.oct, s_cat(s_cat(t, ld.kb ? "NAV" : "MIX"), ld.oct > 0 ? "  OCT +" : "  OCT "));
+        cv_text(94, 8, &FONT_XS, u, K_TEXT);
+        num_i(ld.oct, s_cat(s_cat(t, ld.kb ? "NAV" : "MIX"), ld.oct > 0 ? " OCT +" : " OCT "));
         text_r(228, 8, &FONT_XS, t, K_TEXT);
         cv_blit(0, 120);
     }
