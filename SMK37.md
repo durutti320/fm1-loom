@@ -30,11 +30,11 @@ is DAW mode's REAPER profile), also on the emulator's site as `qrg.html` (the em
 | Keys F3..G5 (the middle 27) | the FM-1's 27 keys, **with velocity** (the unit's own factory curves, at **KEY VELOCITY**: below). On Steps and Bar they play the track (the pads are the cells there); a step's pad held on a kit: the black keys its sounds |
 | Keys C3..E3, G#5..C6 (the outer 10) | more notes on the track the keys play, with velocity; on a kit, its keys. As the middle 27's: shown among the notes held (Steps: up to eight, low to high), a step tapped takes them, step record writes them |
 | 16 pads, on Steps and Bar (SEQ) | the bar's 16 cells, pads 1-8 the top row, 9-16 the bottom: everything the white keys do there (a tap, a hold, a later one for the length). Lit in the track's colour: a step with notes dim, the step playing bright, a step held white |
-| 16 pads, every other page | pads 1-8 (top row): T1-T8, lit while the track plays: a tap mutes or unmutes, held solos while held (more held: more), two taps solo and it stays (a tap ends it). Pads 9-16 (bottom row): the drums, the kit's first eight sounds whatever track is selected (the track selected if it is a kit, else the kit selected last), with velocity, recorded into the kit while recording |
+| 16 pads, every other page | pads 1-6 (top row): T1-T6, lit while the track plays: a tap mutes or unmutes, held solos while held (more held: more), two taps solo and it stays (a tap ends it). Pad 7 the throws: a tap mutes or unmutes them; held (about half a second) and let go, the conductor (pad 7 red while it is muted). Pad 8 the effects: FX I's page (the delay), again FX II's (the reverb), again back to the page you were on. Pads 9-16 (bottom row): the drums, the kit's first eight sounds whatever track is selected (the track selected if it is a kit, else the kit selected last), with velocity, recorded into the kit while recording |
 | NOTE REPEAT | tapped: note repeat on / off (lit): a drum pad held sounds again in time, recorded while recording. Held + pads 1-8: its rate (1/4 1/8 1/8T 1/16 1/16T 1/32 1/32T 1/64). Held and let go alone: the LFO page |
 | KNOB BANK | the pads' job. On Steps: live pads there too (mutes and drums, lit), again the cells. On any other page: opens Steps, with the pads as its cells. Within 5 s of a CONTROL ALL move (the mod wheel): puts it back instead |
 | < / > | the bar before / after (the bar Steps shows and the pads write), when let go. Both together: DAW mode (below) |
-| Faders 1..4 | the levels of T1-T4, or T5-T8 after FADER BANK (lit on T5-T8), or after FADER BANK again the macro bank (its light blinking): the cutoff, resonance, send I and send II of the track the keys play (a kit: its bus filter, the shown key's sends). A fader acts only once it moves |
+| Faders 1..4 | the levels of T1-T4, or T5, T6, FX I and FX II after FADER BANK (lit), or after FADER BANK again the macro bank (its light blinking): the cutoff, resonance, send I and send II of the track the keys play (a kit: its bus filter, the shown key's sends). A fader acts only once it moves |
 | ARP | tapped: the selected track's player off, or back on (the one it had; the first time, the arp). Held and let go: the Players pages, as before. On a kit or an FX track: Players |
 | Pedal jack (SUSTAIN) | as Setup's **PEDAL** (GLOBE) says: **sustain** (a footswitch holds the keys' notes while it is down) or **play / stop**, or an expression pedal: **wah** (the cutoff of the track the keys play), **level**, **send I** or **send II**. An expression pedal needs **LEARN PEDAL** once (Setup: heel down, then toe down, 2.5 s each; any direction, a TRS pedal in a TS jack included); the line above PEDAL shows what the jack reads and what was learned. A switch is read against its rest, taken at start and when PEDAL changes: plug it in first. DAW mode: CC 64 (a switch) or CC 11 (expression) on CHANNEL. Kept with DAW mode's settings |
 | Pitch wheel | bend of the track the keys play, up to a fifth (+-7 semitones) |
@@ -58,8 +58,11 @@ the velocity up (x 1.2 .. x 2.4; normal x 1.6, at most 127): on that unit the ha
 normal's time base, and with the gain they reach 127. The line above it shows the last key: its velocity and its stroke
 in ms (DAW mode: on the screen while PATCH is held). Kept with DAW mode's settings (OBJ_DAW), not in a project.
 
+**Six tracks** (since 18 Nov 2026), then the conductor, the throws, FX I and FX II. A project with LOOM-8's eight
+(LOOM-SMK's, or SPIDER's before) loads with T7 and T8 left out, and saves as six; LOOM-SMK then leaves it alone.
+
 **A new project** is T1 kit (**acoustic**: VCSL's drums, CC0, built in), T2 mono, T3 poly, T4 acid, T5
-fm, T6 the sampler, T7 a second poly, T8 a second mono; NEW PROJECT (PATCH, SCALE's list) gives that every time (RANDOM
+fm, T6 the sampler; NEW PROJECT (PATCH, SCALE's list) gives that every time (RANDOM
 SOUNDS deals a random band). A project from LOOM-8, or one an earlier SPIDER saved with LOOM-8's tracks in it (knit ..
 voile, which SPIDER leaves out), loads each such track as SPIDER's own for that place.
 

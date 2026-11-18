@@ -106,6 +106,11 @@ run layout-sweep $B/host/loom_host build/gen/layout_sweep.xy "$B/scenarios/layou
     build/gen/layout_sweep.xy build/gen/layout_sweep_large.xy
 rm -rf "$B/scenarios/layout_sweep_large" && mkdir -p "$B/scenarios/layout_sweep_large"
 run layout-sweep-large $B/host/loom_host build/gen/layout_sweep_large.xy "$B/scenarios/layout_sweep_large"
+# the same through SPIDER's simulator (the SMK-37 build's look: Terminus and Handjet, six tracks), both sizes
+for sw in layout_sweep layout_sweep_large; do
+    rm -rf "$B/scenarios/${sw}_smk37" && mkdir -p "$B/scenarios/${sw}_smk37"
+    run ${sw}-smk37 $B/host/*-smk37_host build/gen/$sw.xy "$B/scenarios/${sw}_smk37"
+done
 # the weave pages with weaves set (the sweep sees them empty), in large type: ARP's Weave, the WEAVE track's own
 for sc in weavepage weavetrack; do
     "$PY" -c "import sys; s = open(sys.argv[1]).read(); open(sys.argv[2], 'w').write(s.replace('wait 300\\n', 'wait 300\\nlarge 1\\n', 1))" \

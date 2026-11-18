@@ -1,0 +1,51 @@
+# SPIDER's six tracks (18 Nov 2026): away from Steps, pads 1-6 mute T1-T6; pad 7 the throws (tapped: their mute;
+# held, then let go: the conductor's, lit red while it is muted); pad 8 FX I's page, again FX II's, again back to
+# the page it came from. FADER BANK's second bank: T5, T6, FX I, FX II
+wait 300
+listen
+tap GLO
+wait 60
+expect page Mix
+expect mute 0
+tappad 6
+wait 40
+expect mute 128
+said MUTED
+wait 400
+tappad 6
+wait 40
+expect mute 0
+wait 400
+pad 6 100
+wait 600
+pad 6 0
+wait 40
+expect mute 64
+said MUTED
+wait 400
+pad 6 100
+wait 600
+pad 6 0
+wait 40
+expect mute 0
+tappad 7
+wait 60
+expect page FX_I
+tappad 7
+wait 60
+expect page FX_II
+tappad 7
+wait 60
+expect page Mix
+tappad 5
+wait 40
+expect mute 32
+smktap FADERBANK
+wait 40
+expect fbank 1
+fader 2 100
+wait 60
+expect par9.level 100
+fader 0 64
+wait 60
+expect par5.level 64

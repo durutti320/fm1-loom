@@ -10,7 +10,11 @@
 
 /* The code keeps its first names; the screen and the manual say: AUX_BRAIN the conductor (COND), AUX_PUNCH the
  * throws (THROW), components (SC_*) tricks, the drumline engine the kit, the maestro player strum. */
+#if BOARD_SMK37
+#define NTRK 6                        /* SPIDER: tracks 1-6 (dsp/synth.h agrees) */
+#else
 #define NTRK 8                        /* instrument tracks 1-8 */
+#endif
 enum { AUX_BRAIN = NTRK, AUX_PUNCH, AUX_FX1, AUX_FX2, AUX_WEAVE, NALLTRK };   /* (WEAVE: its own steps, wvpat_t) */
 #define NSEQT (AUX_PUNCH + 1)         /* sequenced tracks: 1-8, brain, punch */
 #define NPATT 8                       /* patterns per track */

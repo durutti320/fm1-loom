@@ -152,10 +152,10 @@ static void apply_brain(void)
 {
     const uint8_t *p = proj.trk[AUX_BRAIN].par;
     uint16_t route = 0;
-    seq.brain_src = p[TP_E1] % 9u;
+    seq.brain_src = p[TP_E1] % (NTRK + 1u);
     seq.brain_key = p[TP_E2] % 12u;
     seq.brain_scale = p[TP_E3] % NBS;
-    seq.brain_link = p[TP_E4] % 9u;
+    seq.brain_link = p[TP_E4] % (NTRK + 1u);
     for (int t = 0; t < NTRK; t++)
         if (proj.trk[t].par[TP_BRAIN] % NBM && t + 1 != seq.brain_src)
             route |= (uint16_t)(1u << t);
@@ -1771,7 +1771,7 @@ static void key_down(int k)
     }
     if (trk == AUX_BRAIN && p == P_SUB) {        /* the Follow page: a black key picks the chords' track (again: off) */
         if (b >= 0 && b < NTRK) {
-            int src = proj.trk[AUX_BRAIN].par[TP_E1] % 9u == (unsigned)b + 1u ? 0 : b + 1;
+            int src = proj.trk[AUX_BRAIN].par[TP_E1] % (NTRK + 1u) == (unsigned)b + 1u ? 0 : b + 1;
             ui.kmode[k] = KM_ROUTE;
             set_tp(AUX_BRAIN, TP_E1, src);
             say("FOLLOW", src ? TRACK_NAME[b] : "off");

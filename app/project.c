@@ -40,15 +40,17 @@ uint8_t proj_slot;
 #define RAW_LEN10 (RAW_LEN17 - sizeof pats.scene + NSCENE10 * sizeof(scene10_t))
 /* format 11: 32 scenes of scene11_t (one kit mute mask for every kit) */
 #define RAW_LEN11 (RAW_LEN17 - sizeof pats.scene + NSCENE * sizeof(scene11_t))
+#if NTRK == 8                                     /* (the older formats' sizes: LOOM-8's eight tracks. SPIDER's six
+                                                   * load this format's own, or an eight-track one's: spider8.h) */
 typedef char scene_sizes[(sizeof(scene10_t) == 18 && sizeof(scene11_t) == 20 && sizeof(scene_t) == 26) ? 1 : -1];
 typedef char songs_apart[(NSCENE10 * sizeof(scene10_t) + sizeof(song_t) <= NSCENE * sizeof(scene_t) &&
                           NSCENE * sizeof(scene11_t) + sizeof(song_t) <= NSCENE * sizeof(scene_t)) ? 1 : -1];   /* (an
                                                    * old song's bytes end before the new song's start) */
+#endif
 static uint8_t load_format;                       /* the format of the project being loaded (10, 11: migrated) */
 static uint8_t migrated = 0xFF;                   /* the slot loaded from an older format and not saved since (0xFF
                                                    * none): its next touch saves it whole, never its settings alone
                                                    * beside the old format's patterns */
-#define FORMAT_OK(f) ((f) >= 10u && (f) <= PROJ_FORMAT)   /* the formats a slot loads (migrate_old, before 13 glfo_defaults) */
 typedef char raw_fits[(RAW_LEN < 0x100000u) ? 1 : -1];   /* (lz.c packs up to 16 MB; the header's length is a u32) */
 /* the settings object (format 15 on): the settings before the tracks as they are (SET_HDR), the packed tracks' length,
  * then the tracks packed (lz.c: a synth track's kit keys and an aux track's sound are mostly defaults). Formats 10..14
@@ -62,8 +64,168 @@ typedef char raw_fits[(RAW_LEN < 0x100000u) ? 1 : -1];   /* (lz.c packs up to 16
 #define NTP18 ((uint32_t)TP_RUP)                          /* formats 16..18's: up to knit's osc 2 fine */
 /* the random player's one octave knob before 19 (TP_P4, 0..24: PR #13's path about its centre) as down * 4 + up */
 static const uint8_t OLD_OCT[25] = {15, 11, 7, 14, 10, 6, 13, 9, 5, 12, 8, 4, 0, 1, 2, 3, 5, 6, 7, 9, 10, 11, 13, 14, 15};
+#if NTRK == 8
 typedef char settings_head_fits[(SET_HDR + 4u + 64u <= PLAT_STORE_MAX && SET_OLD == 3804u) ? 1 : -1];   /* (format 14's size) */
+#endif
 typedef char trk_layout[(offsetof(trk_t, name) == NTP && sizeof(trk_t) == NTP + NAME_LEN + 4u) ? 1 : -1];
+#if NTRK == 6
+/* SPIDER's six tracks (18 Nov 2026). Its projects say so: the format | FMT_SIX (the magic LOOM-8's, so LOOM-SMK finds
+ * another format's project there and leaves the slot alone). A project of LOOM-8's eight (LOOM-SMK's, or SPIDER's
+ * before: formats 19 and 20) loads with T7 and T8 left out: their tracks, patterns, locks; what pointed at them
+ * (a scene's or WEAVE's bits, the conductor's follow and link, a pump listening to one) let go of them, the rest
+ * moved down two. Its settings and patterns unpack into the screen's canvas (idle while it loads: the screen draws
+ * again after), their tracks then copied into place. Saved again, it is a six-track project */
+#define FMT_SIX 0x80u
+#define N8_ALL (NALLTRK + 2)                          /* (the eight's: 8 + conductor, throws, FX I, FX II, WEAVE) */
+#define N8_SEQT (NSEQT + 2)
+typedef struct {
+    uint8_t pat[N8_SEQT];
+    uint8_t used;
+    uint16_t mute;
+    uint8_t brain_key, brain_scale, brain_deg;
+    uint8_t weave;
+    uint16_t kmute[NKITM];
+} scene8_t;                                           /* 26 bytes */
+#define P8_TRK ((uint32_t)NPATT * sizeof(tpat_t))     /* a track's patterns */
+#define P6_END ((uint32_t)NTRK * P8_TRK)              /* T1-T6's: where the eight's T7 begins */
+#define O8_AUX (P6_END + 2u * P8_TRK)                 /* the eight's conductor's and throws' patterns */
+#define O8_WEAVE (O8_AUX + 2u * P8_TRK)
+#define O8_LANE (O8_WEAVE + (uint32_t)sizeof pats.weave)
+#define O8_SCENE (O8_LANE + (uint32_t)sizeof pats.lane)
+#define O8_SONG (O8_SCENE + NSCENE * (uint32_t)sizeof(scene8_t))
+#define O8_HIT (O8_SONG + (uint32_t)sizeof pats.song)
+#define RAW_LEN8 (O8_HIT + (uint32_t)sizeof pats.hit)
+typedef char six_layout[(sizeof(scene8_t) == 26 && offsetof(patterns_t, weave) == P6_END + 2u * P8_TRK &&
+                         offsetof(patterns_t, lane) == offsetof(patterns_t, weave) + sizeof pats.weave &&
+                         offsetof(patterns_t, scene) == offsetof(patterns_t, lane) + sizeof pats.lane &&
+                         offsetof(patterns_t, song) == offsetof(patterns_t, scene) + sizeof pats.scene &&
+                         offsetof(patterns_t, hit) == offsetof(patterns_t, song) + sizeof pats.song &&
+                         RAW_LEN8 - P6_END <= sizeof cv_px && N8_ALL * sizeof(trk_t) <= sizeof cv_px) ? 1 : -1];
+static uint8_t load_eight;                            /* the project loading was the eight's (saved whole next) */
+static uint8_t *scratch8(void)                        /* the canvas, as bytes (the screen's DMA done with it) */
+{
+#ifndef PLAT_HOST
+    lcd_sync();
+#endif
+    return (uint8_t *)cv_px;
+}
+static int map8(int t)                                /* an eight-track project's track: its place here, -1 none */
+{
+    return t < NTRK ? t : t < NTRK + 2 ? -1 : t - 2;
+}
+static uint32_t bits8(uint32_t m)                     /* bits per sequenced track (a scene's mutes, WEAVE's): moved */
+{
+    return (m & ((1u << NTRK) - 1u)) | (m >> 2 & (3u << NTRK));
+}
+/* the eight's tracks (scratch: N8_ALL of them) into proj.trk; what named a track by number made to fit */
+static void trk_from8(const trk_t *o)
+{
+    for (int t = 0; t < N8_ALL; t++) {
+        int d = map8(t);
+        if (d >= 0)
+            proj.trk[d] = o[t];
+    }
+    for (int t = 0; t < NALLTRK; t++) {
+        uint8_t *p = proj.trk[t].par;
+        if (p[TP_LTYPE] == LT_PUMP) {                 /* a pump's source: 0..7 tracks, 8 conductor, 9 throws, 10
+                                                       * metronome (here 0..5, 6, 7, 8); one of T7, T8's: T1 */
+            int v = p[TP_LSPEED];
+            p[TP_LSPEED] = (uint8_t)(v < NTRK ? v : v < NTRK + 2 ? 0 : v - 2 <= DUCK_METRO ? v - 2 : DUCK_METRO);
+        }
+    }
+    {
+        uint8_t *b = proj.trk[AUX_BRAIN].par;         /* the conductor's follow (E1) and link (E4): 1..8, 0 off */
+        if (b[TP_E1] > NTRK)
+            b[TP_E1] = 0;
+        if (b[TP_E4] > NTRK)
+            b[TP_E4] = 0;
+    }
+    proj.trk_sel = (uint8_t)(map8(proj.trk_sel) < 0 ? 0 : map8(proj.trk_sel));
+}
+/* lz_decompress into two places: the first a bytes at d0, the rest at d1 (its back references across them too) */
+static int lz_decompress2(lz_src_t *s, uint8_t *d0, uint32_t a, uint8_t *d1, uint32_t n)
+{
+#define AT(i) ((i) < a ? d0 + (i) : d1 + ((i) - a))
+    uint32_t w = 0;
+    while (w < n) {
+        int c = s->get(s->ctx), b;
+        uint32_t len, dist;
+        if (c < 0)
+            return -1;
+        if (c < 0x80) {
+            for (len = (uint32_t)c + 1u; len; len--) {
+                if (w >= n || (b = s->get(s->ctx)) < 0)
+                    return -1;
+                *AT(w) = (uint8_t)b;
+                w++;
+            }
+            continue;
+        }
+        len = ((uint32_t)c & 0x7Fu) + LZ_MIN;
+        if ((b = s->get(s->ctx)) < 0)
+            return -1;
+        dist = (uint32_t)b;
+        if ((b = s->get(s->ctx)) < 0)
+            return -1;
+        dist |= (uint32_t)b << 8;
+        dist++;
+        if (dist > w || len > n - w)
+            return -1;
+        for (; len; len--, w++)
+            *AT(w) = *AT(w - dist);
+    }
+    return 0;
+#undef AT
+}
+static uint32_t crc32_of(const uint8_t *p, uint32_t n);
+static uint32_t crc32_two(const uint8_t *p0, uint32_t a, const uint8_t *p1, uint32_t n);
+/* the eight's pattern store, its first P6_END bytes in pats, the rest in s: made this layout's */
+static void pats_from8(const uint8_t *s)
+{
+    const uint8_t *o = s - P6_END;                    /* (o + an offset of the eight's: past P6_END only) */
+    memcpy(&pats.pat[NTRK][0], o + O8_AUX, 2u * P8_TRK);   /* the conductor's and the throws' */
+    memcpy(pats.weave, o + O8_WEAVE, sizeof pats.weave);
+    memcpy(pats.lane, o + O8_LANE, sizeof pats.lane);
+    memcpy(&pats.song, o + O8_SONG, sizeof pats.song);
+    memcpy(pats.hit, o + O8_HIT, sizeof pats.hit);
+    for (int i = 0; i < NSCENE; i++) {
+        scene8_t c;
+        memcpy(&c, o + O8_SCENE + (uint32_t)i * sizeof c, sizeof c);
+        scene_t *d = &pats.scene[i];
+        memset(d, 0, sizeof *d);
+        for (int t = 0; t < N8_SEQT; t++)
+            if (map8(t) >= 0)
+                d->pat[map8(t)] = c.pat[t];
+        d->used = c.used;
+        d->mute = (uint16_t)bits8(c.mute);
+        d->brain_key = c.brain_key;
+        d->brain_scale = c.brain_scale;
+        d->brain_deg = c.brain_deg;
+        d->weave = c.weave;
+        memcpy(d->kmute, c.kmute, sizeof d->kmute);
+    }
+    for (int p = 0; p < NPATT; p++)                   /* WEAVE's steps: the tracks they weave */
+        for (int i = 0; i < NSTEP; i++) {
+            wv_step_t *w = &pats.weave[p].st[i];
+            uint32_t m = bits8(wv_mask(w));
+            w->m0 = (uint8_t)m;
+            w->m1 = (uint8_t)(m >> 8);
+        }
+    for (int l = 0; l < NLANE; l++) {                 /* the locks: T7's and T8's gone, the aux tracks' moved */
+        lane_t *ln = &pats.lane[l];
+        if (!ln->used)
+            continue;
+        if (map8(ln->trk) < 0)
+            memset(ln, 0, sizeof *ln);
+        else
+            ln->trk = (uint8_t)map8(ln->trk);
+    }
+}
+#define FORMAT_OK(f) (((f) & ~FMT_SIX) >= 19u && ((f) & ~FMT_SIX) <= PROJ_FORMAT)   /* (SPIDER: its own, the eight's
+                                                   * 19 and 20; LOOM-8's older ones open in LOOM-SMK, saved there) */
+#else
+#define FORMAT_OK(f) ((f) >= 10u && (f) <= PROJ_FORMAT)   /* the formats a slot loads (migrate_old, before 13 glfo_defaults) */
+#endif
 typedef char preset_packed[(sizeof(user_preset_t) == NAME_LEN + 2u + NTP_SOUND) ? 1 : -1];   /* (no padding) */
 #define PRESET_OLD (NAME_LEN + 1u + NTP_SOUND)                    /* formats 6..8: a user preset without its fine */
 #define PRESETS_V7 (4u + NUSER_PRESETS * PRESET_OLD)              /* 6, 7: the user presets alone */
@@ -180,10 +342,10 @@ static void aux_defaults(void)
  * sounds); the kit (T1) stays. The tracks keep their mix, player and following (a preset is the sound part) */
 void project_random_sounds(uint32_t seed)
 {
-    static const uint8_t ROLES[NTRK - 1][3] = {
+    static const uint8_t ROLES[7][3] = {          /* (T2.. as many as there are: SPIDER's six the first five) */
         {RL_BASS, RL_BASS, RL_BASS}, {RL_CHORD, RL_STAB, RL_BRASS}, {RL_PAD, RL_PAD, RL_STRINGS},
         {RL_LEAD, RL_LEAD, RL_LEAD}, {RL_KEYS, RL_KEYS, RL_KEYS}, {RL_FX, RL_FX, RL_FX}, {RL_PLUCK, RL_BELL, RL_VOICE}};
-    static const uint8_t VMODE[NTRK - 1] = {VM_MONO, VM_POLY, VM_POLY, VM_MONO, VM_POLY, 0xFF, 0xFF};   /* 0xFF: its own */
+    static const uint8_t VMODE[7] = {VM_MONO, VM_POLY, VM_POLY, VM_MONO, VM_POLY, 0xFF, 0xFF};   /* 0xFF: its own */
     uint32_t r = seed ? seed : 0x9E3779B9u;
     for (int t = 1; t < NTRK; t++) {
         int n = 0, k, pick = -1;
@@ -241,9 +403,8 @@ void project_device_put(void)
 #endif
 /* a new project's tracks, by engine */
 #if BOARD_SMK37
-static const uint8_t ORDER[NTRK] = {EG_DRUMLINE, EG_MONO, EG_POLY, EG_ACID, EG_FM, EG_SAMPLE, EG_POLY,
-                                    EG_MONO};         /* SPIDER: its kit, mono bass, poly, acid, fm, the sampler, a
-                                                       * second poly and mono (their second presets) */
+static const uint8_t ORDER[NTRK] = {EG_DRUMLINE, EG_MONO, EG_POLY, EG_ACID, EG_FM, EG_SAMPLE};   /* SPIDER: its
+                                                       * kit, mono bass, poly, acid, fm, the sampler */
 #else
 static const uint8_t ORDER[NTRK] = {EG_DRUMLINE, EG_KNIT, EG_RAYON, EG_JACQUARD, EG_KNIT, EG_BELLOWS, EG_CANE,
                                     EG_VOILE};
@@ -543,6 +704,21 @@ static void put32(uint8_t *p, uint32_t v)
     p[2] = (uint8_t)(v >> 16);
     p[3] = (uint8_t)(v >> 24);
 }
+#if NTRK == 6
+static uint32_t crc32_two(const uint8_t *p0, uint32_t a, const uint8_t *p1, uint32_t n)   /* (n bytes: a at p0, then p1) */
+{
+    static const uint32_t T[16] = {
+        0x00000000u, 0x1DB71064u, 0x3B6E20C8u, 0x26D930ACu, 0x76DC4190u, 0x6B6B51F4u, 0x4DB26158u, 0x5005713Cu,
+        0xEDB88320u, 0xF00F9344u, 0xD6D6A3E8u, 0xCB61B38Cu, 0x9B64C2B0u, 0x86D3D2D4u, 0xA00AE278u, 0xBDBDF21Cu};
+    uint32_t c = 0xFFFFFFFFu;
+    for (uint32_t i = 0; i < n; i++) {
+        c ^= i < a ? p0[i] : p1[i - a];
+        c = (c >> 4) ^ T[c & 15u];
+        c = (c >> 4) ^ T[c & 15u];
+    }
+    return ~c;
+}
+#endif
 static uint32_t crc32_of(const uint8_t *p, uint32_t n)       /* zlib CRC-32, 4 bits per step */
 {
     static const uint32_t T[16] = {
@@ -716,8 +892,24 @@ static int load_stream(int n, uint32_t prev)
     uint32_t crc = get32(io_buf + 8), plen = get32(io_buf + 12), len = get32(io_buf + 4);
     st_in_t s = {0, n, STREAM_HDR, plen, prev};
     lz_src_t src = {st_get, &s};
+#if NTRK == 6
+    if (n >= (int)STREAM_HDR && len == RAW_LEN8 && plen <= STREAM_CAP) {   /* the eight's: T7, T8 left out */
+        uint8_t *sc = scratch8();
+        stored_known[stream_obj[0]] = !(prev & 1u);
+        stored_hash[stream_obj[0]] = hash_of(io_buf, (uint32_t)n);
+        if (lz_decompress2(&src, raw, P6_END, sc, len) || crc32_two(raw, P6_END, sc, len) != crc)
+            return -1;
+        pats_from8(sc);
+        load_eight = 1;
+        packed_len = plen;
+        return 0;
+    }
+    if (n < (int)STREAM_HDR || len != RAW_LEN || plen > STREAM_CAP)   /* (SPIDER's six: this layout only) */
+        return -1;
+#else
     if (n < (int)STREAM_HDR || (len != RAW_LEN && len != RAW_LEN17 && len != RAW_LEN10 && len != RAW_LEN11) ||
         plen > STREAM_CAP)
+#endif
         return -1;                                /* (its own length says its format: settings saved alone, as
                                                    * this format's, before a power cut beside format 10's patterns) */
     stored_known[stream_obj[0]] = !(prev & 1u);
@@ -759,6 +951,9 @@ static int settings_pack(void)
     if (lz_compress((const uint8_t *)proj.trk, (uint32_t)sizeof proj.trk, &sink))
         return -1;
     put32(io_buf + SET_HDR, o.fill - SET_HDR - 4u);
+#if NTRK == 6
+    put32(io_buf + 4, proj.format | FMT_SIX);         /* (SPIDER's six) */
+#endif
     return (int)o.fill;
 }
 typedef struct { const uint8_t *p; uint32_t left; } set_in_t;
@@ -778,6 +973,37 @@ static int settings_unpack(int n)
     if (n < (int)(SET_HDR + 4u) || get32(io_buf) != PROJ_MAGIC)
         return -1;
     fmt = get32(io_buf + 4);
+#if NTRK == 6
+    {
+        int eight = !(fmt & FMT_SIX);
+        fmt &= ~FMT_SIX;
+        if (!FORMAT_OK(fmt))
+            return -1;
+        if (eight) {                                  /* the eight's tracks: unpacked aside, six of them kept */
+            set_in_t in = {io_buf + SET_HDR + 4u, get32(io_buf + SET_HDR)};
+            lz_src_t src = {set_get, &in};
+            trk_t *o = (trk_t *)(void *)scratch8();
+            if (in.left > (uint32_t)n - SET_HDR - 4u)
+                return -1;
+            for (i = 0; i < SET_HDR; i++)
+                ((uint8_t *)&proj)[i] = io_buf[i];
+            proj.format = fmt;
+            if (lz_decompress(&src, (uint8_t *)o, N8_ALL * (uint32_t)sizeof(trk_t)))
+                return -1;
+            trk_from8(o);
+            load_eight = 1;
+            return 0;
+        }
+        set_in_t in = {io_buf + SET_HDR + 4u, get32(io_buf + SET_HDR)};
+        lz_src_t src = {set_get, &in};
+        if (in.left > (uint32_t)n - SET_HDR - 4u)
+            return -1;
+        for (i = 0; i < SET_HDR; i++)
+            ((uint8_t *)&proj)[i] = io_buf[i];
+        proj.format = fmt;
+        return lz_decompress(&src, (uint8_t *)proj.trk, (uint32_t)sizeof proj.trk) ? -1 : 0;
+    }
+#endif
     if (fmt >= 15u && fmt <= PROJ_FORMAT) {
         set_in_t in = {io_buf + SET_HDR + 4u, get32(io_buf + SET_HDR)};
         lz_src_t src = {set_get, &in};
@@ -848,6 +1074,9 @@ int project_load(int slot)
     project_defaults();
     packed_len = 0;
     load_format = PROJ_FORMAT;
+#if NTRK == 6
+    load_eight = 0;
+#endif
     n = plat_store_load(OBJ_PROJ(slot, 0), io_buf, sizeof io_buf);
     if (n > 0)
         stored_hash[OBJ_PROJ(slot, 0)] = hash_of(io_buf, (uint32_t)n);
@@ -906,7 +1135,11 @@ int project_load(int slot)
     } else {
         bad = 1;
     }
+#if NTRK == 6
+    migrated = !bad && (load_format != PROJ_FORMAT || load_eight) ? (uint8_t)slot : 0xFF;
+#else
     migrated = !bad && load_format != PROJ_FORMAT ? (uint8_t)slot : 0xFF;
+#endif
     return bad ? -1 : 0;
 }
 

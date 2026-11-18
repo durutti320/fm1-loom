@@ -1,0 +1,42 @@
+# SPIDER's six tracks (18 Nov 2026): a project of the eight (SPIDER's before, or LOOM-SMK's; tests/fixtures/
+# spider8_store.bin, made by tests/fixtures/make_spider8.xy with the eight-track build 8e67b07) loads with T7 and T8 left out: T1-T6
+# as they were, the conductor and throws moved down two (their patterns, locks, scenes, WEAVE's bits), what pointed
+# at T7 or T8 let go; saved, a six-track project that loads again the same
+storeload tests/fixtures/spider8_store.bin
+reboot
+wait 400
+expect note 2 1 1 40
+expect note 6 1 2 48
+expect trigs2.1 1
+expect trigs6.1 1
+expect trigs7.1 1
+expect par6.level 77
+expect par9.level 66
+expect lane 2 1 cut 1
+expect lanes 1
+expect spat1.6 1
+expect spat1.7 1
+expect spat2.1 2
+expect spat2.7 2
+expect spat2.8 2
+expect smute2 129
+expect weave 1 1 0x41 4
+expect weave 1 5 0x80 2
+expect par7.e1 0
+expect par7.e4 2
+expect par3.lspeed 7
+expect par4.lspeed 0
+expect par5.lspeed 8
+tap HOME
+tap SAVE
+wait 300
+reboot
+wait 400
+expect note 2 1 1 40
+expect note 6 1 2 48
+expect trigs7.1 1
+expect smute2 129
+expect weave 1 1 0x41 4
+expect par7.e4 2
+expect par3.lspeed 7
+expect lanes 1

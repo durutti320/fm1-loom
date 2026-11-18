@@ -478,6 +478,14 @@ int app_expect(const char *what, int *got)
         *got = seq.kmute[(what[5] ? atoi(what + 5) - 1 : 0) & (NKITM - 1)];
     else if (!strcmp(what, "songpos"))              /* the song slot playing, from 1 */
         *got = seq.song_pos + 1;
+    else if (!strncmp(what, "trigs", 5) && strchr(what, '.')) {   /* trigsT.P: the steps with notes in track T's
+                                                     * pattern P (both from 1) */
+        const tpat_t *tp = pat_of(atoi(what + 5), atoi(strchr(what, '.') + 1));
+        *got = 0;
+        for (int i = 0; tp && i < NSTEP; i++)
+            *got += step_on(&tp->st[i], atoi(what + 5) - 1);
+    } else if (!strncmp(what, "smute", 5) && what[5])   /* smuteS: scene S's mutes (bit t: track t + 1) */
+        *got = pats.scene[(atoi(what + 5) - 1) & (NSCENE - 1)].mute;
     else if (!strcmp(what, "used"))                 /* the scenes that exist: bit s-1 for scene s */
         for (int i = *got = 0; i < NSCENE; i++)
             *got |= pats.scene[i].used << i;

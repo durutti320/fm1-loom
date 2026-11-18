@@ -14,7 +14,7 @@
 typedef struct {
     const char *name;
     uint16_t bg, panel, panel2, line, faint, dim, text, now_m, rec, aux;
-    uint16_t ink[NTRK];
+    uint16_t ink[8];                                  /* (eight: SPIDER's six use the first six) */
     uint8_t tint, mid;                                /* the ink's share over the background, of 16 */
 } theme_t;
 /* the themes (Setup: THEME; the project keeps it in rsv[1]: theme_ix); b/w is the default */
@@ -193,8 +193,13 @@ static uint16_t ctl_ink(const char *b)          /* a control named in the footer
 #endif
 
 /* the tracks: 1-8, then the aux tracks (the tag's short names, the pages' long ones) */
+#if NTRK == 6
+static const char *const TRACK_NAME[NALLTRK] = {"T1", "T2", "T3", "T4", "T5", "T6", "COND", "THROW", "FX I", "FX II",
+                                                "WEAVE"};   /* (SPIDER: six) */
+#else
 static const char *const TRACK_NAME[NALLTRK] = {"T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "COND", "THROW",
                                                 "FX I", "FX II", "WEAVE"};
+#endif
 static const char *const NOTE_NAME[12] = {"C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"};
 /* the step components (SC_*: the OP-XY's 14, on the white keys with HOME and a step held), their letter on
  * the grid and their name */
@@ -1768,7 +1773,7 @@ static void aux_engine_knobs(knob_t *k, int trk)
     if (trk == AUX_BRAIN) {
         kname(&k[0], BRAIN_KNOB[0], NOTE_NAME, par[TP_E2], 12);
         kname(&k[1], BRAIN_KNOB[1], BS_NAME, par[TP_E3], NBS);
-        kname(&k[2], BRAIN_KNOB[2], LINK_NAME, par[TP_E4], 9);
+        kname(&k[2], BRAIN_KNOB[2], LINK_NAME, par[TP_E4], NTRK + 1);
     } else if (trk == AUX_PUNCH || trk == AUX_WEAVE) {
         kname(&k[0], "latch", ONOFF, par[TP_E1], 2);
     } else {
@@ -1808,7 +1813,7 @@ static void page_knobs(knob_t *k)
         return;
     }
     if (trk == AUX_BRAIN && p == P_SUB) {            /* the Follow page: the track whose notes set the chords */
-        kname(&k[0], "FOLLOW", LINK_NAME, proj.trk[AUX_BRAIN].par[TP_E1] % 9u, 9);
+        kname(&k[0], "FOLLOW", LINK_NAME, proj.trk[AUX_BRAIN].par[TP_E1] % (NTRK + 1u), NTRK + 1);
         return;
     }
     switch (p) {
@@ -2953,6 +2958,23 @@ static void draw_knobs_c(knob_t *k, int now_touch, uint32_t h)
             continue;
         s_cat(nm, k[i].name);
         upcase(nm);
+        if (text_w(&FONT_XS, nm) > w - 6) {          /* ("LOOP START": "L.START") */
+            char ab[24], *o = ab;
+            const char *q = nm, *last = nm;
+            for (const char *c = nm; *c; c++)
+                if (*c == ' ')
+                    last = c + 1;
+            while (q < last) {
+                *o++ = *q;
+                *o++ = '.';
+                while (q < last && *q != ' ')
+                    q++;
+                q++;
+            }
+            s_cat(o, last);
+            if (last != nm && text_w(&FONT_XS, ab) <= w - 6)
+                s_cat(nm, ab);
+        }
         text_fit(x + 4, y + 3, &FONT_XS, nm, w - 6, lc);
         kc_value(x + 4, y + 16, w - 7, k[i].val, fg, hot ? lc : K_DIM);
         if (k[i].max > 0) {
@@ -4402,7 +4424,7 @@ static void draw_bar(void)
     e = s_cat(e, tp->len == 1 ? " step" : " steps");
     e = s_cat(e, "   Step: ");
     s_cat(e, STEP_FRAC[tp->scale % NTS]);
-    cv_text(12, LY(6, 2), LY(&FONT_S, &FONT_XS), t, K_TEXT);
+    cv_text(12, LY(6, 2), LY(LOOKC ? &FONT_XS : &FONT_S, &FONT_XS), t, K_TEXT);
     {
         int nb = (tp->len + 15) / 16, ph = step_pos(trk), lf, le, sq = is_seqt(trk) ? trk : 0, go = seq.t[sq].bq_go, pf = seq.t[sq].bq_f,
             pe = seq.t[sq].bq_e;
@@ -4438,7 +4460,9 @@ static void draw_bar(void)
     e = num_s((uint32_t)tp->quant, s_cat(e, ", quantise "));
     s_cat(e, "%");
     cv_text(12, LY(86, MAIN_H - 27), F_CAP, t, K_DIM);
-    cv_text(12, LY(100, MAIN_H - 15), F_CAP, is_drum(trk) ? "white keys: the bar's steps, black keys: sounds"
+    cv_text(12, LY(100, MAIN_H - 15), F_CAP, LOOKC ? (is_drum(trk) ? "white keys: steps, black keys: sounds"
+                                                                    : "black keys: scale 1-6 8 16 1/2")
+                                            : is_drum(trk) ? "white keys: the bar's steps, black keys: sounds"
                                             : "black keys: scale 1 2 3 4 5 6 8 16 1/2", K_DIM);
     cv_blit(0, MAIN_Y);
 }
@@ -4909,7 +4933,7 @@ static void pic_drumline(int32_t x0, int32_t y0, int32_t w, int32_t h, const uin
                                               "xnoi", "clng", "soph", "9kck", "9snr", "9tom", "9rim", "9clp",
                                               "9hat", "9opn", "9rid", "9crs"};   /* (large type: four letters at most) */
         _Static_assert(sizeof PAD / sizeof PAD[0] == NDM && sizeof PAD4 / sizeof PAD4[0] == NDM, "a pad name for each model");
-        const char *nm = (LARGE ? PAD4 : PAD)[p[TP_DRUM(k, DP_MODEL)] % NDM];
+        const char *nm = (LARGE || LOOKC ? PAD4 : PAD)[p[TP_DRUM(k, DP_MODEL)] % NDM];
         char t[4];
         cv_round(x, y, pw - 4, ph - 4, 4, hit > 40 ? K_NOW : k == ui.dsound ? K_PANEL2 : K_PANEL);
         if (k == ui.dsound)
@@ -5085,7 +5109,7 @@ static void brain_large(const uint8_t *p, int key, int sc, int deg, int src)
     s_cat(e, BS_NAME[sc]);
     cv_text(12, cap_y(0, 26, &FONT_B), &FONT_B, t, K_TEXT);
     if (ui.page == P_PLAY) {
-        cv_text(12, 28, F_CAP, "routing: black keys 1 to 8 toggle a track", K_DIM);
+        cv_text(12, 28, F_CAP, LOOKC ? "black keys 1-6 toggle a track" : "routing: black keys 1 to 8 toggle a track", K_DIM);
         cv_text(12, 42, F_CAP, "tracks that follow", K_DIM);
         cy = 58;
     } else if (ui.page == P_SUB) {                   /* (the follow track's name: on its knob, and in the line) */
@@ -5171,7 +5195,7 @@ static int32_t title_sub(const char *title, const char *sub, uint16_t sc)
 static void draw_brain(void)
 {
     const uint8_t *p = proj.trk[AUX_BRAIN].par;
-    int key = seq.brain_key % 12, sc = seq.brain_scale % NBS, deg = (int8_t)seq.brain_deg, src = p[TP_E1] % 9u;
+    int key = seq.brain_key % 12, sc = seq.brain_scale % NBS, deg = (int8_t)seq.brain_deg, src = p[TP_E1] % (NTRK + 1u);
     uint32_t chord = seq.brain_chord;
     uint32_t h = hash_u(hash_u(hash_u(2166136261u, 0xB0u), (uint32_t)key | (uint32_t)sc << 4 |
                                           (uint32_t)(deg + 64) << 8 | (uint32_t)src << 16 | (uint32_t)ui.page << 20 |
@@ -5194,7 +5218,7 @@ static void draw_brain(void)
         text_r(230, LY(6, 3), F_CAP, t, K_DIM);
     }
     if (ui.page == P_PLAY) {
-        cv_text(12, LY(44, 34), F_CAP, "routing: black keys 1 to 8 toggle a track", K_DIM);
+        cv_text(12, LY(44, 34), F_CAP, LOOKC ? "black keys 1-6 toggle a track" : "routing: black keys 1 to 8 toggle a track", K_DIM);
     } else if (ui.page == P_SUB) {
         if (!src)
             cv_text(12, LY(34, 35), F_CAP, "off: the chords come from the", K_DIM), cv_text(12, LY(48, 46), F_CAP, "conductor's own keys and steps", K_DIM);
@@ -5510,8 +5534,11 @@ static void draw_acid_x(void)
         s_cat(t, "drive off");
     else
         num_i((int32_t)(d * 100.0f + 0.5f), s_cat(s_cat(s_cat(t, "drive "), ty == 1 ? "soft" : "rat"), " ")), s_cat(t + s_len(t), " %");
-    cv_text(8, LY(100, 64), F_CAP, t, K_DIM);
-    text_r(230, LY(100, 64), F_CAP, "shaper: the square's edge", K_FAINT);
+    {
+        int32_t e = cv_text(8, LY(100, 64), F_CAP, t, K_DIM);
+        if (230 - text_w(F_CAP, "shaper: the square's edge") >= e + 8)   /* (where there is room) */
+            text_r(230, LY(100, 64), F_CAP, "shaper: the square's edge", K_FAINT);
+    }
     cv_blit(0, MAIN_Y);
 }
 /* the Sub page: the engine's second page of knobs (TP_X1..X4), knit's layers, rayon's fall or acid's drive */
@@ -5577,7 +5604,8 @@ static void draw_key_env(void)
         }
     for (int i = 0; i < n; i++)
         pen_to(&pn, px[i], py[i], K_NOW);
-    s_cat(s_cat(t, DL_SOUND_NAME[key]), open ? "'s envelope, decay off: its own length" : "'s envelope");
+    s_cat(s_cat(t, DL_SOUND_NAME[key]), open ? (LOOKC ? ": decay off, its own length" : "'s envelope, decay off: its own length")
+                                             : "'s envelope");
     text_fit(16, LY(16 + 84 + 3, MAIN_H - 15), F_CAP, t, 208, K_DIM);
     cv_blit(0, MAIN_Y);
 }
@@ -5685,7 +5713,7 @@ static void draw_env(int filter)
                 cv_rect((int32_t)x0 + xi, (int32_t)(base - hh * fl + 1.5f), 1, (int32_t)(hh * fl), K_TINT);
             pen_to(&pa, x0 + (float)xi, base - hh * fl, K_NOW);
         }
-        cv_text(16, 16 + 84 + 3, &FONT_XS, "filter; dim: accented; line: the note's level", K_DIM);
+        cv_text(16, 16 + 84 + 3, &FONT_XS, LOOKC ? "dim: accented, line: the level" : "filter; dim: accented; line: the note's level", K_DIM);
         cv_blit(0, MAIN_Y);
         return;
     }
@@ -5741,7 +5769,7 @@ static void draw_env(int filter)
         }
     for (int i = 0; i < n; i++)
         pen_to(&pn, px[i], py[i], K_NOW);
-    cv_text(16, 16 + 84 + 3, &FONT_XS, drum ? "every key: lag, attack, random, length"
+    cv_text(16, 16 + 84 + 3, &FONT_XS, drum ? (LOOKC ? "keys: lag, attack, random, length" : "every key: lag, attack, random, length")
                                               : filter ? "filter envelope" : "amp envelope", K_DIM);
     cv_blit(0, MAIN_Y);
 }
@@ -5771,7 +5799,7 @@ static void draw_filter(void)
         cv_round(lo, y0 + 10, hi > lo ? hi - lo : 2, hh - 10, 4, K_NOW_T);
         cv_rect(lo, y0 + 10, 2, hh - 10, K_NOW);
         cv_rect(hi, y0 + 10, 2, hh - 10, K_NOW);
-        cv_text(x0, y0 + hh + 3, &FONT_XS, "all keys: low cut, compression, drive, hi cut", K_DIM);
+        cv_text(x0, y0 + hh + 3, &FONT_XS, LOOKC ? "keys: low cut, comp, drive, hi cut" : "all keys: low cut, compression, drive, hi cut", K_DIM);
         cv_blit(0, MAIN_Y);
         return;
     }
@@ -6193,8 +6221,15 @@ static void draw_mix(void)
 {
     static float m_db[NALLTRK], m_hold[NALLTRK];
     static uint32_t m_hold_ms[NALLTRK], m_last;
+#if NTRK == 6
+    static const char *const SHORT_NM[NALLTRK] = {"1", "2", "3", "4", "5", "6", "CO", "TH", "F1", "F2", "WV"};
+    static const int8_t COL[NALLTRK] = {0, 1, 2, 3, 4, 5, -1, -1, 6, 7, -1};   /* (SPIDER: six, the strips wider apart) */
+#define MIX_DX 24
+#else
     static const char *const SHORT_NM[NALLTRK] = {"1", "2", "3", "4", "5", "6", "7", "8", "CO", "TH", "F1", "F2", "WV"};
-    static const int8_t COL[NALLTRK] = {0, 1, 2, 3, 4, 5, 6, 7, -1, -1, 8, 9, -1};   /* the strips' places (the conductor and the
+    static const int8_t COL[NALLTRK] = {0, 1, 2, 3, 4, 5, 6, 7, -1, -1, 8, 9, -1};
+#define MIX_DX 18
+#endif   /* the strips' places (the conductor and the
                                                                               * throws make no sound: none) */
     uint32_t now = plat_ms(), dt = now - m_last;
     int sel = sel_trk();
@@ -6228,7 +6263,7 @@ static void draw_mix(void)
     for (int t = 0; t < NALLTRK; t++) {
         if (COL[t] < 0)
             continue;
-        int32_t x = 4 + COL[t] * 18 + (COL[t] >= 8 ? 14 : 0);
+        int32_t x = 4 + COL[t] * MIX_DX + (COL[t] >= NTRK ? 14 : 0);
         int muted = t < NSEQT && (seq.mute >> t & 1u), sound = t < NTRK || is_fx(t);
         uint16_t ink = muted ? K_FAINT : trk_ink(t);      /* (muted: its steps, grey) */
         if (LOOKC) {                                 /* (look C: the picked one's number a chip; muted: struck through) */
@@ -6556,7 +6591,7 @@ static void draw_weave(void)
     if (!f) {
         s_cat(s_cat(t, TRACK_NAME[trk]), " weaves with nothing yet");
         text_c(120, LY(26, 10), text_w(&FONT_B, t) <= 228 ? &FONT_B : &LFONT_B, t, K_TEXT);   /* ("COND ...": a size down) */
-        text_c(120, LY(54, 42), LY(&FONT_S, F_CAP), "black key: the track to weave in", K_DIM);
+        text_c(120, LY(54, 42), LY(LOOKC ? F_CAP : &FONT_S, F_CAP), "black key: the track to weave in", K_DIM);
         text_c(120, LY(72, 56), LY(&FONT_S, F_CAP), "white key: its pattern", K_DIM);
         cv_blit(0, MAIN_Y);
         return;

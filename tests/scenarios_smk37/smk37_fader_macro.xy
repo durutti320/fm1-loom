@@ -8,7 +8,7 @@ expect trk 2
 expect fbank 0
 smktap FADERBANK
 wait 40
-said T5 to T8
+said T5, T6, FX I, II
 expect fbank 1
 smktap FADERBANK
 wait 40

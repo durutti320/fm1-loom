@@ -18,14 +18,14 @@ wait 400
 # held: T2 soloed while held (every other track muted: the conductor and the throws too), let go: back
 pad 1 100
 wait 600
-expect mute 1021
+expect mute 253
 said SOLO
 pad 2 100
 wait 600
-expect mute 1017
+expect mute 249
 pad 2 0
 wait 40
-expect mute 1021
+expect mute 253
 pad 1 0
 wait 40
 expect mute 0
@@ -37,7 +37,7 @@ expect mute 16
 wait 400
 pad 1 100
 wait 600
-expect mute 1021
+expect mute 253
 pad 1 0
 wait 40
 expect mute 16
@@ -49,10 +49,10 @@ tappad 3
 wait 100
 tappad 3
 wait 40
-expect mute 1015
+expect mute 247
 said SOLO
 wait 600
-expect mute 1015
+expect mute 247
 tappad 6
 wait 40
 expect mute 0

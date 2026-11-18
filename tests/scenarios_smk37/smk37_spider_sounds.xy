@@ -7,8 +7,6 @@ expect par3.engine 11
 expect par4.engine 10
 expect par5.engine 13
 expect par6.engine 6
-expect par7.engine 11
-expect par8.engine 12
 expect par2.vmode 1
 wav spider_sounds.wav
 # mono: a bass note
