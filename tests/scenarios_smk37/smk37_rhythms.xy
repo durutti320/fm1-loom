@@ -16,6 +16,10 @@ expect kmask1.1.5 6
 expect kmask1.1.8 5
 expect kmask1.1.2 0
 expect svel1.1.5 127
+# each sound its own velocity: step 5 plays at the snare's accent, the hat under it at its own 104 (18 Nov 2026)
+expect kvel1.1.5.3 104
+expect kvel1.1.5.2 0
+expect kvel1.1.1.3 0
 expect nudge1.1.5 5
 expect nudge1.1.8 -3
 expect loop 1 1 16

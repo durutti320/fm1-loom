@@ -3323,36 +3323,47 @@ static void act_kit(int k)
     say("KIT", t);
 }
 /* SPIDER's rhythms (rhythms.h): rhythm r into the kit track's pattern (its steps, length, swing; the pattern's locks and
- * its sounds' velocities cleared: the rhythm's own); with_kit: the factory kit it was written for too */
+ * its sounds' velocities cleared: the rhythm's own, each sound's where it is under the step's loudest); with_kit: the
+ * factory kit it was written for first (the rim, ride, crash found in the kit it plays) */
 static void act_rhythm(int r, int with_kit)
 {
-    int trk = sel_trk(), pt = cur_pat(trk), k;
+    int trk = sel_trk(), pt = cur_pat(trk), k, ln[NDRUM];
     const rhythm_t *rh = &RHYTHM[r % NRHYTHM];
     tpat_t *tp = tpat(trk);
     if (!is_drum(trk))
         return;
+    if (with_kit && (k = rhythm_kit(rh)) >= 0)
+        act_kit(k);
     undo_keep();
-    for (int i = 0; i < NSTEP; i++) {
-        int vel;
-        uint32_t mask = i < rh->len ? rhythm_step(rh, i, &vel) : 0u;
-        memset(&tp->st[i], 0, sizeof tp->st[i]);
-        tp->st[i].vel = 100;
-        if (mask) {
-            kit_set(&tp->st[i], mask);
-            tp->st[i].vel = (uint8_t)vel;
-            tp->st[i].nudge = (int8_t)(rh->nudge ? rh_nudge(rh->nudge[i]) : 0);
-        }
-    }
     pattern_clear_locks(pats.lane, trk, pt);
     for (int j = 0; j < NLANE; j++)                /* (the sounds' velocities and tunes: the rhythm's are its own) */
         if (pats.lane[j].used && pats.lane[j].trk == trk && pats.lane[j].pat == pt && lane_is_note(pats.lane[j].param))
             lane_clear(pats.lane, j);
+    for (k = 0; k < NDRUM; k++)
+        ln[k] = -2;                                /* (-2: no lane yet; -1: none left, the step's velocity) */
+    for (int i = 0; i < NSTEP; i++) {
+        int vel;
+        uint8_t vk[NDRUM];
+        uint32_t mask = i < rh->len ? rhythm_step(rh, i, proj.trk[trk].par, vk, &vel) : 0u;
+        memset(&tp->st[i], 0, sizeof tp->st[i]);
+        tp->st[i].vel = 100;
+        if (!mask)
+            continue;
+        kit_set(&tp->st[i], mask);
+        tp->st[i].vel = (uint8_t)vel;
+        tp->st[i].nudge = (int8_t)(rh->nudge ? rh_nudge(rh->nudge[i]) : 0);
+        for (k = 0; k < NDRUM; k++)                /* a sound under the step's loudest: its own velocity */
+            if ((mask >> k & 1u) && vk[k] != vel) {
+                if (ln[k] == -2)
+                    ln[k] = lane_alloc(pats.lane, trk, pt, (int)(LANE_VEL0 + (unsigned)k));
+                if (ln[k] >= 0)
+                    pats.lane[ln[k]].val[i] = vk[k];
+            }
+    }
     tp->len = rh->len;
     tp->lstart = tp->lend = 0;
     tp->groove = rh->groove;
     mark_dirty();
-    if (with_kit && (k = rhythm_kit(rh)) >= 0)
-        act_kit(k);
     say("RHYTHM", rh->name);
 }
 static void do_save_kit(void)
