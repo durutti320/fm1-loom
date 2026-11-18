@@ -125,6 +125,11 @@ static void lsmk_lights(void);
 static int lsmk_daw_frame(void);
 static int lsmk_nr_release(uint32_t held_ms);
 static int lsmk_nr_lit(void);
+static int lsmk_arp_release(uint32_t held_ms);   /* ARP tapped: the player on / off (1: taken) */
+static int lsmk_sus_off(int trk, int note);      /* the pedal's SUSTAIN: a key's note-off held (1) */
+static void lsmk_sus_on(int trk, int note);
+static void lsmk_pd_step(int d);
+static void lsmk_pd_learn(void);
 #include "smk_daw.h"                             /* DAW mode's map and messages (daw_on: smk37.c's frame instead) */
 #include "smk_mcu.h"                             /* DAW mode's REAPER profile: Mackie Control on the second USB port */
 #else
@@ -1417,6 +1422,9 @@ static void keyboard_down(int k)
         int note = is_drum(trk) ? key_sound(k) : key_note(k);
         ui.kmode[k] = KM_PLAY;
         ui.knote[k] = (uint8_t)note;
+#if BOARD_SMK37
+        lsmk_sus_on(trk, note);                  /* (played again while the pedal held it: let go as the key is) */
+#endif
         engine_key(trk, note, 1, KEY_VEL(k));
         chord_add(note);
         if (is_drum(trk)) {                      /* a drum key: its sound is the one shown (Steps with SEQ held; a
@@ -1808,6 +1816,9 @@ static void key_up(int k)
         break;
     }
     case KM_PLAY:
+#if BOARD_SMK37
+        if (!lsmk_sus_off(is_aux(trk) ? inst_trk() : trk, ui.knote[k]))   /* (the pedal's SUSTAIN down: held) */
+#endif
         engine_key(is_aux(trk) ? inst_trk() : trk, ui.knote[k], 0, 0);
         chord_del(ui.knote[k]);
         if (ui.rec_armed && !playing())
@@ -2787,6 +2798,9 @@ static void list_change_do(int32_t e)
             break;
         case A_MOD_WHEEL:                        /* (the same) */
             lsmk_mw_step(d);
+            break;
+        case A_PEDAL:
+            lsmk_pd_step(d);
             break;
 #endif
         default: break;
@@ -3844,7 +3858,7 @@ static void action_run(int a)
     case A_MIDI_OUT: case A_LOOP_FREE: case A_CC_OUT: case A_SCENES_OUT: case A_MIDI_CC: case A_USB_HOST: case A_KIT_FILTER:
     case A_CC_IN: case A_FX_WIDTH:
 #if BOARD_SMK37
-    case A_KEY_VEL: case A_MOD_WHEEL:
+    case A_KEY_VEL: case A_MOD_WHEEL: case A_PEDAL:
 #endif
         return;   /* (ALGORITHM sets them; SEL
                                                                                     * leaves the list) */
@@ -3900,6 +3914,9 @@ static void action_run(int a)
     case A_SAVE_TO: act_save_slot(ui.pick_save % NPROJ); break;
     case A_CLEAR_SCENE: act_clear_scene_ask(); return;
     case A_PANIC: engine_panic(); say("ALL NOTES OFF", 0); break;
+#if BOARD_SMK37
+    case A_PEDAL_LEARN: lsmk_pd_learn(); break;  /* (the list closes: the prompts on the screen) */
+#endif
     case A_BT_AUDIO:                             /* (ALGORITHM or SEL: on or off) */
         bt_audio_set(!bt.want);
         say("BT AUDIO", bt.want ? "on" : "off");
@@ -4083,6 +4100,8 @@ static void input(void)
 #if BOARD_SMK37
             if (i == B_LFO && !(ui.btn_used & m) && lsmk_nr_release(plat_ms() - ui.btn_t[i]))
                 continue;                           /* (NOTE REPEAT tapped: note repeat on / off; held: LFO, below) */
+            if (i == B_ARP && !(ui.btn_used & m) && lsmk_arp_release(plat_ms() - ui.btn_t[i]))
+                continue;                           /* (ARP tapped: the player on / off; held: Players, below) */
 #endif
             if (hold && !(ui.btn_used & m))
                 button_up((int)i);

@@ -19,7 +19,13 @@
  *               the pads its cells
  *   < >         the bar before / after (any page: the one Steps shows and the pads write), when let go
  *   < + >       DAW mode (below)
- *   faders      the levels of T1-T4, or T5-T8 (FADER BANK, lit on T5-T8); a fader acts once it moves
+ *   faders      the levels of T1-T4, or T5-T8 (FADER BANK, lit on T5-T8), or the macro bank (FADER BANK again,
+ *               its light blinking): the played track's cutoff, resonance, send I, send II (a kit's: its bus filter,
+ *               the shown key's sends); a fader acts once it moves
+ *   ARP         tapped: the selected track's player off, or back on (the one it had, else the arp); held and let
+ *               go: the Players pages, as the FM-1's ARP
+ *   pedal jack  PEDAL (Setup): a footswitch SUSTAIN or PLAY / STOP; an expression pedal WAH, LEVEL, SEND I or SEND II
+ *               of the played track (LEARN PEDAL: its heel and toe). DAW mode: CC 64 / CC 11 on CHANNEL
  *   outer keys  C3..E3 and G#5..C6 carry on the keys: more notes, with velocity; on a kit, its keys
  *   pitch wheel bend of the track the keys play (+-7 semitones, a fifth)
  *   mod wheel   MOD WHEEL (Setup): FILTER, the filter of the track the keys play (its cutoff; DYNAMIC: its hi cut),
@@ -47,7 +53,8 @@ static struct {
     uint8_t pad_drums;                  /* KNOB BANK: the pads drum pads on Steps too */
     uint8_t mute_held;                  /* the top row's mute pads held (bit p) since mute_t[p] */
     uint32_t mute_t[8];
-    uint8_t fbank;                      /* the faders: 0 T1-T4, 1 T5-T8 */
+    uint8_t fbank;                      /* the faders: 0 T1-T4, 1 T5-T8, 2 the macro bank (LSMK_FB_MACRO) */
+    uint8_t arp_pl[NTRK];               /* ARP tapped off: the player each track had (0: none yet, the arp) */
     uint8_t flast[4];                   /* (soft takeover: 0xFF waits for the fader to move) */
     uint8_t out_trk[NOUTER], out_note[NOUTER];   /* an outer key's note playing: track and note (0 none) */
     uint8_t bend_trk;                   /* the track the pitch wheel bends (0xFF none) */
@@ -62,6 +69,11 @@ static struct {
 } lsmk = {.last_kit = 0xFF, .flast = {0xFF, 0xFF, 0xFF, 0xFF}, .bend_trk = 0xFF, .mw_trk = 0xFF, .nr_rate = SEQ_RP_16};
 static const char *const LSMK_RATE[NSEQ_RP] = {"1/4", "1/8", "1/8T", "1/16", "1/16T", "1/32", "1/32T", "1/64"};
 #define LSMK_NR_TAP_MS 400u                     /* NOTE REPEAT let go sooner: a tap (on / off); later: the LFO page */
+#define LSMK_ARP_TAP_MS 400u                    /* ARP let go sooner: a tap (the player on / off); later: Players */
+#define LSMK_FB_MACRO 2                         /* FADER BANK's third bank: the played track's macros */
+static void lpd_poll(void);                     /* (the pedal jack, below) */
+static void lpd_sus_release(void);
+static void lpd_text(char *t);
 
 static void lsmk_daw_set(int on);
 
@@ -121,6 +133,27 @@ static int lsmk_nr_release(uint32_t held_ms)
     return 1;
 }
 static int lsmk_nr_lit(void) { return lsmk.nr_on; }
+
+/* ARP let go (ui.c): a tap turns the selected track's player off, or back on (the one it had; none yet: the arp);
+ * held longer, or on a kit or an FX track, it opens Players as before (0: not taken) */
+static int lsmk_arp_release(uint32_t held_ms)
+{
+    int t = sel_trk(), pl;
+    if (daw_on || held_ms >= LSMK_ARP_TAP_MS || home_held() || ui.ask || lst.open || t < 0 || t >= NTRK ||
+        is_aux(t) || is_drum(t))
+        return 0;
+    pl = proj.trk[t].par[TP_PLAYER] % NPL;
+    if (pl != PL_OFF) {
+        lsmk.arp_pl[t] = (uint8_t)pl;
+        set_tp(t, TP_PLAYER, PL_OFF);
+    } else
+        set_tp(t, TP_PLAYER, lsmk.arp_pl[t] > PL_OFF && lsmk.arp_pl[t] < NPL ? lsmk.arp_pl[t] : PL_ARP);
+    {
+        static const char *const PN[NPL] = {"PLAYER", "ARP", "STRUM", "HOLD", "RANDOM"};
+        say(PN[(pl != PL_OFF ? pl : proj.trk[t].par[TP_PLAYER]) % NPL], pl != PL_OFF ? "off" : "on");
+    }
+    return 1;
+}
 
 /* a mute pad (the top row) as Mix's black keys: a tap mutes or unmutes, held soloes while held (more held: more
  * soloed), two taps solo and it stays (a tap then ends it) */
@@ -253,10 +286,12 @@ static void lsmk_outer(void)
             }
             lsmk.out_trk[i] = (uint8_t)t;
             lsmk.out_note[i] = (uint8_t)n;
+            lsmk_sus_on(t, n);
             engine_key(t, n, 1, (int)daw_kv_vel((uint32_t)v));
             outer_note(t, n, 1);                   /* (with the keyboard's: shown held, a step's, step record's) */
         } else if (lsmk.out_note[i]) {
-            engine_key(lsmk.out_trk[i], lsmk.out_note[i], 0, 0);
+            if (!lsmk_sus_off(lsmk.out_trk[i], lsmk.out_note[i]))   /* (SUSTAIN down: held till it comes up) */
+                engine_key(lsmk.out_trk[i], lsmk.out_note[i], 0, 0);
             outer_note(lsmk.out_trk[i], lsmk.out_note[i], 0);
             lsmk.out_note[i] = 0;
         }
@@ -315,13 +350,38 @@ static void lsmk_buttons(void)
     if ((pressed >> SB_KNOB_BANK & 1u) && !lsmk_ca_revert())   /* (CONTROL ALL just moved: KNOB BANK reverts) */
         lsmk_pad_mode();
     if (pressed >> SB_FADER_BANK & 1u) {
-        lsmk.fbank ^= 1u;
+        lsmk.fbank = (uint8_t)((lsmk.fbank + 1u) % 3u);
         for (f = 0; f < 4; f++)
             lsmk.flast[f] = 0xFF;                  /* (the other bank: each fader waits to move) */
-        say("FADERS", lsmk.fbank ? "T5 to T8" : "T1 to T4");
+        say("FADERS", lsmk.fbank == LSMK_FB_MACRO ? "cutoff, res, send I, II" : lsmk.fbank ? "T5 to T8" : "T1 to T4");
     }
 }
 
+/* the macro bank's parameter n (0 cutoff, 1 resonance, 2 send I, 3 send II) on track t; a DYNAMIC filter's cutoff
+ * its hi cut (as the mod wheel's FILTER); a kit's filter its bus filter, its sends the key shown's (a kit has no
+ * track sends); -1: none (a MIDI track, an FX track) */
+static int lsmk_macro_par(int t, int n)
+{
+    if (t < 0 || t >= NTRK || is_aux(t) || is_midi(t))
+        return -1;
+    if (n == 0)
+        return !is_drum(t) && proj.trk[t].par[TP_FTYPE] % NFT == FT_DYNAMIC ? TP_KTRK : TP_CUT;
+    if (n == 1)
+        return TP_RES;
+    if (is_drum(t))
+        return TP_DRUM(ui.dsound % DL_NSOUND, n == 2 ? DP_SEND1 : DP_SEND2);
+    return n == 2 ? TP_SEND1 : TP_SEND2;
+}
+/* a 0..127 control (a fader, the pedal) setting parameter p of track t across its range, and saying so */
+static void lsmk_set_by(int t, int p, uint32_t v, const char *what)
+{
+    const tp_info_t *in = tp_info_par(p, proj.trk[t].par);
+    char s[32], *e;
+    set_tp(t, p, in->lo + (int)((uint32_t)(in->hi - in->lo) * v + 63u) / 127);
+    e = s_cat(s, what ? what : in->name);
+    s_cat(num_s(v * 100u / 127u, s_cat(e, " ")), "%");
+    say(TRACK_NAME[t], s);
+}
 static void lsmk_faders(void)
 {
     int f;
@@ -335,6 +395,16 @@ static void lsmk_faders(void)
         if (v == lsmk.flast[f])
             continue;
         lsmk.flast[f] = (uint8_t)v;
+        if (lsmk.fbank == LSMK_FB_MACRO) {         /* the macro bank: the played track's */
+            static const char *const NM[4] = {"cutoff", "resonance", "send I", "send II"};
+            int p;
+            t = lsmk_play_trk();
+            if ((p = lsmk_macro_par(t, f)) < 0)
+                say_no("FADERS", "no sound to shape here");
+            else
+                lsmk_set_by(t, p, v, p == TP_KTRK ? "hi cut" : NM[f]);
+            continue;
+        }
         {
             const tp_info_t *in = tp_info_par(TP_LEVEL, proj.trk[t].par);
             char s[16];
@@ -496,6 +566,7 @@ static void lsmk_poll(void)
     lsmk_wheels();
     lsmk_modw();
     lsmk_volume();
+    lpd_poll();
 }
 
 /* the pads' and the SMK buttons' lights, after leds() */
@@ -553,7 +624,9 @@ static void lsmk_lights(void)
     if (lsmk_nr_held())                        /* NOTE REPEAT held: the rates, the one in use bright */
         for (c = 0; c < 8; c++)
             plat_pad_rgb(c, lsmk_rgb(theme->ink[2], c == lsmk.nr_rate ? 240u : 40u));
-    plat_smk_leds((lsmk.fbank ? 1u << SB_FADER_BANK : 0u) | (lsmk.pad_drums ? 1u << SB_KNOB_BANK : 0u));
+    plat_smk_leds((lsmk.fbank == 1u || (lsmk.fbank == LSMK_FB_MACRO && (plat_ms() / 250u & 1u)) ? 1u << SB_FADER_BANK
+                                                                                                 : 0u) |
+                  (lsmk.pad_drums ? 1u << SB_KNOB_BANK : 0u));   /* (FADER BANK: lit on T5-T8, blinking on the macros) */
 }
 
 /* ======================================================================================================= DAW mode */
@@ -669,13 +742,260 @@ static void lsmk_mw_step(int d)                 /* MOD WHEEL: the next mode (a m
 static void lsmk_list_keys(void)                /* Setup (pages.c list_setup): the last key, then KEY VELOCITY (the line
                                                  * above the row: in sight while the row is picked) */
 {
-    static char last[48];
+    static char last[48], pd[48];
     list_head("SMK-37 keys");
     if (!lsmk_kv_last(s_cat(last, "Last key: ")))
         s_cat(last, "Play a key to see its velocity");
     list_add(last, 0, LK_NOTE, 0);
     list_add(ACTION_NAME[A_KEY_VEL], KV_NAME[daw_kv % KV_N], LK_PICK, A_KEY_VEL);
     list_add(ACTION_NAME[A_MOD_WHEEL], MW_NAME[daw_mw % MW_N], LK_PICK, A_MOD_WHEEL);
+    lpd_text(pd);
+    list_add(pd, 0, LK_NOTE, 0);
+    list_add(ACTION_NAME[A_PEDAL], PD_NAME[daw_pd % PD_N], LK_PICK, A_PEDAL);
+    list_add(ACTION_NAME[A_PEDAL_LEARN], "heel, then toe", LK_ACTION, A_PEDAL_LEARN);
+}
+
+/* ---- the pedal jack (smk_daw.h PEDAL): read smoothed; a switch against its rest, an expression pedal against the
+ * heel and toe LEARN PEDAL took. SUSTAIN holds the keys' note-offs (ui.c key_up, lsmk_outer) while it is down */
+#define LPD_SETTLE 32u                           /* readings before the first is trusted (the jack's mux settles) */
+#define LPD_ON 300                               /* a switch this far from its rest (raw): down */
+#define LPD_OFF 150                              /* and back within this: up */
+#define LPD_LEARN_MS 2500u                       /* LEARN PEDAL: heel down this long, then toe down this long */
+#define LPD_MIN_SPAN 100                         /* heel to toe at least this (raw), or nothing is learned */
+static struct {
+    int32_t sm;                                  /* the reading smoothed, x 16 */
+    uint32_t n;                                  /* readings so far (LPD_SETTLE: trusted) */
+    int32_t rest;                                /* a switch at rest (-1: take it at the next trusted reading) */
+    uint8_t down;                                /* a switch: down */
+    uint8_t last;                                /* expression: the 0..127 last acted on (0xFF: none yet) */
+    int32_t ref;                                 /* not learned: a reading to tell a move from (LEARN PEDAL first) */
+    uint8_t learn;                               /* LEARN PEDAL: 0 off, 1 heel, 2 toe */
+    uint32_t learn_t, said_t;
+    int32_t heel;
+    uint8_t mode;                                /* the PEDAL the above were for */
+    uint32_t sus[NTRK][4];                       /* SUSTAIN: notes let go while it was down (bit n of 128) */
+    uint8_t sus_any;
+    uint8_t daw_sent;                            /* DAW mode: the last CC value sent (0xFF none) */
+} lpd = {0, 0, -1, 0, 0xFF, -1, 0, 0, 0, 0, 0, {{0}}, 0, 0xFF};
+
+static int lpd_trusted(void) { return lpd.n >= LPD_SETTLE; }
+static uint32_t lpd_value(void) { return (uint32_t)clampi(lpd.sm / 16, 0, 1023); }
+static void lpd_read(void)
+{
+    int32_t raw = (int32_t)(plat_pedal() & 0x3FFu) * 16;
+    if (!lpd.n)
+        lpd.sm = raw;
+    lpd.sm += (raw - lpd.sm) / 2;                /* (half the way a pass: settled in about five, ~80 ms) */
+    if (lpd.n < LPD_SETTLE)
+        lpd.n++;
+}
+/* a switch: down or up, against its rest (any polarity: a pedal closed or open at rest) */
+static int lpd_switch(void)
+{
+    int32_t v = (int32_t)lpd_value(), d;
+    if (lpd.rest < 0)
+        lpd.rest = v;
+    d = v > lpd.rest ? v - lpd.rest : lpd.rest - v;
+    if (!lpd.down && d > LPD_ON)
+        lpd.down = 1;
+    else if (lpd.down && d < LPD_OFF)
+        lpd.down = 0;
+    return lpd.down;
+}
+/* an expression pedal: 0 (heel) .. 127 (toe) by what LEARN PEDAL took; -1 not learned */
+static int lpd_expr(void)
+{
+    int32_t h = (int32_t)daw_pd_heel - 1, t = (int32_t)daw_pd_toe - 1, v = (int32_t)lpd_value();
+    if (h < 0 || t < 0 || h == t)
+        return -1;
+    return clampi((int)(((v - h) * 127 + (t - h) / 2) / (t - h)), 0, 127);
+}
+/* a new 0..127 worth acting on: past the last by 2 (the reading's jitter), or an end reached (1: yes, kept) */
+static int lpd_moved(int p)
+{
+    if (lpd.last == 0xFF) {
+        lpd.last = (uint8_t)p;                       /* (where it rests at start, or after a change: no jump) */
+        return 0;
+    }
+    if (p == lpd.last || ((p > lpd.last ? p - lpd.last : lpd.last - p) < 2 && p != 0 && p != 127))
+        return 0;
+    lpd.last = (uint8_t)p;
+    return 1;
+}
+/* PEDAL changed, or learned: a switch's rest taken afresh, nothing held, nothing sent yet */
+static void lpd_reset(void)
+{
+    lpd_sus_release();
+    lpd.rest = lpd_trusted() ? (int32_t)lpd_value() : -1;
+    lpd.down = 0;
+    lpd.last = 0xFF;
+    lpd.ref = -1;
+    lpd.daw_sent = 0xFF;
+    lpd.mode = daw_pd;
+}
+/* SUSTAIN: a key's note let go is held while the pedal is down (1: held; 0: let it go now) */
+static int lsmk_sus_off(int trk, int note)
+{
+    if (daw_pd != PD_SUSTAIN || !lpd.down || trk < 0 || trk >= NTRK || note < 0 || note > 127 || is_drum(trk))
+        return 0;
+    lpd.sus[trk][note >> 5] |= 1u << (note & 31);
+    lpd.sus_any = 1;
+    return 1;
+}
+static void lsmk_sus_on(int trk, int note)       /* a key's note played again: not let go when the pedal comes up */
+{
+    if (trk >= 0 && trk < NTRK && note >= 0 && note <= 127)
+        lpd.sus[trk][note >> 5] &= ~(1u << (note & 31));
+}
+static void lpd_sus_release(void)                /* the pedal up: every note it held let go */
+{
+    int t, w, b;
+    if (!lpd.sus_any)
+        return;
+    for (t = 0; t < NTRK; t++)
+        for (w = 0; w < 4; w++)
+            for (b = 0; b < 32; b++)
+                if (lpd.sus[t][w] >> b & 1u)
+                    engine_key(t, w * 32 + b, 0, 0);
+    for (t = 0; t < NTRK; t++)
+        for (w = 0; w < 4; w++)
+            lpd.sus[t][w] = 0;
+    lpd.sus_any = 0;
+}
+/* LEARN PEDAL (Setup): heel down, then toe down, LPD_LEARN_MS each; the readings at their ends kept */
+static void lsmk_pd_learn(void)
+{
+    lpd.learn = 1;
+    lpd.learn_t = lpd.said_t = plat_ms();
+    say("PEDAL", "heel down");
+}
+static void lpd_learning(void)
+{
+    uint32_t now = plat_ms(), dt = now - lpd.learn_t;
+    int32_t v = (int32_t)lpd_value(), d;
+    char s[32], *e;
+    if (dt < LPD_LEARN_MS) {
+        if (now - lpd.said_t >= 400u) {          /* (the prompt kept up, with the reading) */
+            lpd.said_t = now;
+            e = s_cat(s, lpd.learn == 1 ? "heel down " : "toe down ");
+            s_cat(num_s((uint32_t)v, s_cat(e, "(")), ")");
+            say("PEDAL", s);
+        }
+        return;
+    }
+    if (lpd.learn == 1) {
+        lpd.heel = v;
+        lpd.learn = 2;
+        lpd.learn_t = lpd.said_t = now;
+        say("PEDAL", "now toe down");
+        return;
+    }
+    lpd.learn = 0;
+    d = v > lpd.heel ? v - lpd.heel : lpd.heel - v;
+    if (d < LPD_MIN_SPAN) {
+        say_no("PEDAL", "it didn't move: plugged in?");
+        return;
+    }
+    daw_pd_heel = (uint16_t)(lpd.heel + 1);
+    daw_pd_toe = (uint16_t)(v + 1);
+    lsmk_daw_dirty();
+    lpd_reset();
+    e = num_s((uint32_t)lpd.heel, s_cat(s, "heel "));
+    num_s((uint32_t)v, s_cat(e, ", toe "));
+    say("PEDAL LEARNED", s);
+}
+/* the expression pedal's parameter on track t: WAH its cutoff (as the macro bank's), LEVEL, SEND I / II */
+static int lpd_par(int t, int m)
+{
+    if (m == PD_LEVEL)
+        return t >= 0 && t < NTRK && !is_aux(t) ? TP_LEVEL : -1;
+    return lsmk_macro_par(t, m == PD_WAH ? 0 : m == PD_SEND1 ? 2 : 3);
+}
+static void lpd_poll(void)                       /* every input pass (not DAW mode) */
+{
+    int m = daw_pd, p, t;
+    lpd_read();
+    if (!lpd_trusted())
+        return;
+    if (lpd.learn) {
+        lpd_learning();
+        return;
+    }
+    if (m != lpd.mode)
+        lpd_reset();
+    if (PD_SWITCH(m)) {
+        int was = lpd.down, d = lpd_switch();
+        if (d == was)
+            return;
+        if (m == PD_SUSTAIN) {
+            if (!d)
+                lpd_sus_release();
+        } else if (d && !ui.ask)
+            play_press();                        /* PLAY / STOP: as SEQ PLAY */
+        return;
+    }
+    if (!PD_EXPR(m))
+        return;
+    if ((p = lpd_expr()) < 0) {                  /* not learned: a move says how */
+        int32_t v = (int32_t)lpd_value();
+        if (lpd.ref < 0)
+            lpd.ref = v;
+        else if (v - lpd.ref > LPD_MIN_SPAN || lpd.ref - v > LPD_MIN_SPAN) {
+            lpd.ref = v;
+            say_no("PEDAL", "LEARN PEDAL first (Setup)");
+        }
+        return;
+    }
+    if (!lpd_moved(p) || ui.ask)
+        return;
+    t = lsmk_play_trk();
+    {
+        int q = lpd_par(t, m);
+        if (q >= 0)
+            lsmk_set_by(t, q, (uint32_t)p, m == PD_WAH ? "wah" : 0);
+    }
+}
+/* DAW mode: a switch CC 64 (0 / 127), an expression pedal CC 11 (0..127), on CHANNEL, port 1 */
+static void lpd_daw(void)
+{
+    int m = daw_pd, v;
+    lpd_read();
+    if (!lpd_trusted() || m == PD_OFF)
+        return;
+    if (m != lpd.mode)
+        lpd_reset();
+    if (PD_SWITCH(m))
+        v = lpd_switch() ? 127 : 0;
+    else if ((v = lpd_expr()) < 0 || !lpd_moved(v))
+        return;
+    if (v == lpd.daw_sent)
+        return;
+    if (lpd.daw_sent == 0xFF && PD_SWITCH(m) && !v) {
+        lpd.daw_sent = 0;                        /* (at rest to begin with: nothing to say) */
+        return;
+    }
+    lpd.daw_sent = (uint8_t)v;
+    plat_midi_out(0x0Bu | (0xB0u | ((daw_ch - 1u) & 15u)) << 8 | (PD_SWITCH(m) ? 64u : 11u) << 16 |
+                  (uint32_t)v << 24);
+}
+static void lsmk_pd_step(int d)                  /* Setup's PEDAL: ALGORITHM */
+{
+    int v = clampi((int)daw_pd + d, 0, PD_N - 1);
+    if (v == daw_pd)
+        return;
+    daw_pd = (uint8_t)v;
+    lpd_reset();
+    lsmk_daw_dirty();
+}
+static void lpd_text(char *t)                    /* Setup's line over PEDAL: what the jack reads, what was learned */
+{
+    char *e = s_cat(t, "Pedal reads ");
+    e = num_s(lpd_trusted() ? lpd_value() : plat_pedal() & 0x3FFu, e);
+    if (daw_pd_heel && daw_pd_toe) {
+        e = num_s(daw_pd_heel - 1u, s_cat(e, "; heel "));
+        num_s(daw_pd_toe - 1u, s_cat(e, ", toe "));
+    } else
+        s_cat(e, "; not learned");
 }
 
 /* ---- flash: OBJ_DAW */
@@ -1162,6 +1482,8 @@ static void lsmk_daw_analog(void)               /* the faders and the wheels */
                 engine_bend(t, b);
         }
     }
+    if (!ld.edit)
+        lpd_daw();                                  /* the pedal: CC 64 / CC 11 */
     if (m != ld.mseen) {
         int moved = m > 24u || ld.mseen > 24u;
         ld.mseen = (uint8_t)m;
@@ -1702,7 +2024,9 @@ static void lsmk_daw_set(int on)
     if (on == daw_on)
         return;
     if (on) {
+        lpd_sus_release();
         lsmk_synth_quiet();
+        lpd.daw_sent = 0xFF;
         if (playing()) {
             engine_transport(0);
             rec_off();

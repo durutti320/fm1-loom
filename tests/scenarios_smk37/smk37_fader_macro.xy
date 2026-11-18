@@ -1,0 +1,45 @@
+# FADER BANK: T1-T4, T5-T8, then the macro bank (its light blinking): the played track's cutoff, resonance, send I and
+# send II; a kit's: its bus filter, the shown key's sends; back to T1-T4
+wait 300
+listen
+turn ALGO 1
+wait 40
+expect trk 2
+expect fbank 0
+smktap FADERBANK
+wait 40
+said T5 to T8
+expect fbank 1
+smktap FADERBANK
+wait 40
+said cutoff
+expect fbank 2
+fader 0 100
+wait 40
+expect par2.cut 100
+said cutoff 78%
+fader 1 64
+wait 40
+expect par2.res 64
+fader 2 127
+wait 40
+expect par2.send1 127
+fader 3 30
+wait 40
+expect par2.send2 30
+# the levels untouched meanwhile
+expect par1.level 100
+# a kit: the bus filter, the first key's sends
+turn ALGO -1
+wait 40
+expect trk 1
+fader 2 20
+wait 40
+expect par1.d1.send1 20
+smktap FADERBANK
+wait 40
+said T1 to T4
+expect fbank 0
+fader 0 80
+wait 40
+said level

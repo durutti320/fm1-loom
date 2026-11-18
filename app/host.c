@@ -555,6 +555,10 @@ int app_expect(const char *what, int *got)
         *got = daw_kv;
     else if (!strcmp(what, "touch"))                /* the keys' touch handed to the platform (plat_key_touch) */
         *got = hsmk_touch;
+    else if (!strcmp(what, "pedalset"))             /* PEDAL x 10^7 + LEARN PEDAL's heel x 10^4 + its toe (each + 1; 0 none) */
+        *got = daw_pd * 10000000 + daw_pd_heel * 10000 + daw_pd_toe;
+    else if (!strcmp(what, "fbank"))                /* the faders' bank: 0 T1-T4, 1 T5-T8, 2 the macros */
+        *got = lsmk.fbank;
     else if (!strcmp(what, "kvobj")) {              /* KEY VELOCITY as OBJ_DAW keeps it (rsv: + 1; -1 no object) */
         daw_store_t s;
         *got = plat_store_load(OBJ_DAW, &s, sizeof s) > 0 && s.magic == DAW_MAGIC ? s.rsv : -1;

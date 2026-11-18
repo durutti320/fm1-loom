@@ -76,6 +76,19 @@ static const char *const MW_NAME[MW_N] = {"filter", "cutoff all", "LFO all", "se
                                           "decay all"};
 #define MW_REVERT_MS 5000u
 static uint8_t daw_mw = MW_FILTER;
+/* PEDAL (Setup): what the pedal jack (SUSTAIN on the back) does. A footswitch: SUSTAIN (the keys' notes held while it
+ * is down) or PLAY / STOP; an expression pedal: WAH (the played track's cutoff), LEVEL, SEND I or SEND II (the played
+ * track's; a kit's sends: the key shown). Either kind, any polarity: a switch is read against its rest (taken at
+ * start, when PEDAL changes and after LEARN PEDAL), an expression pedal against its heel and toe as LEARN PEDAL took
+ * them (a TRS pedal in what may be a TS jack: whatever range and direction it gives). In DAW mode a switch sends CC 64
+ * and an expression pedal CC 11 on CHANNEL. Kept with DAW mode's settings (daw_store_t.pd, pd_heel, pd_toe; older
+ * data: OFF, nothing learned) */
+enum { PD_OFF, PD_SUSTAIN, PD_PLAY, PD_WAH, PD_LEVEL, PD_SEND1, PD_SEND2, PD_N };
+static const char *const PD_NAME[PD_N] = {"off", "sustain", "play / stop", "wah", "level", "send I", "send II"};
+#define PD_SWITCH(m) ((m) == PD_SUSTAIN || (m) == PD_PLAY)
+#define PD_EXPR(m) ((m) >= PD_WAH && (m) < PD_N)
+static uint8_t daw_pd = PD_OFF;
+static uint16_t daw_pd_heel, daw_pd_toe;   /* LEARN PEDAL's readings, raw 0..1023 + 1 (0: not learned) */
 /* a key's velocity as played (1..127; 0 a let-go, kept) -> the one it plays at KEY VELOCITY */
 static uint32_t daw_kv_vel(uint32_t v)
 {
@@ -252,6 +265,8 @@ typedef struct {
                                            * 5..7 MOD WHEEL */
     uint8_t ch, n, rsv;                   /* CHANNEL; the entries that follow (DAW_N); KEY VELOCITY + 1 */
     daw_ent_t map[DAW_N];                 /* the USER map */
+    uint8_t pd, pd_rsv;                   /* PEDAL (older data: 0, OFF) */
+    uint16_t pd_heel, pd_toe;             /* LEARN PEDAL's (raw + 1; 0 not learned) */
 } daw_store_t;
 static void daw_store_fill(daw_store_t *s)
 {
@@ -266,6 +281,9 @@ static void daw_store_fill(daw_store_t *s)
     s->rsv = (uint8_t)(daw_kv + 1u);
     for (i = 0; i < DAW_N; i++)
         s->map[i] = daw_umap[i];
+    s->pd = daw_pd;
+    s->pd_heel = daw_pd_heel;
+    s->pd_toe = daw_pd_toe;
 }
 /* the object as read (len bytes): 1 taken. A bad magic or a short one: 0, nothing changes (the defaults stay). Fewer
  * entries (an older map): the rest the defaults; an entry out of range: its default */
@@ -291,6 +309,9 @@ static int daw_store_take(const uint8_t *b, uint32_t len)
     daw_kv = (uint8_t)(s.rsv >= 1u && s.rsv <= KV_N ? s.rsv - 1u : KV_NORMAL);
     for (i = 0; i < DAW_N; i++)
         daw_umap[i] = i < n && daw_ent_ok(i, &s.map[i]) ? s.map[i] : daw_default(i);
+    daw_pd = (uint8_t)(s.pd < PD_N ? s.pd : PD_OFF);  /* (an older object: its padding, zeros: OFF, nothing learned) */
+    daw_pd_heel = (uint16_t)(s.pd_heel <= 1024u ? s.pd_heel : 0u);
+    daw_pd_toe = (uint16_t)(s.pd_toe <= 1024u ? s.pd_toe : 0u);
     return 1;
 }
 

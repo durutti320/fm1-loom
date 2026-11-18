@@ -1,0 +1,43 @@
+# ARP tapped: the selected track's player off, or back on (the one it had; none yet: the arp); held and let go: the
+# Players pages as before; a kit: Players, as before
+wait 300
+listen
+turn ALGO 1
+wait 40
+expect trk 2
+expect par2.player 0
+tap ARP
+wait 40
+said ARP
+expect par2.player 1
+expect page Steps
+tap ARP
+wait 40
+said ARP
+expect par2.player 0
+# a strum: off, then back as a strum
+param 2 player 2
+wait 40
+tap ARP
+wait 40
+said STRUM
+expect par2.player 0
+tap ARP
+wait 40
+expect par2.player 2
+# held: Players, the player left alone
+press ARP
+wait 600
+release ARP
+wait 40
+expect page Players
+expect par2.player 2
+# a kit: a tap opens Players (no player on a kit)
+turn ALGO -1
+wait 40
+expect trk 1
+tap SEQ
+wait 40
+tap ARP
+wait 40
+expect page Players

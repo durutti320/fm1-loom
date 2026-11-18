@@ -4,6 +4,7 @@
  * press, the rate of the continuous controls, and the flash object (round trip, older data, a bad entry, a bad magic). */
 #include <stdio.h>
 #include <stdint.h>
+#include <stddef.h>
 #include <string.h>
 #include "../app/smk_daw.h"
 
@@ -177,6 +178,17 @@ int main(void)
         b[5] = 0;                                       /* channel 0 */
         daw_store_take(b, sizeof s);
         check(daw_ch == 1, "a channel out of range: 1");
+        daw_pd = PD_WAH, daw_pd_heel = 101, daw_pd_toe = 901;
+        daw_store_fill(&s);
+        memcpy(b, &s, sizeof s);
+        daw_pd = PD_OFF, daw_pd_heel = daw_pd_toe = 0;
+        check(daw_store_take(b, sizeof s) && daw_pd == PD_WAH && daw_pd_heel == 101 && daw_pd_toe == 901,
+              "PEDAL and its learned heel and toe: round trip");
+        check(daw_store_take(b, (uint32_t)offsetof(daw_store_t, pd)) && daw_pd == PD_OFF && !daw_pd_heel && !daw_pd_toe,
+              "an object from before PEDAL: OFF, nothing learned");
+        b[offsetof(daw_store_t, pd)] = PD_N;
+        daw_store_take(b, sizeof s);
+        check(daw_pd == PD_OFF, "PEDAL out of range: OFF");
     }
     /* ---- KEY VELOCITY: kept in rsv (+ 1); none (older data) or out of range: NORMAL ---- */
     {
