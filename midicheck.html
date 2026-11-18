@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SMK-37 MIDI check</title>
+<!-- SPDX-License-Identifier: GPL-3.0-only. LOOM-8 SMK-37's DAW mode (app/smk_daw.h, the DEFAULT map) checked control by
+     control: every control is a tile that lights when the message it should send arrives over Web MIDI. Nothing is sent
+     to the keyboard. -->
+<style>
+:root { --bg: #0e0c12; --panel: #1a1620; --ink: #ece6f2; --dim: #8f8699; --ok: #3ccf7a; --warn: #f0b414; --bad: #e0485a; --line: #2d2638; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1100px; margin: 0 auto; padding: 16px; }
+h1 { font-size: 1.3rem; margin: 0 0 4px; }
+p { color: var(--dim); margin: 4px 0 12px; }
+.bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+button, select { background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font: inherit; cursor: pointer; }
+button.primary { background: #3b2d55; border-color: #5a4580; }
+.state { color: var(--dim); }
+.count { font-weight: 700; }
+h2 { font-size: .95rem; margin: 18px 0 8px; color: var(--dim); text-transform: uppercase; letter-spacing: .06em; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 6px; }
+.t { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; min-height: 58px; transition: background .15s; }
+.t b { display: block; font-size: .9rem; }
+.t small { display: block; color: var(--dim); font-size: .72rem; }
+.t .v { font-variant-numeric: tabular-nums; font-size: .78rem; color: var(--dim); }
+.t.seen { border-color: var(--ok); }
+.t.seen b::after { content: " ✓"; color: var(--ok); }
+.t.now { background: #20402c; }
+.log { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px; font: 12px/1.5 ui-monospace, Consolas, monospace; max-height: 220px; overflow: auto; white-space: pre; }
+.log .odd { color: var(--warn); }
+.pads { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+@media (max-width: 640px) { .pads { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+</style>
+</head>
+<body>
+<main>
+  <h1>SMK-37 MIDI check</h1>
+  <p>For LOOM-8 SMK-37's DAW mode (press <b>&lt;</b> and <b>&gt;</b> together on the keyboard). Plug the SMK in by USB,
+    click <b>Listen</b>, then move every knob and fader, press every pad and button, play keys and wheels. Each tile goes
+    green (✓) when the message it should send arrives. Anything unexpected shows in amber below. Nothing is sent to the
+    keyboard. Chrome or Edge on a computer.</p>
+  <div class="bar">
+    <button class="primary" id="go" type="button">Listen</button>
+    <select id="port" hidden aria-label="MIDI input"></select>
+    <button id="reset" type="button">Clear the ticks</button>
+    <span class="state" id="state">Not listening yet.</span>
+    <span class="count" id="count"></span>
+  </div>
+  <div id="sections"></div>
+  <h2>Every message in (newest first; amber: not one this map expects)</h2>
+  <div class="log" id="log" aria-live="polite"></div>
+</main>
+<script>
+"use strict";
+// the DEFAULT map (app/smk_daw.h daw_default): knobs K1..K8 CC 70..77 (KNOB BANK: 102..109), faders CC 20..23 (FADER
+// BANK: 24..27), pads notes on channel 10 (PAD 1..8 the top row 44..51, PAD 9..16 the bottom row 36..43; KNOB BANK +
+// FADER BANK: bank B, +16), buttons CC 127 pressed / 0 let go, pitch bend, mod wheel CC 1, keys notes on CHANNEL (1)
+const CH = 0;                                         // CHANNEL 1 (the default), 0-based
+const BTN = [["<", 110], [">", 111], ["PLAY", 115], ["REC", 117], ["SEQ", 112], ["FX", 113], ["PARA", 114],
+             ["ARP", 118], ["NOTE REPEAT", 119], ["SCALE", 85], ["CHORD", 86], ["GLOBE", 87], ["BT", 88]];
+const groups = [];
+const byKey = new Map();                              // "c0:70" / "n9:44" / "b0" (bend) -> tile
+function add(group, name, key, what) {
+  const g = groups.find((x) => x.name === group) || (groups.push({ name: group, tiles: [], cls: group.startsWith("Pads") ? "pads" : "" }), groups[groups.length - 1]);
+  const t = { name, key, what, el: null };
+  g.tiles.push(t);
+  byKey.set(key, t);
+}
+for (let i = 0; i < 8; i++) add("Knobs (bank A)", "K" + (i + 1), `c${CH}:${70 + i}`, `CC ${70 + i}`);
+for (let i = 0; i < 8; i++) add("Knobs (bank B: KNOB BANK)", "K" + (i + 1) + " B", `c${CH}:${102 + i}`, `CC ${102 + i}`);
+for (let i = 0; i < 4; i++) add("Faders (bank A)", "Fader " + (i + 1), `c${CH}:${20 + i}`, `CC ${20 + i}`);
+for (let i = 0; i < 4; i++) add("Faders (bank B: FADER BANK)", "Fader " + (i + 1) + " B", `c${CH}:${24 + i}`, `CC ${24 + i}`);
+for (const [bank, off] of [["A", 0], ["B: KNOB BANK + FADER BANK", 16]]) {
+  for (let p = 1; p <= 16; p++) {
+    const n = (p <= 8 ? 44 + p - 1 : 36 + p - 9) + off;
+    add(`Pads (bank ${bank}; top row 1-8)`, "Pad " + p + (off ? " B" : ""), `n9:${n}`, `note ${n} ch 10`);
+  }
+}
+for (const [name, cc] of BTN) add("Buttons", name, `c${CH}:${cc}`, `CC ${cc}`);
+add("Wheels", "Pitch wheel", `b${CH}`, "pitch bend");
+add("Wheels", "Mod wheel", `c${CH}:1`, "CC 1");
+add("Keys", "Keys", `k${CH}`, "notes ch 1");
+add("Keys", "Sustain pedal", `c${CH}:64`, "CC 64");
+
+const box = document.getElementById("sections");
+for (const g of groups) {
+  const h = document.createElement("h2"); h.textContent = g.name; box.appendChild(h);
+  const grid = document.createElement("div"); grid.className = "grid " + g.cls; box.appendChild(grid);
+  for (const t of g.tiles) {
+    const d = document.createElement("div");
+    d.className = "t";
+    d.innerHTML = `<b></b><small></small><span class="v">–</span>`;
+    d.querySelector("b").textContent = t.name;
+    d.querySelector("small").textContent = t.what;
+    grid.appendChild(d);
+    t.el = d;
+  }
+}
+const countEl = document.getElementById("count");
+function count() {
+  const all = [...byKey.values()], seen = all.filter((t) => t.el.classList.contains("seen")).length;
+  countEl.textContent = `${seen} of ${all.length} checked`;
+}
+count();
+document.getElementById("reset").onclick = () => { for (const t of byKey.values()) t.el.classList.remove("seen", "now"); count(); };
+
+const logEl = document.getElementById("log"), lines = [];
+function log(text, odd) {
+  lines.unshift(`<div${odd ? ' class="odd"' : ""}>${text}</div>`);
+  lines.length = Math.min(lines.length, 200);
+  logEl.innerHTML = lines.join("");
+}
+function hit(t, value) {
+  t.el.classList.add("seen", "now");
+  t.el.querySelector(".v").textContent = value;
+  clearTimeout(t.timer);
+  t.timer = setTimeout(() => t.el.classList.remove("now"), 250);
+  count();
+}
+function onMidi(d) {
+  const st = d[0], d1 = d[1] || 0, d2 = d[2] || 0, ty = st & 0xF0, ch = st & 15;
+  if (st >= 0xF8) return;                             // (clock, sensing)
+  const hex = [...d].map((x) => x.toString(16).toUpperCase().padStart(2, "0")).join(" ");
+  let t = null, what = "", value = "";
+  if (ty === 0xB0) { t = byKey.get(`c${ch}:${d1}`); what = `CC ${d1} = ${d2}`; value = String(d2); }
+  else if (ty === 0x90 || ty === 0x80) {
+    const on = ty === 0x90 && d2 > 0;
+    what = `note ${on ? "on " : "off"} ${d1}${on ? " vel " + d2 : ""}`;
+    t = byKey.get(`n${ch}:${d1}`) || (ch === CH ? byKey.get(`k${ch}`) : null);
+    value = on ? `${d1} vel ${d2}` : `${d1} off`;
+  } else if (ty === 0xE0) { const v = ((d2 << 7) | d1) - 8192; t = byKey.get(`b${ch}`); what = `pitch bend ${v}`; value = String(v); }
+  else if (ty === 0xA0) { what = `poly pressure ${d1} = ${d2}`; }
+  else if (ty === 0xD0) { what = `channel pressure ${d1}`; }
+  else if (ty === 0xC0) { what = `program ${d1}`; }
+  else if (st === 0xF0) { what = "SysEx"; }
+  const pressure = ty === 0xA0 || ty === 0xD0;        // (pads' pressure: expected, not a control of its own)
+  if (t) hit(t, value);
+  log(`${hex.padEnd(9)}  ch ${String(ch + 1).padStart(2)}  ${what}${t ? "  → " + t.name : pressure ? "  (pressure)" : "  → not in the map"}`, !t && !pressure);
+}
+
+const go = document.getElementById("go"), portSel = document.getElementById("port"), stateEl = document.getElementById("state");
+let access = null;
+function ports() {
+  const ins = access ? [...access.inputs.values()] : [];
+  const keep = portSel.value;
+  portSel.innerHTML = "";
+  for (const i of ins) portSel.add(new Option(i.name || "MIDI input", i.id));
+  if (ins.length > 1) portSel.add(new Option("All of them", "*"), 0);
+  const smk = ins.find((i) => /smk|loom|spider|m-?vave/i.test(i.name || ""));
+  portSel.value = [...portSel.options].some((o) => o.value === keep) ? keep : smk ? smk.id : ins.length ? portSel.options[0].value : "";
+  portSel.hidden = !ins.length;
+  for (const i of ins) i.onmidimessage = portSel.value === "*" || portSel.value === i.id ? (e) => onMidi(e.data) : null;
+  stateEl.textContent = ins.length ? "Listening. In DAW mode, move a control." : "No MIDI keyboard found: plug it in by USB (it shows up here when it is).";
+}
+portSel.onchange = ports;
+go.onclick = async () => {
+  if (!navigator.requestMIDIAccess) { stateEl.textContent = "This browser has no Web MIDI: use Chrome or Edge on a computer."; return; }
+  try {
+    access = await navigator.requestMIDIAccess();
+    access.onstatechange = ports;
+    go.textContent = "Listening";
+    go.disabled = true;
+    ports();
+  } catch (e) {
+    stateEl.textContent = "MIDI was not allowed: allow it (the icon in the address bar) and click Listen again.";
+  }
+};
+</script>
+</body>
+</html>
