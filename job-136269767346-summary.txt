@@ -1,0 +1,9 @@
+  echo "::error title=Build failed::$(tail -n 60 /tmp/sp-build.log | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"
+for s in tests/scenarios/*.xy; do case "$s" in */samples.xy|*/upload.xy|*/bluetooth.xy) continue;; esac; SPROUT_SHOP=1 app/build/host/sprout_host "$s" /tmp/l8-scenarios > /tmp/l8-one.log 2>&1 || { cat /tmp/l8-one.log; echo "FAILED: $s"; exit 1; }; done
+  echo "::error title=Tests failed::$(tail -n 60 /tmp/sp-test.log | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"
+  echo "::error title=Build failed::$(tail -n 60 /tmp/sp-build.log | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"
+2026-11-20T11:51:33.2841337Z SYM 02003d0a     32 att_error
+for s in tests/scenarios/*.xy; do case "$s" in */samples.xy|*/upload.xy|*/bluetooth.xy) continue;; esac; SPROUT_SHOP=1 app/build/host/sprout_host "$s" /tmp/l8-scenarios > /tmp/l8-one.log 2>&1 || { cat /tmp/l8-one.log; echo "FAILED: $s"; exit 1; }; done
+  echo "::error title=Tests failed::$(tail -n 60 /tmp/sp-test.log | sed 's/%/%25/g; s/\r//g' | awk '{printf "%s%%0A", $0}')"
+2026-11-20T11:51:55.3692460Z   if-no-files-found: error
+2026-11-20T11:51:56.0226751Z (node:2615) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
