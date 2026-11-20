@@ -96,8 +96,9 @@ jobs:
         mkdir -p /tmp/sp-scenarios /tmp/l8-scenarios
         for s in tests/scenarios_sprout/*.xy; do app/build/host/sprout_host "$s" /tmp/sp-scenarios; done
         # LOOM-8's own scenarios, on the same build with SMALL AXE's workshop open from the start (SPROUT_SHOP=1)
-        # (samples.xy and upload.xy need the user bank tests/run_tests.sh makes: the bank is LOOM-8's, unchanged)
-        for s in tests/scenarios/*.xy; do case "$s" in */samples.xy|*/upload.xy) continue;; esac; SPROUT_SHOP=1 app/build/host/sprout_host "$s" /tmp/l8-scenarios > /tmp/l8-one.log 2>&1 || { cat /tmp/l8-one.log; echo "FAILED: $s"; exit 1; }; done
+        # (samples.xy and upload.xy need the user bank tests/run_tests.sh makes: the bank is LOOM-8's, unchanged;
+        # bluetooth.xy connects to Bluetooth MIDI devices, which SPROUT builds without: fm1.toml ble_central)
+        for s in tests/scenarios/*.xy; do case "$s" in */samples.xy|*/upload.xy|*/bluetooth.xy) continue;; esac; SPROUT_SHOP=1 app/build/host/sprout_host "$s" /tmp/l8-scenarios > /tmp/l8-one.log 2>&1 || { cat /tmp/l8-one.log; echo "FAILED: $s"; exit 1; }; done
         EOF
         cat /tmp/sp-test.log
         if [ "$rc" != 0 ]; then
