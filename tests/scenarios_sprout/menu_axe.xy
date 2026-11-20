@@ -1,0 +1,78 @@
+# the grown-ups' menu (GLO + HOME held), the note names, SMALL AXE's desk and workshop, and back to the garden
+master 4096
+wait 600
+press GLO
+press HOME
+wait 1700
+shot menu.png
+release GLO
+release HOME
+wait 100
+turn SELECT 1
+wait 100
+turn K1 1
+wait 150
+shot menu_names.png
+tap HOME
+wait 300
+key w4 down
+wait 200
+shot garden_solfa.png
+key w4 up
+press GLO
+press HOME
+wait 1700
+release GLO
+release HOME
+turn SELECT 2
+wait 100
+shot menu_desk.png
+tap SEL
+wait 500
+shot desk.png
+expect tempo 75
+tap PLAY
+wait 300
+expect playing 1
+wav desk.wav
+wait 3000
+key b1 down
+wait 200
+key b1 up
+wait 1500
+shot desk_drop.png
+key w2 down
+wait 1500
+shot desk_throw.png
+key w2 up
+key b8 down
+wait 1500
+key b8 up
+wait 3000
+wavstop
+turn K2 5
+wait 200
+shot desk_knob.png
+tap HOME
+wait 400
+shot workshop.png
+press GLO
+press HOME
+wait 1700
+release GLO
+release HOME
+wait 200
+shot menu_from_shop.png
+turn SELECT 2
+wait 100
+tap SEL
+wait 600
+expect playing 0
+shot garden_back.png
+expect tempo 84
+reboot
+wait 800
+expect tempo 84
+key w4 down
+wait 200
+shot after_reboot.png

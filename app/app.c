@@ -11,6 +11,9 @@
 #include "pages.c"
 #include "ui.c"
 #include "midicc.c"
+#if SPROUT
+#include "sprout.c"                                 /* SPROUT: the garden, the grown-ups' menu, SMALL AXE's desk */
+#endif
 #if BOARD_SMK37
 #include "smk37.c"                                  /* the M-VAVE SMK-37's panel: pads, faders, outer keys, wheels */
 #endif
@@ -169,6 +172,10 @@ int app_sysex(const uint8_t *p, uint32_t n) { return smp_frame(p, n); }
 /* the name over the eight tracks' inks woven as threads, in the default theme (pages.c THEMES[0]) */
 void app_splash(void)
 {
+#if SPROUT
+    sprout_splash();
+    return;
+#endif
     const theme_t *t = &THEMES[0];
     lcd_fill(0, 0, 240, 240, t->bg);
     cv_begin(240, 96, t->bg);

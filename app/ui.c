@@ -18,6 +18,12 @@
 static void speak(void);
 static void step_rec_start(void);
 static void sp_msg(const char *a, const char *b, uint32_t flags);
+#if SPROUT
+static int sprout_frame(void);                     /* sprout.c: the garden, the grown-ups' menu, the desk (1: its frame) */
+static int spr_owns(void);
+static int spr_slot_guard(int slot);
+static int spr_slot_guard_quiet(int slot);
+#endif
 static uint8_t sp_said;
 static uint32_t sp_in_t;
 
@@ -3382,6 +3388,10 @@ static void do_save_slot(void)
 }
 static void act_save_slot(int slot)
 {
+#if SPROUT
+    if (!spr_slot_guard(slot))                    /* (the garden's slot holds the child's) */
+        return;
+#endif
     ui.ask_arg = (uint8_t)slot;
     if (project_exists(slot) && slot != proj_slot) {
         char q[32];
@@ -3411,6 +3421,10 @@ static void do_load_proj(void)
 {
     int slot = ui.ask_arg % NPROJ;
     char t[16];
+#if SPROUT
+    if (!spr_slot_guard(slot))
+        return;
+#endif
     engine_transport(0);
     engine_panic();
     project_device_get();                        /* (Setup's settings and the theme are the FM-1's, not the project's:
@@ -3450,7 +3464,11 @@ static void do_new_proj(void)
     ui.dirty = 1;
     proj_slot = PROJ_NOSLOT;                     /* its slot: the first free one; none free, SAVE TO picks one */
     for (int s = NPROJ - 1; s >= 0; s--)
-        if (!project_exists(s))
+        if (!project_exists(s)
+#if SPROUT
+            && spr_slot_guard_quiet(s)
+#endif
+            )
             proj_slot = (uint8_t)s;
     if (proj_slot < NPROJ) {
         char t[16];
@@ -4863,6 +4881,10 @@ void ui_frame(void)
     if (lsmk_daw_frame())                        /* DAW mode: the SMK is a MIDI controller (smk37.c), LOOM-8 left alone */
         return;
 #endif
+#if SPROUT
+    if (sprout_frame())                          /* SPROUT's own (sprout.c); LOOM-8's pages only in SMALL AXE's workshop */
+        return;
+#endif
     input();
     bt_poll();
     if (ui.chordmode && (ui.page != P_STEPS || !is_seqt(sel_trk()) || is_drum(sel_trk()) ||
@@ -4918,6 +4940,10 @@ void ui_input_only(void)
 {
 #if BOARD_SMK37
     if (daw_on)                                  /* (DAW mode: its controls are smk37.c's, at the next frame) */
+        return;
+#endif
+#if SPROUT
+    if (spr_owns())                               /* (sprout's controls are its own, at the next frame) */
         return;
 #endif
     input();

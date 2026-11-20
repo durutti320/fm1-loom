@@ -31,6 +31,14 @@ static const theme_t THEMES[] = {
      RGB(150, 150, 156), RGB(235, 235, 238), RGB(130, 130, 138), RGB(232, 44, 38), RGB(215, 215, 220),
      {RGB(255, 92, 170), RGB(40, 204, 192), RGB(244, 200, 60), RGB(104, 152, 255), RGB(255, 136, 64),
       RGB(110, 216, 110), RGB(178, 136, 255), RGB(214, 176, 136)}, 6, 9},
+#if SPROUT
+    /* SMALL AXE (app/sprout.c): a sound system at night, red, gold and green on the dark of a speaker's cloth (its
+     * workshop opens in it; the FM-1's own theme comes back with the garden) */
+    {"small axe", RGB(14, 12, 10), RGB(36, 28, 22), RGB(60, 46, 34), RGB(66, 52, 38), RGB(110, 92, 70),
+     RGB(184, 164, 130), RGB(246, 232, 200), RGB(150, 128, 96), RGB(226, 44, 44), RGB(250, 196, 44),
+     {RGB(226, 60, 50), RGB(250, 196, 44), RGB(56, 200, 96), RGB(240, 120, 60), RGB(220, 210, 90),
+      RGB(120, 220, 140), RGB(255, 90, 90), RGB(200, 160, 70)}, 6, 9},
+#endif
 };
 #define NTHEMES (sizeof THEMES / sizeof THEMES[0])
 #define THEME_BW 2
@@ -42,10 +50,11 @@ static int theme_ix(void)
     uint32_t v = proj.rsv[1];
     return (int)(v & THEME_SET ? (v & 0x3Fu) % NTHEMES : v % NTHEMES ? v % NTHEMES : THEME_BW);
 }
+#define NTHEMES_PICK (NTHEMES - SPROUT)                /* Setup's THEME: SPROUT's SMALL AXE theme is its desk's own */
 static void theme_step(int d)
 {
     proj.rsv[1] = (uint8_t)(THEME_SET | (proj.rsv[1] & THEME_SET ? proj.rsv[1] & LARGE_TYPE : 0u) |
-                            (uint32_t)(theme_ix() + (int)NTHEMES + d) % NTHEMES);
+                            (uint32_t)(theme_ix() % (int)NTHEMES_PICK + (int)NTHEMES_PICK + d) % NTHEMES_PICK);
 }
 static int large_type(void) { return (proj.rsv[1] & (THEME_SET | LARGE_TYPE)) == (THEME_SET | LARGE_TYPE); }
 static void large_type_set(int on)

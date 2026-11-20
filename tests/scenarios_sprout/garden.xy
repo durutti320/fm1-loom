@@ -1,0 +1,32 @@
+# SPROUT's garden (level 1): the keyboard screen, the keys' names, KNOB 1 free / garden, the grown-ups' menu
+master 4096
+wait 600
+shot garden_idle.png
+key w4 down
+wait 200
+shot garden_c4.png
+key w4 up
+key b5 down
+wait 150
+shot garden_black.png
+key b5 up
+wav garden_keys.wav
+strum 0 15 120
+wait 400
+wavstop
+turn K1 1
+wait 300
+expect playing 1
+wav garden_bed.wav
+wait 12000
+shot garden_bed.png
+key w7 down
+wait 300
+shot garden_bed_key.png
+key w7 up
+wait 2000
+wavstop
+leds
+turn K1 -1
+wait 300
+expect playing 0

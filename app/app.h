@@ -9,8 +9,16 @@
 #include "dsp/synth.h"
 #include "dsp/fx.h"
 
+#if BOARD_SMK37
+#define SPROUT 0
 #define APP_NAME "LOOM-8"
-#define APP_BLOCK 256u                  /* frames a render (5.8 ms): fm1-base's USB audio input takes 256-frame halves
+#else
+/* SPROUT: the FM-1 build of this branch is Sound Garden on the FM-1, a child's instrument (app/sprout.c), with
+ * SMALL AXE, a dub desk on LOOM-8, behind the grown-ups' menu */
+#define SPROUT 1
+#define APP_NAME "SPROUT"
+#endif
+#define APP_BLOCK 256u                 /* frames a render (5.8 ms): fm1-base's USB audio input takes 256-frame halves
                                          * at most (felucca-bsp usb.c); LOOM-8's own platform had 512-frame halves,
                                          * each rendered as two 256-frame calls, which is what the simulator always did */
 #define FM1B_UAC_DEEP 1                 /* the USB audio input a half deeper: a song's busy blocks take most of their

@@ -1723,7 +1723,13 @@ int app_host_cmd(const char *cmd, const char *a, const char *b, const char *c, c
 }
 
 void app_speak_dump(void) { speak_dump(); }
-void app_host_reboot(void) { memset(&proj, 0, sizeof proj); }   /* what RAM forgets (the flash keeps the rest) */
+void app_host_reboot(void)                          /* what RAM forgets (the flash keeps the rest) */
+{
+    memset(&proj, 0, sizeof proj);
+#if SPROUT
+    spr_reset();
+#endif
+}
 int app_host_fails(void)
 {
     if (msg_too_wide)                               /* a hint row or a message that did not fit at its size (pages.c) */
