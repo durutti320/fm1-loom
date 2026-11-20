@@ -124,6 +124,8 @@ jobs:
         run: |
           set -euo pipefail
           cd firmware
+          find . -mindepth 2 -type f -exec mv {} . \;           # (the artifact keeps build/sprout/: the files at the top)
+          find . -mindepth 1 -type d -empty -delete
           ls -la
           printf 'SPROUT for the M-VAVE FM-1, built from %s\n\nInstall: python3 fm1_install.py sprout.fwsc (pip3 install mido python-rtmidi),\nwith the FM-1 on USB. Back up first: python3 fm1_backup.py backup mine.loom8 --magic LM8B\n' "$GITHUB_SHA" > README.txt
           git init -q -b sprout-firmware
