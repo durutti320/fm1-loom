@@ -106,9 +106,35 @@ jobs:
           exit "$rc"
         fi
 
+  # the firmware onto the branch sprout-firmware too (the build's "packages", unzipped): a plain file to download and
+  # install, beside the emulator's branch
+  firmware:
+    needs: [build]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages
+          path: firmware
+      - name: Onto sprout-firmware
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd firmware
+          ls -la
+          printf 'SPROUT for the M-VAVE FM-1, built from %s\n\nInstall: python3 fm1_install.py sprout.fwsc (pip3 install mido python-rtmidi),\nwith the FM-1 on USB. Back up first: python3 fm1_backup.py backup mine.loom8 --magic LM8B\n' "$GITHUB_SHA" > README.txt
+          git init -q -b sprout-firmware
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "SPROUT firmware, from $GITHUB_SHA"
+          git push -q -f "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" sprout-firmware
+
   # every job's log onto the branch sprout-ci-log (RESULT.txt: how each job ended), readable without the Actions page
   log:
-    needs: [emu, build]
+    needs: [emu, build, firmware]
     if: always()
     runs-on: ubuntu-24.04
     permissions:
@@ -118,7 +144,7 @@ jobs:
       - name: Onto sprout-ci-log
         env:
           GH_TOKEN: ${{ github.token }}
-          RESULTS: "emu=${{ needs.emu.result }} build=${{ needs.build.result }}"
+          RESULTS: "emu=${{ needs.emu.result }} build=${{ needs.build.result }} firmware=${{ needs.firmware.result }}"
         run: |
           set -u
           mkdir -p "$RUNNER_TEMP/logs" && cd "$RUNNER_TEMP/logs"
